@@ -9,7 +9,8 @@ const { db, DATA_DIR, UPLOAD_DIR } = require('./db');
 const { gerarCertificado } = require('./certificado');
 
 const PORT = Number(process.env.PORT) || 3000;
-const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'ambar-dho';
+const PRODUCAO = process.env.NODE_ENV === 'production';
+const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || (PRODUCAO ? null : 'ambar-dho');
 const NOTA_MINIMA_PADRAO = 75;
 
 // Segredo para assinar os cookies de sessão (persistido para sobreviver a reinícios).
@@ -19,6 +20,10 @@ const SESSION_SECRET = process.env.SESSION_SECRET || (() => {
   return fs.readFileSync(SECRET_FILE, 'utf8');
 })();
 
+if (!ADMIN_PASSWORD) {
+  console.error('[erro] Em produção é obrigatório definir ADMIN_PASSWORD (senha da área do RH).');
+  process.exit(1);
+}
 if (!process.env.ADMIN_PASSWORD) {
   console.warn('[aviso] ADMIN_PASSWORD não definido — usando a senha padrão "ambar-dho". Defina antes de publicar.');
 }
@@ -60,7 +65,7 @@ function lerCookies(req) {
 
 function definirSessao(res, nome, payload, horas) {
   const token = assinar({ ...payload, exp: Date.now() + horas * 3600e3 });
-  res.cookie(nome, token, { httpOnly: true, sameSite: 'lax', maxAge: horas * 3600e3, secure: process.env.NODE_ENV === 'production' });
+  res.cookie(nome, token, { httpOnly: true, sameSite: 'lax', maxAge: horas * 3600e3, secure: PRODUCAO });
 }
 
 function exigirColaborador(req, res, next) {
@@ -109,10 +114,52 @@ function progressoDoColaborador(cpf) {
   });
 }
 
+/**
+ * Limita tentativas de login com falha por IP (evita que alguém "chute" CPFs ou a senha do RH).
+ * Só as falhas contam; o limite é folgado porque várias pessoas de uma mesma filial saem pelo mesmo IP.
+ */
+function limitadorDeFalhas({ maximo, janelaMin }) {
+  const falhas = new Map();
+  setInterval(() => {
+    const agora = Date.now();
+    for (const [ip, r] of falhas) if (r.expira < agora) falhas.delete(ip);
+  }, 60e3).unref();
+  return {
+    bloqueado(req) {
+      const r = falhas.get(req.ip);
+      return Boolean(r && r.expira > Date.now() && r.n >= maximo);
+    },
+    registrar(req) {
+      const agora = Date.now();
+      const r = falhas.get(req.ip);
+      if (!r || r.expira < agora) falhas.set(req.ip, { n: 1, expira: agora + janelaMin * 60e3 });
+      else r.n += 1;
+    },
+  };
+}
+const limiteCpf = limitadorDeFalhas({ maximo: 30, janelaMin: 15 });
+const limiteAdmin = limitadorDeFalhas({ maximo: 10, janelaMin: 15 });
+const MSG_LIMITE = 'Muitas tentativas seguidas. Aguarde alguns minutos e tente novamente.';
+
 // ---------- app ----------
 
 const app = express();
+app.disable('x-powered-by');
+// Atrás do proxy HTTPS da hospedagem: usa o IP real do usuário e reconhece a conexão segura.
+app.set('trust proxy', 1);
+app.use((_req, res, next) => {
+  res.setHeader('X-Content-Type-Options', 'nosniff');
+  res.setHeader('X-Frame-Options', 'SAMEORIGIN');
+  res.setHeader('Referrer-Policy', 'same-origin');
+  if (PRODUCAO) res.setHeader('Strict-Transport-Security', 'max-age=15552000');
+  next();
+});
 app.use(express.json({ limit: '5mb' }));
+
+app.get('/healthz', (_req, res) => {
+  db.prepare('SELECT 1').get();
+  res.json({ ok: true });
+});
 
 const upload = multer({
   storage: multer.diskStorage({
@@ -140,9 +187,11 @@ app.get('/api/publico/resumo', (_req, res) => {
 // ===== Colaborador =====
 
 app.post('/api/entrar', (req, res) => {
+  if (limiteCpf.bloqueado(req)) return res.status(429).json({ erro: MSG_LIMITE });
   const cpf = normalizarCpf(req.body?.cpf);
   const colab = cpf && db.prepare('SELECT * FROM colaboradores WHERE cpf = ? AND ativo = 1').get(cpf);
   if (!colab) {
+    limiteCpf.registrar(req);
     return res.status(403).json({ erro: 'Acesso negado. Procure o time de DHO.' });
   }
   definirSessao(res, 'sess_colab', { cpf }, 12);
@@ -253,9 +302,13 @@ app.get('/api/validar/:codigo', (req, res) => {
 // ===== Admin (RH) =====
 
 app.post('/api/admin/entrar', (req, res) => {
+  if (limiteAdmin.bloqueado(req)) return res.status(429).json({ erro: MSG_LIMITE });
   const senha = String(req.body?.senha || '');
   const a = Buffer.from(senha), b = Buffer.from(ADMIN_PASSWORD);
-  if (a.length !== b.length || !crypto.timingSafeEqual(a, b)) return res.status(401).json({ erro: 'Senha incorreta.' });
+  if (a.length !== b.length || !crypto.timingSafeEqual(a, b)) {
+    limiteAdmin.registrar(req);
+    return res.status(401).json({ erro: 'Senha incorreta.' });
+  }
   definirSessao(res, 'sess_admin', { admin: true }, 8);
   res.json({ ok: true });
 });
@@ -429,6 +482,14 @@ app.get('/api/admin/resultados', exigirAdmin, (_req, res) => {
       (SELECT MAX(feito_em) FROM tentativas WHERE cpf = c.cpf) AS ultima_prova
     FROM colaboradores c WHERE c.ativo = 1 ORDER BY c.regional, c.filial, c.nome`).all();
   res.json({ total_aulas: totalAulas, total_provas: totalProvas, linhas });
+});
+
+// -- Backup do banco (colaboradores, temas, avaliações, notas e certificados) --
+
+app.get('/api/admin/backup', exigirAdmin, (_req, res) => {
+  const arquivo = path.join(DATA_DIR, `backup-${Date.now()}.db`);
+  db.exec(`VACUUM INTO '${arquivo.replace(/'/g, "''")}'`);
+  res.download(arquivo, `trilha-backup-${new Date().toISOString().slice(0, 10)}.db`, () => fs.rm(arquivo, { force: true }, () => {}));
 });
 
 // ---------- estáticos e erros ----------

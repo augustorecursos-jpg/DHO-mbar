@@ -27,6 +27,29 @@ npm start         # http://localhost:3000
 
 CPFs de demonstração (após `npm run seed`): `123.456.789-09`, `987.654.321-00`, `111.444.777-35`.
 
+## Publicação (acesso pelos colaboradores de todas as regionais)
+
+A plataforma é um único serviço web com HTTPS e um disco permanente para o banco e os PDFs.
+
+**Render (recomendado)** – o arquivo `render.yaml` já descreve tudo:
+1. Em render.com → **New → Blueprint**, escolha este repositório.
+2. Informe o valor de `ADMIN_PASSWORD` quando o Render pedir.
+3. Após o deploy, o Render gera o link `https://….onrender.com`; em **Settings → Custom Domains**
+   é possível usar um domínio da empresa (ex.: `trilha.ambarenergia.com.br`).
+
+Custo aproximado: plano Starter (US$ 7/mês) + disco de 5 GB (US$ 1,25/mês). O Render faz snapshot diário do disco.
+
+**Servidor próprio / outra nuvem** – use o `Dockerfile`:
+```bash
+docker build -t trilha-dho .
+docker run -d -p 3000:3000 -v trilha-dados:/data -e ADMIN_PASSWORD=... trilha-dho
+```
+e coloque um proxy com HTTPS (Nginx, IIS, load balancer da nuvem) na frente.
+
+Em produção (`NODE_ENV=production`) o servidor só inicia com `ADMIN_PASSWORD` definido, envia cookies apenas
+via HTTPS e limita tentativas de login com falha por IP. A área do RH tem o botão **Backup** (em Resultados),
+que baixa uma cópia completa do banco.
+
 ## Páginas
 
 - **`/`** – home pública. O colaborador digita o CPF e clica em **Acessar Trilha**.

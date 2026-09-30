@@ -31,14 +31,14 @@ CPFs de demonstração (após `npm run seed`): `123.456.789-09`, `987.654.321-00
 
 - **`/`** – home pública. O colaborador digita o CPF e clica em **Acessar Trilha**.
   CPF fora da base → *“Acesso negado. Procure o time de DHO.”*
-- **`/trilha.html`** – painel do colaborador: menu lateral com os temas da trilha (cada tema reúne seus PDFs), progresso geral, materiais estudados, avaliações pendentes,
-  certificados e progresso por módulo. Dentro do módulo: aulas em PDF (marcar como concluída),
-  prova liberada após todas as aulas, e download do certificado quando aprovado.
+- **`/trilha.html`** – painel do colaborador: menu lateral com os temas da trilha (cada tema reúne seus PDFs), progresso geral, materiais estudados, avaliações pendentes
+  e certificados. Dentro do tema: materiais em PDF (marcar como concluído), avaliação liberada após
+  todos os materiais, e download do certificado quando aprovado.
 - **`/admin.html`** – área do RH (senha):
   - **Colaboradores**: importa `.xlsx`/`.csv` com as colunas `CPF, NOME, CARGO, FILIAL, REGIONAL`
     (modelo em `public/exemplos/colaboradores-modelo.csv`). Modo *adicionar/atualizar* ou *substituir base*
     (quem sai da planilha perde o acesso, mas o histórico fica). Também dá para bloquear/liberar um CPF.
-  - **Módulos & Conteúdos**: cria módulos, envia os PDFs das aulas e monta a prova com gabarito
+  - **Temas & Materiais**: cria os temas (itens do menu lateral), envia os PDFs e monta a avaliação com gabarito
     (formulário ou colando as questões em texto, marcando a correta com `*`).
   - **Resultados**: progresso por colaborador com filtro por regional/filial e exportação CSV.
 

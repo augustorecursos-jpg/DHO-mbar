@@ -1,0 +1,148 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Área do RH · Trilha Âmbar</title>
+  <link rel="icon" href="img/favicon.svg" type="image/svg+xml">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,wght@0,400;0,500;0,700;1,700&family=Sora:ital,wght@0,600;0,700;0,800;1,700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/base.css">
+  <link rel="stylesheet" href="css/app.css">
+  <link rel="stylesheet" href="css/admin.css">
+</head>
+<body class="app">
+
+  <!-- Login do RH -->
+  <div class="login" id="tela-login">
+    <form class="cartao login-cartao" id="form-login">
+      <span class="lateral-logo">🎓</span>
+      <h1>Área do RH</h1>
+      <p>Gestão da Trilha de Desenvolvimento · DHO</p>
+      <label for="senha">Senha de administrador</label>
+      <input id="senha" type="password" class="campo" autocomplete="current-password" required>
+      <button class="btn btn-ambar" type="submit">Entrar como Admin</button>
+      <a href="index.html">← Voltar ao site</a>
+    </form>
+  </div>
+
+  <aside class="lateral" id="lateral" hidden>
+    <a class="lateral-marca" href="index.html">
+      <span class="lateral-logo">🎓</span>
+      <span><strong>Âmbar Energia</strong><small>ÁREA DO RH · ADMIN</small></span>
+    </a>
+    <p class="lateral-grupo">GESTÃO</p>
+    <button class="lateral-item ativo" data-aba="colaboradores"><span class="ic">👥</span>Colaboradores</button>
+    <button class="lateral-item" data-aba="modulos"><span class="ic">📚</span>Módulos & Conteúdos</button>
+    <button class="lateral-item" data-aba="resultados"><span class="ic">📊</span>Resultados</button>
+    <p class="lateral-versao">v0.1 · Âmbar RH</p>
+  </aside>
+
+  <div class="principal" id="principal" hidden>
+    <header class="barra">
+      <button class="btn-menu" id="btn-menu" aria-label="Abrir menu">☰</button>
+      <div>
+        <small class="barra-sup">ÂMBAR ENERGIA · RH</small>
+        <div class="barra-titulo"><span class="ponto"></span> Trilha de Desenvolvimento · <em>Painel do Admin</em></div>
+      </div>
+      <div class="barra-usuario">
+        <a class="btn btn-claro btn-sm" href="index.html">Ver site</a>
+        <button class="btn btn-claro btn-sm" id="sair">Sair</button>
+      </div>
+    </header>
+
+    <main class="conteudo">
+      <!-- Colaboradores -->
+      <section data-painel="colaboradores">
+        <h1 class="titulo-pagina">Base de <em>colaboradores</em></h1>
+        <div class="cartao">
+          <h3>📥 Importar planilha <small>· Excel (.xlsx) ou CSV com as colunas CPF, NOME, CARGO, FILIAL e REGIONAL</small></h3>
+          <div class="importar">
+            <input type="file" id="arquivo-colab" accept=".xlsx,.xls,.csv" class="campo">
+            <label class="check"><input type="radio" name="modo" value="atualizar" checked> Adicionar / atualizar</label>
+            <label class="check"><input type="radio" name="modo" value="substituir"> Substituir base (quem não estiver na planilha perde o acesso)</label>
+            <button class="btn btn-ambar" id="btn-importar" disabled>Importar</button>
+            <a class="btn btn-claro" href="exemplos/colaboradores-modelo.csv" download>Baixar modelo</a>
+          </div>
+          <div id="previa"></div>
+        </div>
+        <div class="cartao" style="margin-top:1.4rem">
+          <div class="cab-tabela">
+            <h3>👥 Colaboradores <small id="qtd-colab"></small></h3>
+            <input class="campo busca" id="busca-colab" placeholder="Buscar por nome, CPF, filial…">
+          </div>
+          <div class="tabela-wrap"><table class="tabela" id="tabela-colab"></table></div>
+        </div>
+      </section>
+
+      <!-- Módulos -->
+      <section data-painel="modulos" hidden>
+        <h1 class="titulo-pagina">Módulos & <em>conteúdos</em></h1>
+        <form class="cartao novo-modulo" id="form-modulo">
+          <h3>➕ Novo módulo</h3>
+          <div class="linha-form">
+            <input class="campo icone" name="icone" value="⚡" maxlength="4" aria-label="Ícone (emoji)" title="Ícone (emoji)">
+            <input class="campo" name="titulo" placeholder="Título do módulo (ex.: Cultura e Valores)" required>
+            <input class="campo" name="descricao" placeholder="Descrição curta (opcional)">
+            <button class="btn btn-ambar" type="submit">Criar</button>
+          </div>
+        </form>
+        <div id="lista-admin-modulos" class="lista-admin"></div>
+      </section>
+
+      <!-- Resultados -->
+      <section data-painel="resultados" hidden>
+        <h1 class="titulo-pagina">Resultados da <em>trilha</em></h1>
+        <div class="cartao">
+          <div class="cab-tabela">
+            <h3>📊 Progresso por colaborador <small id="resumo-resultados"></small></h3>
+            <div class="filtros">
+              <select class="campo" id="filtro-regional"><option value="">Todas as regionais</option></select>
+              <select class="campo" id="filtro-filial"><option value="">Todas as filiais</option></select>
+              <button class="btn btn-claro btn-sm" id="exportar">⬇ Exportar CSV</button>
+            </div>
+          </div>
+          <div class="tabela-wrap"><table class="tabela" id="tabela-resultados"></table></div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <!-- Editor de prova e gabarito -->
+  <dialog class="modal modal-prova" id="modal-editor">
+    <form id="form-editor">
+      <header>
+        <div><small>PROVA E GABARITO</small><h3 id="editor-modulo">Módulo</h3></div>
+        <button type="button" class="btn btn-claro btn-sm" data-fechar aria-label="Fechar">✕</button>
+      </header>
+      <div class="prova-corpo">
+        <div class="linha-form">
+          <input class="campo" id="editor-titulo" placeholder="Título da prova" required>
+          <label class="nota-min">Nota mínima <input class="campo" id="editor-nota" type="number" min="1" max="100" value="75">%</label>
+        </div>
+        <details class="colar">
+          <summary>📋 Colar questões em texto (importação rápida)</summary>
+          <p>Uma questão por bloco. Marque a alternativa correta com <code>*</code>:</p>
+          <pre>1) Qual é o nosso principal valor?
+a) Lucro a qualquer custo
+*b) Segurança em primeiro lugar
+c) Velocidade</pre>
+          <textarea class="campo" id="editor-texto" rows="6"></textarea>
+          <button type="button" class="btn btn-claro btn-sm" id="editor-converter">Converter em questões</button>
+        </details>
+        <div id="editor-questoes"></div>
+        <button type="button" class="btn btn-claro" id="editor-add">➕ Adicionar questão</button>
+      </div>
+      <footer>
+        <button type="button" class="btn btn-perigo btn-sm" id="editor-excluir">Excluir prova</button>
+        <button class="btn btn-ambar" type="submit">Salvar prova</button>
+      </footer>
+    </form>
+  </dialog>
+
+  <script src="vendor/xlsx.full.min.js"></script>
+  <script src="js/comum.js"></script>
+  <script src="js/admin.js"></script>
+</body>
+</html>

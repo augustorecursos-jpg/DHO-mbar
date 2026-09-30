@@ -1,0 +1,20 @@
+{
+  "name": "ambar-trilha-dho",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Plataforma de trilhas de desenvolvimento (aulas em PDF, provas e certificados) - Âmbar Energia / DHO",
+  "main": "server.js",
+  "scripts": {
+    "start": "node --no-warnings server.js",
+    "dev": "node --no-warnings --watch server.js",
+    "seed": "node --no-warnings scripts/seed-demo.js"
+  },
+  "engines": {
+    "node": ">=22.5"
+  },
+  "dependencies": {
+    "express": "^5.2.1",
+    "multer": "^2.0.2",
+    "pdf-lib": "^1.17.1"
+  }
+}

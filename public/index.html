@@ -1,0 +1,157 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Trilha de Desenvolvimento · Âmbar Energia</title>
+  <meta name="description" content="Aulas, provas e certificados em uma trilha única de desenvolvimento · RH Âmbar">
+  <link rel="icon" href="img/favicon.svg" type="image/svg+xml">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,wght@0,400;0,500;0,700;1,700&family=Sora:ital,wght@0,600;0,700;0,800;1,700;1,800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/base.css">
+  <link rel="stylesheet" href="css/landing.css">
+</head>
+<body class="landing">
+
+  <!-- Símbolo reutilizável: torre de transmissão -->
+  <svg width="0" height="0" style="position:absolute" aria-hidden="true">
+    <symbol id="torre" viewBox="0 0 120 300">
+      <g fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round">
+        <path d="M60 4 L44 70 L30 300 M60 4 L76 70 L90 300"/>
+        <path d="M10 46 L110 46 M20 78 L100 78 M44 70 L76 70"/>
+        <path d="M10 46 L60 22 L110 46 M20 78 L44 62 M100 78 L76 62"/>
+        <path d="M44 70 L80 130 L38 190 L86 250 L30 300 M76 70 L40 130 L82 190 L34 250 L90 300"/>
+        <path d="M41 130 L79 130 M37 190 L83 190 M33 250 L87 250"/>
+        <path d="M10 46 v8 M110 46 v8 M20 78 v8 M100 78 v8"/>
+      </g>
+    </symbol>
+  </svg>
+
+  <header class="topo">
+    <a class="marca" href="#inicio">
+      <span class="marca-logo">Âmbar</span>
+      <span class="marca-texto"><strong>Âmbar Energia</strong><small>HUB DE DESENVOLVIMENTO</small></span>
+    </a>
+    <nav class="menu" aria-label="Seções">
+      <a href="#sobre">Sobre a Trilha</a>
+      <a href="#modulos">Módulos</a>
+      <a href="#jornada">Jornada</a>
+      <a href="#resultados">Resultados</a>
+      <a href="#como-funciona">Como funciona</a>
+    </nav>
+    <a class="btn btn-ambar btn-hub" href="#acesso">🎓 Acessar Hub</a>
+  </header>
+
+  <main>
+    <section class="hero" id="inicio">
+      <div class="hero-fundo" aria-hidden="true">
+        <svg class="fios" viewBox="0 0 1440 520" preserveAspectRatio="none">
+          <path d="M-20 250 Q 280 330 590 262 T 1180 262 T 1480 300"/>
+          <path d="M-20 290 Q 280 380 590 300 T 1180 300 T 1480 340"/>
+          <path d="M-20 330 Q 280 420 590 340 T 1180 340 T 1480 380"/>
+        </svg>
+        <svg class="torre t1"><use href="#torre"/></svg>
+        <svg class="torre t2"><use href="#torre"/></svg>
+        <svg class="torre t3"><use href="#torre"/></svg>
+        <span class="faisca" style="left:38%;top:62%"></span>
+        <span class="faisca" style="left:57%;top:72%"></span>
+        <span class="faisca" style="left:65%;top:28%"></span>
+        <span class="faisca" style="left:83%;top:66%"></span>
+        <span class="faisca" style="left:12%;top:30%"></span>
+      </div>
+
+      <div class="hero-conteudo">
+        <span class="selo">✺ TRILHA DE DESENVOLVIMENTO · RH ÂMBAR</span>
+        <h1>A energia que<br><em>te desenvolve.</em></h1>
+        <p class="hero-sub">
+          Aulas, provas e certificados em uma trilha única de desenvolvimento —
+          <strong>acompanhe seu progresso em tempo real</strong> e conquiste cada módulo
+          como quem energiza uma linha de transmissão.
+        </p>
+
+        <form class="acesso" id="acesso" novalidate>
+          <label for="cpf" class="acesso-label">Entre com seu CPF</label>
+          <div class="acesso-linha">
+            <input id="cpf" name="cpf" class="campo" inputmode="numeric" autocomplete="off"
+                   placeholder="000.000.000-00" maxlength="14" aria-describedby="acesso-msg">
+            <button class="btn btn-ambar" type="submit">⚡ Acessar Trilha</button>
+          </div>
+          <p class="acesso-msg" id="acesso-msg" role="alert" aria-live="assertive"></p>
+          <a class="link-suave" href="#como-funciona">Como funciona ↓</a>
+        </form>
+      </div>
+
+      <div class="hero-botao">
+        <button class="ligar" id="ligar" type="button" aria-label="Ligar: ir para o acesso por CPF">
+          <span class="ligar-anel"></span>
+          <span class="ligar-nucleo">
+            <svg viewBox="0 0 24 24" width="44" height="44" aria-hidden="true"><path d="M13 2 3 14h8l-1 8 10-12h-8z" fill="url(#g-raio)"/><defs><linearGradient id="g-raio" x1="0" x2="0" y1="0" y2="1"><stop offset="0" stop-color="#fcd34d"/><stop offset="1" stop-color="#ea580c"/></linearGradient></defs></svg>
+            <span>LIGAR</span>
+          </span>
+        </button>
+        <p>Aperte para <strong>energizar sua jornada</strong></p>
+      </div>
+    </section>
+
+    <div class="faixa" aria-hidden="true"><div class="faixa-trilho" id="faixa"></div></div>
+
+    <section class="secao" id="sobre">
+      <p class="secao-destaque">
+        Esta trilha foi desenhada para <strong>líderes e colaboradores que assumem responsabilidades</strong>
+        de gente, processos e resultados — com conteúdo prático, avaliação e reconhecimento.
+      </p>
+      <div class="cards-3">
+        <article class="card-escuro"><span>📚</span><h3>Aulas em PDF</h3><p>Apresentações objetivas, preparadas pelo time de DHO, para estudar no seu ritmo.</p></article>
+        <article class="card-escuro"><span>📝</span><h3>Provas por módulo</h3><p>Ao concluir as aulas, a prova do módulo é liberada. A correção é imediata.</p></article>
+        <article class="card-escuro"><span>🏅</span><h3>Certificado</h3><p>Acertou <strong id="nota-min-1">75</strong>% ou mais? Seu certificado fica disponível para download na hora.</p></article>
+      </div>
+    </section>
+
+    <section class="secao" id="modulos">
+      <h2 class="secao-titulo">Módulos da <em>trilha</em></h2>
+      <div class="grade-modulos" id="grade-modulos">
+        <p class="vazio">Os módulos aparecerão aqui assim que o RH publicar os conteúdos.</p>
+      </div>
+    </section>
+
+    <section class="secao" id="jornada">
+      <h2 class="secao-titulo">Sua <em>jornada</em></h2>
+      <ol class="jornada">
+        <li><b>1</b><h3>Acesse com seu CPF</h3><p>Colaboradores cadastrados pelo RH entram direto, sem senha.</p></li>
+        <li><b>2</b><h3>Estude as aulas</h3><p>Abra cada apresentação e marque como concluída.</p></li>
+        <li><b>3</b><h3>Faça a prova</h3><p>Responda às questões do módulo e veja sua nota na hora.</p></li>
+        <li><b>4</b><h3>Baixe o certificado</h3><p>Com <span class="nota-min">75</span>% de acerto ou mais, o certificado é liberado.</p></li>
+      </ol>
+    </section>
+
+    <section class="secao" id="resultados">
+      <h2 class="secao-titulo">A trilha em <em>números</em></h2>
+      <div class="numeros">
+        <div><strong id="n-modulos">–</strong><span>módulos</span></div>
+        <div><strong id="n-aulas">–</strong><span>aulas</span></div>
+        <div><strong id="n-provas">–</strong><span>provas</span></div>
+        <div><strong><span class="nota-min">75</span>%</strong><span>para certificar</span></div>
+      </div>
+    </section>
+
+    <section class="secao" id="como-funciona">
+      <h2 class="secao-titulo">Como <em>funciona</em></h2>
+      <div class="faq">
+        <details open><summary>Quem pode acessar?</summary><p>Colaboradores cujo CPF está na base enviada pelo RH. Se aparecer “Acesso negado”, procure o time de DHO para verificar seu cadastro.</p></details>
+        <details><summary>Preciso de senha?</summary><p>Não. O acesso é feito somente com o CPF.</p></details>
+        <details><summary>Posso refazer a prova?</summary><p>Sim. Vale a sua melhor nota. Ao atingir a nota mínima, o certificado é emitido.</p></details>
+        <details><summary>Onde encontro meus certificados?</summary><p>No seu painel, em cada módulo aprovado, há o botão “Baixar certificado”.</p></details>
+      </div>
+    </section>
+  </main>
+
+  <footer class="rodape">
+    <span>© Âmbar Energia · Desenvolvimento Humano e Organizacional</span>
+    <a href="admin.html">Área do RH</a>
+  </footer>
+
+  <script src="js/comum.js"></script>
+  <script src="js/landing.js"></script>
+</body>
+</html>

@@ -1,0 +1,57 @@
+/* Complementos da área do RH */
+.login { position: fixed; inset: 0; display: grid; place-items: center; padding: 16px; background: radial-gradient(ellipse at 70% 20%, rgba(245, 158, 11, .2), transparent 60%), var(--noite); }
+.login-cartao { width: min(400px, 100%); display: grid; gap: .8rem; text-align: center; }
+.login-cartao .lateral-logo { margin: 0 auto; background: var(--creme-2); }
+.login-cartao p { margin: 0 0 .6rem; color: var(--texto-suave); }
+.login-cartao label { text-align: left; font-weight: 700; font-size: .85rem; }
+.login-cartao a { color: var(--texto-suave); font-size: .85rem; }
+
+.importar { display: flex; flex-wrap: wrap; gap: .8rem; align-items: center; margin-top: 1rem; }
+.importar input[type=file] { max-width: 340px; }
+.check { display: flex; gap: .4rem; align-items: center; font-size: .88rem; }
+#previa { margin-top: 1rem; font-size: .9rem; }
+#previa .aviso { color: var(--ambar-escuro); }
+
+.cab-tabela { display: flex; align-items: center; gap: 1rem; flex-wrap: wrap; margin-bottom: 1rem; }
+.busca { max-width: 320px; margin-left: auto; }
+.filtros { display: flex; gap: .5rem; margin-left: auto; flex-wrap: wrap; }
+.filtros .campo { width: auto; padding: .45rem .7rem; }
+.tabela-wrap { overflow-x: auto; }
+.tabela { width: 100%; border-collapse: collapse; font-size: .88rem; }
+.tabela th { text-align: left; font-size: .72rem; letter-spacing: .08em; text-transform: uppercase; color: var(--texto-suave); padding: .6rem; border-bottom: 2px solid #f1e6d6; white-space: nowrap; }
+.tabela td { padding: .6rem; border-bottom: 1px solid #f5ede2; }
+.tabela tr.inativo td { opacity: .5; }
+.tabela .barra-prog { flex: none; width: 110px; display: inline-block; vertical-align: middle; margin-right: .4rem; }
+
+.linha-form { display: flex; gap: .6rem; flex-wrap: wrap; margin-top: .8rem; }
+.linha-form .campo { flex: 1; min-width: 180px; }
+.linha-form .campo.icone { flex: 0 0 64px; min-width: 0; text-align: center; font-size: 1.2rem; }
+.nota-min { display: flex; align-items: center; gap: .4rem; font-weight: 700; font-size: .88rem; white-space: nowrap; }
+.nota-min .campo { width: 80px; min-width: 0; flex: none; }
+
+.lista-admin { display: grid; gap: 1.2rem; margin-top: 1.4rem; }
+.adm-modulo header { display: flex; align-items: center; gap: .8rem; flex-wrap: wrap; }
+.adm-modulo header .ic { font-size: 1.6rem; }
+.adm-modulo header h3 { flex: 1; }
+.adm-aulas { display: grid; gap: .5rem; margin: 1rem 0; }
+.adm-aula { display: flex; align-items: center; gap: .8rem; padding: .6rem .8rem; border-radius: 10px; background: #fdfaf5; border: 1px solid #efe3d1; font-size: .9rem; }
+.adm-aula span { flex: 1; }
+.adm-aula a { font-weight: 700; color: var(--ambar-forte); text-decoration: none; }
+.form-aula { display: flex; gap: .6rem; flex-wrap: wrap; align-items: center; }
+.form-aula .campo { flex: 1; min-width: 200px; }
+.adm-prova { display: flex; align-items: center; gap: .8rem; margin-top: 1rem; padding-top: 1rem; border-top: 1px dashed #efe3d1; flex-wrap: wrap; }
+.adm-prova span { flex: 1; font-size: .9rem; color: var(--texto-suave); }
+
+.colar { border: 1px dashed #e6d9c6; border-radius: 12px; padding: .8rem 1rem; }
+.colar summary { cursor: pointer; font-weight: 700; }
+.colar pre { background: var(--creme); padding: .7rem; border-radius: 8px; font-size: .8rem; white-space: pre-wrap; }
+.colar textarea { margin: .5rem 0; }
+.q-edit { border: 1px solid #efe3d1; border-radius: 14px; padding: 1rem; display: grid; gap: .6rem; }
+.q-edit .q-cab { display: flex; justify-content: space-between; align-items: center; font-weight: 700; }
+.q-alt { display: flex; gap: .5rem; align-items: center; }
+.q-alt input[type=radio] { accent-color: var(--verde); width: 18px; height: 18px; flex-shrink: 0; }
+.q-alt .letra { font-weight: 700; width: 18px; }
+.q-alt .campo { padding: .5rem .7rem; }
+.q-alt button, .q-rem { border: 0; background: none; color: var(--texto-suave); font-size: 1rem; }
+.q-dica { font-size: .78rem; color: var(--texto-suave); }
+#editor-questoes { display: grid; gap: 1rem; }

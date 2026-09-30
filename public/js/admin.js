@@ -120,7 +120,7 @@ function renderColaboradores() {
     ${lista.slice(0, 500).map(c => `
       <tr class="${c.ativo ? '' : 'inativo'}">
         <td>${formatarCpf(c.cpf)}</td><td>${esc(c.nome)}</td><td>${esc(c.cargo)}</td><td>${esc(c.filial)}</td><td>${esc(c.regional)}</td>
-        <td><button class="btn btn-sm ${c.ativo ? 'btn-claro' : 'btn-ambar'}" data-acesso="${c.cpf}" data-ativo="${c.ativo ? 0 : 1}">${c.ativo ? 'Bloquear' : 'Liberar'}</button></td>
+        <td><button class="btn btn-sm ${c.ativo ? 'btn-claro' : 'btn-laranja'}" data-acesso="${c.cpf}" data-ativo="${c.ativo ? 0 : 1}">${c.ativo ? 'Bloquear' : 'Liberar'}</button></td>
       </tr>`).join('') || '<tr><td colspan="6">Nenhum colaborador. Importe a planilha acima.</td></tr>'}`;
 }
 document.getElementById('busca-colab').addEventListener('input', renderColaboradores);
@@ -150,18 +150,18 @@ async function carregarModulos() {
           <div class="adm-aula">📄 <span>${i + 1}. ${esc(a.titulo)}</span>
             <a href="/api/aulas/${a.id}/pdf" target="_blank" rel="noopener">ver PDF</a>
             <button class="btn btn-perigo btn-sm" data-excluir-aula="${a.id}">Remover</button>
-          </div>`).join('') || '<p class="q-dica">Nenhuma aula ainda.</p>'}
+          </div>`).join('') || '<p class="q-dica">Nenhum material ainda.</p>'}
       </div>
       <form class="form-aula">
-        <input class="campo" name="titulo" placeholder="Título da aula (opcional — usa o nome do arquivo)">
+        <input class="campo" name="titulo" placeholder="Título do material (opcional — usa o nome do arquivo)">
         <input class="campo" type="file" name="pdf" accept="application/pdf,.pdf" required>
-        <button class="btn btn-ambar btn-sm" type="submit">⬆ Enviar PDF</button>
+        <button class="btn btn-laranja btn-sm" type="submit">⬆ Enviar PDF</button>
       </form>
       <div class="adm-prova">
-        <span>📝 ${m.prova ? `<strong>${esc(m.prova.titulo)}</strong> · ${m.prova.questoes.length} questões · nota mínima ${m.prova.nota_minima}%` : 'Sem prova cadastrada'}</span>
-        <button class="btn ${m.prova ? 'btn-claro' : 'btn-roxo'} btn-sm" data-acao="prova">${m.prova ? 'Editar prova e gabarito' : 'Criar prova'}</button>
+        <span>📝 ${m.prova ? `<strong>${esc(m.prova.titulo)}</strong> · ${m.prova.questoes.length} questões · nota mínima ${m.prova.nota_minima}%` : 'Sem avaliação cadastrada'}</span>
+        <button class="btn ${m.prova ? 'btn-claro' : 'btn-marinho'} btn-sm" data-acao="prova">${m.prova ? 'Editar avaliação e gabarito' : 'Criar avaliação'}</button>
       </div>
-    </article>`).join('') || '<p class="carregando">Nenhum módulo ainda. Crie o primeiro acima.</p>';
+    </article>`).join('') || '<p class="carregando">Nenhum tema ainda. Crie o primeiro acima.</p>';
 }
 
 document.getElementById('form-modulo').addEventListener('submit', async (e) => {
@@ -170,7 +170,7 @@ document.getElementById('form-modulo').addEventListener('submit', async (e) => {
   try {
     await api('/api/admin/modulos', { method: 'POST', body: { titulo: f.titulo.value, descricao: f.descricao.value, icone: f.icone.value } });
     f.reset();
-    toast('Módulo criado');
+    toast('Tema criado');
     carregarModulos();
   } catch (err) { toast(err.message, 'erro'); }
 });
@@ -185,7 +185,7 @@ listaModulos.addEventListener('submit', async (e) => {
   btn.textContent = 'Enviando…';
   try {
     await api(`/api/admin/modulos/${id}/aulas`, { method: 'POST', body: new FormData(form) });
-    toast('Aula publicada');
+    toast('Material publicado');
     carregarModulos();
   } catch (err) {
     toast(err.message, 'erro');
@@ -201,13 +201,13 @@ listaModulos.addEventListener('click', async (e) => {
   const m = adm.modulos.find(x => x.id === Number(card.dataset.id));
   try {
     if (alvo.dataset.excluirAula) {
-      if (!confirm('Remover esta aula? O progresso dos colaboradores nela será perdido.')) return;
+      if (!confirm('Remover este material? O progresso dos colaboradores nele será perdido.')) return;
       await api(`/api/admin/aulas/${alvo.dataset.excluirAula}`, { method: 'DELETE' });
     } else if (alvo.dataset.acao === 'excluir') {
-      if (!confirm(`Excluir o módulo "${m.titulo}" com todas as aulas, prova e certificados?`)) return;
+      if (!confirm(`Excluir o tema "${m.titulo}" com todos os materiais, avaliação e certificados?`)) return;
       await api(`/api/admin/modulos/${m.id}`, { method: 'DELETE' });
     } else if (alvo.dataset.acao === 'editar') {
-      const titulo = prompt('Título do módulo', m.titulo);
+      const titulo = prompt('Nome do tema', m.titulo);
       if (titulo === null) return;
       const descricao = prompt('Descrição', m.descricao || '');
       const icone = prompt('Ícone (emoji)', m.icone);
@@ -235,7 +235,7 @@ function abrirEditor(m) {
   editor.modulo = m;
   editor.questoes = m.prova ? structuredClone(m.prova.questoes) : [novaQuestao()];
   document.getElementById('editor-modulo').textContent = m.titulo;
-  document.getElementById('editor-titulo').value = m.prova?.titulo || `Prova · ${m.titulo}`;
+  document.getElementById('editor-titulo').value = m.prova?.titulo || `Avaliação · ${m.titulo}`;
   document.getElementById('editor-nota').value = m.prova?.nota_minima ?? 75;
   document.getElementById('editor-excluir').hidden = !m.prova;
   document.getElementById('editor-texto').value = '';
@@ -341,13 +341,13 @@ document.getElementById('form-editor').addEventListener('submit', async (e) => {
   try {
     await api(`/api/admin/modulos/${editor.modulo.id}/prova`, { method: 'PUT', body: corpo });
     modalEditor.close();
-    toast('Prova salva ✅');
+    toast('Avaliação salva ✅');
     carregarModulos();
   } catch (err) { toast(err.message, 'erro'); }
 });
 
 document.getElementById('editor-excluir').addEventListener('click', async () => {
-  if (!confirm('Excluir a prova deste módulo? As notas e tentativas registradas serão apagadas.')) return;
+  if (!confirm('Excluir a avaliação deste tema? As notas e tentativas registradas serão apagadas.')) return;
   await api(`/api/admin/modulos/${editor.modulo.id}/prova`, { method: 'DELETE' });
   modalEditor.close();
   carregarModulos();
@@ -378,7 +378,7 @@ function renderResultados() {
   const concluiram = linhas.filter(l => tp && l.certificados >= tp).length;
   document.getElementById('resumo-resultados').textContent = `· ${linhas.length} colaboradores · ${iniciaram} iniciaram · ${concluiram} concluíram a trilha`;
   document.getElementById('tabela-resultados').innerHTML = `
-    <tr><th>Nome</th><th>CPF</th><th>Cargo</th><th>Filial</th><th>Regional</th><th>Aulas</th><th>Certificados</th><th>Média provas</th><th>Última prova</th></tr>
+    <tr><th>Nome</th><th>CPF</th><th>Cargo</th><th>Filial</th><th>Regional</th><th>Materiais</th><th>Certificados</th><th>Média avaliações</th><th>Última prova</th></tr>
     ${linhas.map(l => {
       const pct = ta ? Math.round((l.aulas_vistas / ta) * 100) : 0;
       return `<tr>

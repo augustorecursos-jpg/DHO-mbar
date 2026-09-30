@@ -7,34 +7,32 @@
   <link rel="icon" href="img/favicon.svg" type="image/svg+xml">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,wght@0,400;0,500;0,700;1,700&family=Sora:ital,wght@0,600;0,700;0,800;1,700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@500;600;700;800&family=Nunito+Sans:wght@400;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="css/base.css">
   <link rel="stylesheet" href="css/app.css">
 </head>
 <body class="app">
   <aside class="lateral" id="lateral">
-    <a class="lateral-marca" href="index.html">
-      <span class="lateral-logo">🎓</span>
-      <span><strong>Âmbar Energia</strong><small>HUB DE DESENVOLVIMENTO</small></span>
-    </a>
-    <p class="lateral-grupo">PRINCIPAL</p>
-    <button class="lateral-item ativo" data-rota="painel"><span class="ic">🏠</span>Dashboard</button>
-    <p class="lateral-grupo">MÓDULOS</p>
-    <nav id="lista-modulos"></nav>
-    <p class="lateral-versao">v0.1 · Âmbar RH</p>
+    <a class="lateral-marca logo claro" href="index.html"><b>Âmbar</b><small>ENERGIA</small></a>
+    <p class="lateral-grupo">INÍCIO</p>
+    <button class="lateral-item ativo" data-rota="painel"><span class="ic">⌂</span>Meu painel</button>
+    <p class="lateral-grupo">TEMAS DA TRILHA</p>
+    <nav id="lista-modulos" aria-label="Temas da trilha"></nav>
+    <div class="lateral-rodape">
+      <button class="lateral-item" id="sair"><span class="ic">⎋</span>Sair</button>
+    </div>
   </aside>
 
   <div class="principal">
     <header class="barra">
       <button class="btn-menu" id="btn-menu" aria-label="Abrir menu">☰</button>
-      <div>
-        <small class="barra-sup">ÂMBAR ENERGIA · RH</small>
-        <div class="barra-titulo"><span class="ponto"></span> Trilha de Desenvolvimento · <em>Hub de Treinamentos</em></div>
+      <div class="barra-titulo">
+        <small>TRILHA DE DESENVOLVIMENTO · DHO</small>
+        <strong id="titulo-barra">Meu painel</strong>
       </div>
       <div class="barra-usuario">
-        <span class="avatar" id="avatar">–</span>
         <span class="barra-nome"><strong id="nome-usuario">…</strong><small id="cargo-usuario"></small></span>
-        <button class="btn btn-claro btn-sm" id="sair">Sair</button>
+        <span class="avatar" id="avatar">–</span>
       </div>
     </header>
 
@@ -43,30 +41,30 @@
     </main>
   </div>
 
-  <!-- Visualizador de aula (PDF) -->
+  <!-- Visualizador do material (PDF) -->
   <dialog class="modal modal-pdf" id="modal-aula">
     <header>
-      <h3 id="aula-titulo">Aula</h3>
+      <h3 id="aula-titulo">Material</h3>
       <div class="modal-acoes">
         <a class="btn btn-claro btn-sm" id="aula-abrir" target="_blank" rel="noopener">Abrir em nova aba</a>
-        <button class="btn btn-ambar btn-sm" id="aula-concluir">✓ Concluí esta aula</button>
+        <button class="btn btn-laranja btn-sm" id="aula-concluir">✓ Concluí este material</button>
         <button class="btn btn-claro btn-sm" data-fechar aria-label="Fechar">✕</button>
       </div>
     </header>
-    <iframe id="aula-frame" title="Apresentação da aula"></iframe>
+    <iframe id="aula-frame" title="Material do tema"></iframe>
   </dialog>
 
-  <!-- Prova -->
+  <!-- Avaliação -->
   <dialog class="modal modal-prova" id="modal-prova">
     <form id="form-prova" method="dialog">
       <header>
-        <div><small>PROVA DO MÓDULO</small><h3 id="prova-titulo">Prova</h3></div>
+        <div><small>AVALIAÇÃO DO TEMA</small><h3 id="prova-titulo">Avaliação</h3></div>
         <button type="button" class="btn btn-claro btn-sm" data-fechar aria-label="Fechar">✕</button>
       </header>
       <div class="prova-corpo" id="prova-corpo"></div>
       <footer id="prova-rodape">
         <span id="prova-info"></span>
-        <button class="btn btn-roxo" type="submit" id="prova-enviar">Enviar respostas</button>
+        <button class="btn btn-laranja" type="submit" id="prova-enviar">Enviar respostas</button>
       </footer>
     </form>
   </dialog>

@@ -50,7 +50,7 @@ async function pdfDemo(titulo, paginas) {
       const arquivo = await pdfDemo(a, 4);
       db.prepare('INSERT INTO aulas (modulo_id, titulo, arquivo, nome_original, ordem) VALUES (?, ?, ?, ?, ?)').run(id, a, arquivo, `${a}.pdf`, i + 1);
     }
-    const provaId = Number(db.prepare('INSERT INTO provas (modulo_id, titulo, nota_minima) VALUES (?, ?, 75)').run(id, `Prova · ${m.titulo}`).lastInsertRowid);
+    const provaId = Number(db.prepare('INSERT INTO provas (modulo_id, titulo, nota_minima) VALUES (?, ?, 75)').run(id, `Avaliação · ${m.titulo}`).lastInsertRowid);
     m.questoes.forEach((q, i) => db.prepare('INSERT INTO questoes (prova_id, enunciado, alternativas, correta, ordem) VALUES (?, ?, ?, ?, ?)')
       .run(provaId, q.enunciado, JSON.stringify(q.alternativas), q.correta, i));
   }

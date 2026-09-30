@@ -1,10 +1,12 @@
 // Geração do certificado em PDF (A4 paisagem) com pdf-lib.
 const { PDFDocument, StandardFonts, rgb } = require('pdf-lib');
 
-const AMBAR = rgb(0.96, 0.62, 0.04);
-const AMBAR_ESCURO = rgb(0.72, 0.38, 0.02);
-const GRAFITE = rgb(0.12, 0.1, 0.08);
-const CINZA = rgb(0.42, 0.38, 0.34);
+// Cores oficiais do template institucional
+const MARINHO = rgb(0.055, 0.231, 0.361);   // #0e3b5c
+const MARINHO_2 = rgb(0.086, 0.302, 0.455); // #164d74
+const LARANJA = rgb(0.925, 0.42, 0.141);    // #ec6b24
+const GRAFITE = rgb(0.114, 0.169, 0.212);
+const CINZA = rgb(0.373, 0.435, 0.486);
 
 // As fontes padrão do PDF só codificam WinAnsi (Latin-1 + alguns símbolos); remove o resto (ex.: emojis).
 const limpar = (t) => String(t ?? '').replace(/[^\x20-\xFF–—‘’“”•…€]/g, '').trim();
@@ -30,41 +32,43 @@ async function gerarCertificado({ colaborador, certificado }) {
     page.drawText(t, { x: (width - font.widthOfTextAtSize(t, s)) / 2, y, size: s, font, color });
   };
 
-  // Moldura
-  page.drawRectangle({ x: 0, y: 0, width, height, color: rgb(1, 0.985, 0.955) });
-  page.drawRectangle({ x: 24, y: 24, width: width - 48, height: height - 48, borderColor: AMBAR, borderWidth: 3 });
-  page.drawRectangle({ x: 34, y: 34, width: width - 68, height: height - 68, borderColor: AMBAR_ESCURO, borderWidth: 0.6 });
-  page.drawRectangle({ x: 24, y: height - 70, width: width - 48, height: 46, color: GRAFITE });
-  page.drawText('ÂMBAR ENERGIA', { x: 50, y: height - 53, size: 14, font: negrito, color: AMBAR });
-  const sub = 'TRILHA DE DESENVOLVIMENTO · DHO';
-  page.drawText(sub, { x: width - 50 - regular.widthOfTextAtSize(sub, 10), y: height - 51, size: 10, font: regular, color: rgb(1, 1, 1) });
+  // Fundo e ondas do template (drawSvgPath usa y para baixo a partir do ponto x/y informado)
+  page.drawRectangle({ x: 0, y: 0, width, height, color: rgb(1, 1, 1) });
+  page.drawSvgPath('M0 0H250C170 8 70 40 0 110Z', { x: 0, y: height, color: MARINHO });
+  page.drawSvgPath('M0 126C60 50 160 12 270 0', { x: 0, y: height, borderColor: LARANJA, borderWidth: 2.5 });
+  page.drawSvgPath('M300 0C210 6 150 80 30 120H60C170 90 230 22 300 16Z', { x: width - 300, y: 120, color: LARANJA });
+  page.drawSvgPath('M300 16C230 22 170 90 60 120H300Z', { x: width - 300, y: 120, color: MARINHO_2 });
+  page.drawRectangle({ x: 28, y: 28, width: width - 56, height: height - 56, borderColor: rgb(0.87, 0.9, 0.92), borderWidth: 1 });
 
-  // Raio decorativo
-  page.drawSvgPath('M 13 2 L 3 14 L 12 14 L 11 22 L 21 10 L 12 10 Z', { x: width / 2 - 18, y: height - 92, scale: 1.5, color: AMBAR });
+  // Logotipo tipográfico
+  page.drawText('Âmbar', { x: width - 150, y: height - 70, size: 28, font: regular, color: MARINHO });
+  page.drawText('ENERGIA', { x: width - 148, y: height - 86, size: 10, font: negrito, color: LARANJA });
 
-  centro('CERTIFICADO', height - 180, negrito, 40, GRAFITE);
-  centro('DE CONCLUSÃO', height - 206, regular, 14, AMBAR_ESCURO);
+  centro('CERTIFICADO', height - 180, negrito, 40, MARINHO);
+  centro('DE CONCLUSÃO', height - 206, regular, 14, LARANJA);
   centro('Certificamos que', height - 258, italico, 14, CINZA);
-  centro(colaborador.nome.toUpperCase(), height - 300, negrito, 28, GRAFITE);
-  page.drawLine({ start: { x: width / 2 - 220, y: height - 312 }, end: { x: width / 2 + 220, y: height - 312 }, thickness: 1, color: AMBAR });
+  centro(colaborador.nome.toUpperCase(), height - 300, negrito, 28, MARINHO);
+  page.drawLine({ start: { x: width / 2 - 220, y: height - 312 }, end: { x: width / 2 + 220, y: height - 312 }, thickness: 1, color: LARANJA });
 
   const cargo = [colaborador.cargo, colaborador.filial].filter(Boolean).join(' · ');
   if (cargo) centro(cargo, height - 332, regular, 11, CINZA);
-  centro('concluiu com aproveitamento o módulo', height - 368, regular, 14, GRAFITE);
-  centro(certificado.modulo, height - 396, negrito, 20, AMBAR_ESCURO);
+  centro('concluiu com aproveitamento o tema', height - 368, regular, 14, GRAFITE);
+  centro(certificado.modulo, height - 396, negrito, 20, MARINHO);
   centro(`da Trilha de Desenvolvimento Âmbar, com nota ${String(certificado.nota).replace('.', ',')}% na avaliação final.`, height - 422, regular, 13, GRAFITE);
 
   // Rodapé: data, assinatura e código
-  const yBase = 92;
+  const yBase = 100;
   page.drawText(dataPorExtenso(certificado.emitido_em), { x: 90, y: yBase + 8, size: 12, font: regular, color: GRAFITE });
   page.drawLine({ start: { x: 80, y: yBase }, end: { x: 300, y: yBase }, thickness: 0.8, color: CINZA });
   page.drawText('Data de emissão', { x: 90, y: yBase - 16, size: 9, font: regular, color: CINZA });
 
-  page.drawLine({ start: { x: width - 320, y: yBase }, end: { x: width - 80, y: yBase }, thickness: 0.8, color: CINZA });
-  page.drawText('Desenvolvimento Humano e Organizacional', { x: width - 312, y: yBase - 16, size: 9, font: negrito, color: GRAFITE });
-  page.drawText('RH · Âmbar Energia', { x: width - 312, y: yBase - 29, size: 9, font: regular, color: CINZA });
+  // Assinatura no centro-direita, fora da onda do canto inferior direito
+  const xa = 340;
+  page.drawLine({ start: { x: xa, y: yBase }, end: { x: xa + 220, y: yBase }, thickness: 0.8, color: CINZA });
+  page.drawText('Desenvolvimento Humano e Organizacional', { x: xa + 8, y: yBase - 16, size: 9, font: negrito, color: GRAFITE });
+  page.drawText('RH · Âmbar Energia', { x: xa + 8, y: yBase - 29, size: 9, font: regular, color: CINZA });
 
-  centro(`Código de autenticidade: ${certificado.codigo}`, 46, regular, 8, CINZA);
+  page.drawText(`Código de autenticidade: ${certificado.codigo}`, { x: 80, y: 44, size: 8, font: regular, color: CINZA });
 
   return pdf.save();
 }

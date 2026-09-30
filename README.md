@@ -1,7 +1,11 @@
 # Trilha de Desenvolvimento · Âmbar Energia (DHO)
 
-Plataforma de treinamento de colaboradores: aulas em PDF, provas com gabarito e
-certificado automático para quem atinge **75%** de acerto (valor configurável por prova).
+Plataforma de treinamento de colaboradores: temas com materiais em PDF, avaliações com gabarito e
+certificado automático para quem atinge **75%** de acerto (valor configurável por avaliação).
+
+Visual baseado no template institucional da Âmbar Energia: azul-marinho `#0e3b5c`, laranja `#ec6b24`,
+fundo claro, ondas nos cantos, padrão pontilhado e torres/placas solares em traço cinza.
+As cores ficam centralizadas em `public/css/base.css`.
 
 ## Como rodar
 
@@ -27,7 +31,7 @@ CPFs de demonstração (após `npm run seed`): `123.456.789-09`, `987.654.321-00
 
 - **`/`** – home pública. O colaborador digita o CPF e clica em **Acessar Trilha**.
   CPF fora da base → *“Acesso negado. Procure o time de DHO.”*
-- **`/trilha.html`** – painel do colaborador: carga da trilha, aulas feitas, provas abertas,
+- **`/trilha.html`** – painel do colaborador: menu lateral com os temas da trilha (cada tema reúne seus PDFs), progresso geral, materiais estudados, avaliações pendentes,
   certificados e progresso por módulo. Dentro do módulo: aulas em PDF (marcar como concluída),
   prova liberada após todas as aulas, e download do certificado quando aprovado.
 - **`/admin.html`** – área do RH (senha):

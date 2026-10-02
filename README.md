@@ -78,10 +78,9 @@ que baixa uma cópia completa do banco.
 - Atualizações do banco são automáticas na inicialização e sempre salvam antes uma cópia
   (`trilha-antes-<versão>-<data>.db`) na pasta de dados.
 - Certificado em PDF com código de autenticidade, verificável em `/api/validar/<código>`.
-- Materiais protegidos: o colaborador nunca recebe o PDF. As páginas são renderizadas no servidor
-  (pdf.js, `paginas.js`) e entregues como imagem com marca d'água (nome, CPF parcial, data e hora).
-  O visualizador bloqueia menu de contexto, arrastar, Ctrl+P/S/C, impressão, e borra o conteúdo ao
-  perder o foco ou ao pressionar Print Screen. O PDF original só é acessível pelo RH.
+- Materiais exibidos exatamente como o PDF enviado, desenhados pelo pdf.js dentro da plataforma (sem a barra
+  do leitor do navegador). O visualizador bloqueia impressão, menu de contexto, arrastar, Ctrl+P/S/C e borra o
+  conteúdo ao perder o foco ou ao pressionar Print Screen.
 
 ## Estrutura
 
@@ -89,7 +88,6 @@ que baixa uma cópia completa do banco.
 server.js        API (colaborador, admin) + arquivos estáticos
 db.js            esquema SQLite
 certificado.js   geração do certificado (pdf-lib)
-paginas.js       páginas protegidas dos materiais (pdf.js + marca d'água)
 scripts/         dados de demonstração
 public/          home, painel do colaborador e área do RH (HTML/CSS/JS puro)
 ```

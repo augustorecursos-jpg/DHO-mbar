@@ -7,7 +7,6 @@ const express = require('express');
 const multer = require('multer');
 const { db, DATA_DIR, UPLOAD_DIR } = require('./db');
 const { gerarCertificado } = require('./certificado');
-const { prepararPaginas, paginaComMarcaDagua, apagarPaginas } = require('./paginas');
 
 const PORT = Number(process.env.PORT) || 3000;
 const PRODUCAO = process.env.NODE_ENV === 'production';
@@ -217,51 +216,18 @@ app.get('/api/me', exigirColaborador, (req, res) => {
   res.json({ colaborador: { cpf, nome, cargo, filial, regional }, modulos: progressoDoColaborador(cpf) });
 });
 
-// PDF original: somente o RH. O colaborador vê as páginas como imagem com marca d'água (rotas abaixo).
-app.get('/api/aulas/:id/pdf', exigirAdmin, (req, res) => {
-  const aula = db.prepare('SELECT * FROM aulas WHERE id = ?').get(Number(req.params.id));
-  if (!aula) return res.status(404).send('Aula não encontrada');
-  res.type('application/pdf');
-  res.setHeader('Content-Disposition', `inline; filename="${encodeURIComponent(aula.nome_original || 'aula.pdf')}"`);
-  res.sendFile(path.join(UPLOAD_DIR, aula.arquivo));
-});
-
-/** Colaborador logado ou RH; devolve o colaborador (ou null para o RH) e a aula. */
-function leitorDaAula(req, res) {
+// Material em PDF (colaborador logado ou RH). Exibido no visualizador da plataforma, que bloqueia
+// impressão e captura; vai sem cache e sem nome de arquivo para download.
+app.get('/api/aulas/:id/pdf', (req, res) => {
   const cookies = lerCookies(req);
   const s = verificar(cookies.sess_colab);
-  const colaborador = s && db.prepare('SELECT * FROM colaboradores WHERE cpf = ? AND ativo = 1').get(s.cpf);
-  if (!colaborador && !verificar(cookies.sess_admin)?.admin) {
-    res.status(401).json({ erro: 'Sessão expirada. Entre novamente com seu CPF.' });
-    return null;
-  }
+  const colaborador = s && db.prepare('SELECT 1 FROM colaboradores WHERE cpf = ? AND ativo = 1').get(s.cpf);
+  if (!colaborador && !verificar(cookies.sess_admin)?.admin) return res.status(401).json({ erro: 'Sessão expirada. Entre novamente com seu CPF.' });
   const aula = db.prepare('SELECT * FROM aulas WHERE id = ?').get(Number(req.params.id));
-  if (!aula) {
-    res.status(404).json({ erro: 'Material não encontrado' });
-    return null;
-  }
-  return { colaborador: colaborador || null, aula };
-}
-
-app.get('/api/aulas/:id/paginas', async (req, res, next) => {
-  const r = leitorDaAula(req, res);
-  if (!r) return;
-  try {
-    res.setHeader('Cache-Control', 'no-store');
-    res.json({ titulo: r.aula.titulo, paginas: await prepararPaginas(r.aula) });
-  } catch (e) { next(e); }
-});
-
-app.get('/api/aulas/:id/paginas/:n', async (req, res, next) => {
-  const r = leitorDaAula(req, res);
-  if (!r) return;
-  try {
-    const img = await paginaComMarcaDagua(r.aula, Number(req.params.n), r.colaborador);
-    if (!img) return res.status(404).end();
-    res.setHeader('Cache-Control', 'private, no-store');
-    res.setHeader('Content-Disposition', 'inline');
-    res.type('image/jpeg').send(img);
-  } catch (e) { next(e); }
+  if (!aula) return res.status(404).json({ erro: 'Material não encontrado' });
+  res.setHeader('Cache-Control', 'private, no-store');
+  res.type('application/pdf');
+  res.sendFile(path.join(UPLOAD_DIR, aula.arquivo));
 });
 
 app.post('/api/aulas/:id/concluir', exigirColaborador, (req, res) => {
@@ -451,7 +417,6 @@ app.delete('/api/admin/modulos/:id', exigirAdmin, (req, res) => {
   const id = Number(req.params.id);
   for (const a of db.prepare('SELECT arquivo FROM aulas WHERE modulo_id = ?').all(id)) {
     fs.rm(path.join(UPLOAD_DIR, a.arquivo), { force: true }, () => {});
-    apagarPaginas(a);
   }
   db.prepare('DELETE FROM modulos WHERE id = ?').run(id);
   res.json({ ok: true });
@@ -468,11 +433,8 @@ app.post('/api/admin/modulos/:id/aulas', exigirAdmin, upload.single('pdf'), (req
   }
   const titulo = (req.body.titulo || '').trim() || req.file.originalname.replace(/\.pdf$/i, '');
   const ordem = db.prepare('SELECT COALESCE(MAX(ordem), 0) + 1 AS o FROM aulas WHERE modulo_id = ?').get(moduloId).o;
-  const r = db.prepare('INSERT INTO aulas (modulo_id, titulo, arquivo, nome_original, ordem) VALUES (?, ?, ?, ?, ?)')
+  db.prepare('INSERT INTO aulas (modulo_id, titulo, arquivo, nome_original, ordem) VALUES (?, ?, ?, ?, ?)')
     .run(moduloId, titulo, req.file.filename, req.file.originalname, ordem);
-  // Já prepara as páginas protegidas em segundo plano para o primeiro acesso ser rápido.
-  prepararPaginas({ id: Number(r.lastInsertRowid), arquivo: req.file.filename })
-    .catch(e => console.error(`[páginas] falha ao preparar "${titulo}":`, e.message));
   res.json({ ok: true });
 });
 
@@ -480,7 +442,6 @@ app.delete('/api/admin/aulas/:id', exigirAdmin, (req, res) => {
   const aula = db.prepare('SELECT * FROM aulas WHERE id = ?').get(Number(req.params.id));
   if (aula) {
     fs.rm(path.join(UPLOAD_DIR, aula.arquivo), { force: true }, () => {});
-    apagarPaginas(aula);
     db.prepare('DELETE FROM aulas WHERE id = ?').run(aula.id);
   }
   res.json({ ok: true });
@@ -698,6 +659,7 @@ app.get('/api/admin/backup', exigirAdmin, (_req, res) => {
 
 // ---------- estáticos e erros ----------
 
+app.use('/vendor/pdfjs', express.static(path.join(path.dirname(require.resolve('pdfjs-dist/package.json')), 'build')));
 app.use(express.static(path.join(__dirname, 'public'), { extensions: ['html'] }));
 
 app.use((err, _req, res, _next) => {

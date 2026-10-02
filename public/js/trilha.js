@@ -214,27 +214,58 @@ let aulaAtual = null;
 const paginasEl = document.getElementById('aula-paginas');
 const avisoProtecao = document.getElementById('aviso-protecao');
 
+// O PDF é desenhado pelo pdf.js em <canvas>, fiel ao arquivo, sem a barra do leitor do navegador
+// (que teria os botões de baixar e imprimir).
+let pdfjsLib, docAtual;
+const carregarPdfjs = async () => {
+  if (!pdfjsLib) {
+    pdfjsLib = await import('/vendor/pdfjs/pdf.min.mjs');
+    pdfjsLib.GlobalWorkerOptions.workerSrc = '/vendor/pdfjs/pdf.worker.min.mjs';
+  }
+  return pdfjsLib;
+};
+
 async function abrirAula(id) {
   const m = estado.modulos.find(x => x.aulas.some(a => a.id === id));
   aulaAtual = m.aulas.find(a => a.id === id);
   document.getElementById('aula-titulo').textContent = aulaAtual.titulo;
   document.getElementById('aula-concluir').hidden = aulaAtual.vista;
   document.getElementById('aula-pagina').textContent = '';
-  paginasEl.innerHTML = '<p class="carregando-paginas">Preparando o material…</p>';
+  paginasEl.innerHTML = '<p class="carregando-paginas">Abrindo o material…</p>';
   modalAula.showModal();
   try {
-    const { paginas } = await api(`/api/aulas/${id}/paginas`);
-    // Cada página é uma imagem de fundo sob uma camada transparente: sem "salvar imagem" nem arrastar.
-    paginasEl.innerHTML = Array.from({ length: paginas }, (_, i) => `
-      <div class="pagina" data-n="${i + 1}" data-src="/api/aulas/${id}/paginas/${i + 1}"><span class="pagina-num">${i + 1} / ${paginas}</span></div>`).join('');
-    observarPaginas(paginas);
+    const lib = await carregarPdfjs();
+    const resp = await fetch(`/api/aulas/${id}/pdf`, { credentials: 'same-origin' });
+    if (!resp.ok) throw new Error((await resp.json().catch(() => ({}))).erro || 'Material indisponível');
+    docAtual = await lib.getDocument({ data: new Uint8Array(await resp.arrayBuffer()) }).promise;
+    const total = docAtual.numPages;
+    const primeira = (await docAtual.getPage(1)).getViewport({ scale: 1 });
+    paginasEl.innerHTML = Array.from({ length: total }, (_, i) => `
+      <div class="pagina" data-n="${i + 1}" style="aspect-ratio:${primeira.width} / ${primeira.height}"><span class="pagina-num">${i + 1} / ${total}</span></div>`).join('');
+    observarPaginas(total);
     paginasEl.focus();
   } catch (err) {
     paginasEl.innerHTML = `<p class="carregando-paginas">Não foi possível abrir o material: ${esc(err.message)}</p>`;
   }
 }
 
-// Carrega cada página só quando ela se aproxima da área visível.
+async function desenharPagina(el) {
+  const doc = docAtual;
+  const pagina = await doc.getPage(Number(el.dataset.n));
+  const base = pagina.getViewport({ scale: 1 });
+  const escala = (el.clientWidth / base.width) * Math.min(window.devicePixelRatio || 1, 2.5);
+  const viewport = pagina.getViewport({ scale: escala });
+  const canvas = document.createElement('canvas');
+  canvas.width = Math.round(viewport.width);
+  canvas.height = Math.round(viewport.height);
+  await pagina.render({ canvasContext: canvas.getContext('2d'), viewport }).promise;
+  if (doc !== docAtual) return; // material fechado no meio do desenho
+  el.style.aspectRatio = `${base.width} / ${base.height}`;
+  el.prepend(canvas);
+  el.classList.add('pronta');
+}
+
+// Desenha cada página só quando ela se aproxima da área visível.
 let observador;
 function observarPaginas(total) {
   observador?.disconnect();
@@ -243,13 +274,7 @@ function observarPaginas(total) {
       const el = e.target;
       if (e.isIntersecting && !el.dataset.carregada) {
         el.dataset.carregada = '1';
-        const img = new Image();
-        img.onload = () => {
-          el.style.backgroundImage = `url("${img.src}")`;
-          el.style.aspectRatio = `${img.naturalWidth} / ${img.naturalHeight}`;
-          el.classList.add('pronta');
-        };
-        img.src = el.dataset.src;
+        desenharPagina(el).catch(() => { el.dataset.carregada = ''; });
       }
       if (e.isIntersecting && e.intersectionRatio > 0.4) {
         document.getElementById('aula-pagina').textContent = `Página ${el.dataset.n} de ${total}`;
@@ -268,6 +293,8 @@ document.getElementById('aula-concluir').addEventListener('click', async () => {
 });
 modalAula.addEventListener('close', () => {
   observador?.disconnect();
+  docAtual?.destroy();
+  docAtual = null;
   paginasEl.innerHTML = '';
 });
 

@@ -35,8 +35,6 @@ form.addEventListener('submit', async (e) => {
   try {
     const r = await api('/api/publico/resumo');
     document.querySelectorAll('.nota-min').forEach(el => { el.textContent = r.nota_minima; });
-    document.getElementById('n-temas').textContent = r.modulos.length;
-    document.getElementById('n-aulas').textContent = r.modulos.reduce((s, m) => s + m.aulas, 0);
     if (r.modulos.length) {
       document.getElementById('grade-temas').innerHTML = r.modulos.map(m => `
         <article class="tema-card">

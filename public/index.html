@@ -16,6 +16,13 @@
 
   <header class="topo">
     <a class="logo" href="#inicio" aria-label="Âmbar Energia"><b>Âmbar</b><small>ENERGIA</small></a>
+    <span class="marcas-sep" aria-hidden="true"></span>
+    <div class="marcas" aria-label="Empresas do grupo">
+      <img src="img/marcas/green-cargo.png" alt="Green Cargo" width="170" height="59">
+      <img src="img/marcas/fluxus.png" alt="Fluxus" width="205" height="46">
+      <img src="img/marcas/mgas.png" alt="MGAS" width="163" height="54">
+      <img src="img/marcas/logas.png" alt="Logás" width="206" height="58">
+    </div>
     <nav class="menu" aria-label="Seções">
       <a href="#programa">O programa</a>
       <a href="#como-funciona">Como funciona</a>
@@ -27,68 +34,38 @@
 
   <main>
     <section class="hero" id="inicio">
-      <!-- Decoração do template institucional -->
-      <svg class="onda onda-topo" viewBox="0 0 320 170" preserveAspectRatio="none" aria-hidden="true">
-        <path d="M0 0H300C200 8 80 44 0 128Z" fill="#0e3b5c"/>
-        <path d="M0 146C70 60 190 14 320 0" fill="none" stroke="#ec6b24" stroke-width="3"/>
-      </svg>
-      <div class="pontilhado" style="top:0;right:0;width:38%;height:70%"></div>
-      <div class="contorno" style="top:18%;right:18%;width:190px;height:180px;border-radius:0 0 0 90px;border-top:0;border-right:0"></div>
-      <div class="contorno" style="top:38%;right:6%;width:240px;height:190px;border-radius:0 90px 0 0;border-bottom:0;border-left:0"></div>
-      <svg class="arte-campo" viewBox="0 0 520 360" aria-hidden="true">
-        <g fill="none" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round">
-          <!-- torres -->
-          <g transform="translate(90 20)">
-            <path d="M40 0 29 60 18 250M40 0 51 60 62 250M0 38h80M8 66h64M29 60h22M0 38l40-20 40 20M8 66l21-14M72 66 51 52M29 60l27 50-30 50 32 50-40 40M51 60 24 110l30 50-32 50 40 40M26 110h28M24 160h32M22 210h36"/>
-          </g>
-          <g transform="translate(10 90) scale(.62)">
-            <path d="M40 0 29 60 18 250M40 0 51 60 62 250M0 38h80M8 66h64M29 60h22M0 38l40-20 40 20M29 60l27 50-30 50 32 50-40 40M51 60 24 110l30 50-32 50 40 40"/>
-          </g>
-          <path d="M170 58C260 90 380 110 520 112M170 86C260 120 380 140 520 142M58 114C80 70 120 60 170 58" opacity=".7"/>
-          <!-- placas solares -->
-          <g opacity=".9">
-            <path d="M0 290 150 262 250 282 90 318Z M90 318 250 282 330 300 160 344Z M0 318 90 318 160 344 0 360Z"/>
-            <path d="M30 284 120 330M60 279 150 326M90 273 190 318M120 268 220 312M185 270 50 300M210 276 70 312M280 290 120 332M300 294 140 338"/>
-          </g>
-        </g>
-      </svg>
+      <figure class="hero-foto">
+        <img src="img/equipe-ambar.jpg" width="1998" height="1125"
+             alt="Colaboradores da Âmbar Energia sorrindo em frente ao símbolo da marca">
+      </figure>
 
       <div class="hero-texto">
         <span class="sobretitulo">PROGRAMA DE DESENVOLVIMENTO · DHO</span>
-        <h1>Âmbar, a energia que <span>te desenvolve.</span></h1>
+        <h1>Âmbar, a energia <span class="linha">que <em>te desenvolve.</em></span></h1>
         <p>Estude os temas da sua trilha no seu ritmo, faça as avaliações e conquiste
           certificados reconhecidos pelo time de Desenvolvimento Humano e Organizacional.</p>
-        <div class="destaques">
-          <div class="destaque"><span class="ic">🗂️</span><div><strong id="n-temas">–</strong><span>temas na trilha</span></div></div>
-          <div class="destaque"><span class="ic">📘</span><div><strong id="n-aulas">–</strong><span>materiais em PDF</span></div></div>
-          <div class="destaque laranja"><span class="ic">🎓</span><div><strong><span class="nota-min">70</span>%</strong><span>para certificar</span></div></div>
-        </div>
+
+        <form class="cartao-acesso" id="acesso" novalidate>
+          <div class="cartao-acesso-topo">
+            <svg viewBox="0 0 400 60" preserveAspectRatio="none" aria-hidden="true"><path d="M0 60C120 40 250 0 400 8V0H0Z" fill="#164d74"/><path d="M0 52C130 34 260 2 400 10" fill="none" stroke="#ec6b24" stroke-width="2"/></svg>
+            <h2>Acesse sua trilha</h2>
+            <p>Informe seu CPF para continuar</p>
+          </div>
+          <div class="cartao-acesso-corpo">
+            <label for="cpf">CPF</label>
+            <input id="cpf" name="cpf" class="campo" inputmode="numeric" autocomplete="off"
+                   placeholder="000.000.000-00" maxlength="14" aria-describedby="acesso-msg">
+            <button class="btn btn-laranja" type="submit">Acessar Trilha →</button>
+            <p class="acesso-msg" id="acesso-msg" role="alert" aria-live="assertive"></p>
+            <small>O acesso é liberado para colaboradores cadastrados pelo RH.</small>
+          </div>
+        </form>
       </div>
 
-      <div class="hero-visual">
-        <figure class="foto-equipe">
-          <img src="img/equipe-ambar.jpg" width="1268" height="630" alt="Colaboradores da Âmbar Energia sorrindo em frente ao símbolo da marca">
-          <svg class="foto-onda" viewBox="0 0 600 120" preserveAspectRatio="none" aria-hidden="true">
-            <path d="M0 120V70C150 110 330 40 600 20V120Z" fill="#fff"/>
-            <path d="M0 64C160 104 340 34 600 14" fill="none" stroke="#ec6b24" stroke-width="3"/>
-          </svg>
-        </figure>
-
-      <form class="cartao-acesso" id="acesso" novalidate>
-        <div class="cartao-acesso-topo">
-          <svg viewBox="0 0 400 60" preserveAspectRatio="none" aria-hidden="true"><path d="M0 60C120 40 250 0 400 8V0H0Z" fill="#164d74"/><path d="M0 52C130 34 260 2 400 10" fill="none" stroke="#ec6b24" stroke-width="2"/></svg>
-          <h2>Acesse sua trilha</h2>
-          <p>Informe seu CPF para continuar</p>
-        </div>
-        <div class="cartao-acesso-corpo">
-          <label for="cpf">CPF</label>
-          <input id="cpf" name="cpf" class="campo" inputmode="numeric" autocomplete="off"
-                 placeholder="000.000.000-00" maxlength="14" aria-describedby="acesso-msg">
-          <button class="btn btn-laranja" type="submit">Acessar Trilha →</button>
-          <p class="acesso-msg" id="acesso-msg" role="alert" aria-live="assertive"></p>
-          <small>O acesso é liberado para colaboradores cadastrados pelo RH.</small>
-        </div>
-      </form>
+      <div class="destaques">
+        <div class="destaque"><span class="ic">🗂️</span><div><strong id="n-temas">–</strong><span>temas na trilha</span></div></div>
+        <div class="destaque"><span class="ic">📘</span><div><strong id="n-aulas">–</strong><span>materiais em PDF</span></div></div>
+        <div class="destaque laranja"><span class="ic">🎓</span><div><strong><span class="nota-min">70</span>%</strong><span>para certificar</span></div></div>
       </div>
     </section>
 

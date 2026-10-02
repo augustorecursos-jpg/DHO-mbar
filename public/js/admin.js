@@ -258,7 +258,7 @@ function abrirEditor(m, prova) {
     m.aulas.map(a => `<option value="${a.id}" ${a.id === aulaId ? 'selected' : ''}>${esc(a.titulo)}</option>`).join('');
   const aula = m.aulas.find(a => a.id === aulaId);
   document.getElementById('editor-titulo').value = prova?.titulo || `Avaliação · ${aula ? aula.titulo : m.titulo}`;
-  document.getElementById('editor-nota').value = prova?.nota_minima ?? m.provas[0]?.nota_minima ?? 75;
+  document.getElementById('editor-nota').value = prova?.nota_minima ?? m.provas[0]?.nota_minima ?? 70;
   document.getElementById('editor-excluir').hidden = !prova;
   document.getElementById('editor-texto').value = '';
   renderEditor();

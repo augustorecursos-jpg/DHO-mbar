@@ -1,7 +1,7 @@
 # Trilha de Desenvolvimento · Âmbar Energia (DHO)
 
 Plataforma de treinamento de colaboradores: temas com materiais em PDF, avaliações com gabarito e
-certificado automático para quem atinge **75%** de acerto (valor configurável por avaliação).
+certificado automático para quem atinge **70%** de acerto (valor configurável por avaliação).
 
 Visual baseado no template institucional da Âmbar Energia: azul-marinho `#0e3b5c`, laranja `#ec6b24`,
 fundo claro, ondas nos cantos, padrão pontilhado e torres/placas solares em traço cinza.
@@ -70,7 +70,7 @@ que baixa uma cópia completa do banco.
 
 - CPF normalizado (aceita com ou sem pontuação e recupera zeros à esquerda que o Excel remove).
 - O gabarito nunca vai para o navegador do colaborador; a correção é feita no servidor.
-- Aprovação: nota ≥ nota mínima da avaliação (padrão 75%). Pode refazer; vale a melhor nota.
+- Aprovação: nota ≥ nota mínima da avaliação (padrão 70%). Pode refazer; vale a melhor nota.
   Cada avaliação aprovada gera o seu próprio certificado.
 - Atualizações do banco são automáticas na inicialização e sempre salvam antes uma cópia
   (`trilha-antes-<versão>-<data>.db`) na pasta de dados.

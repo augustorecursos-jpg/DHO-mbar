@@ -24,10 +24,18 @@ body.landing { background: #fff; overflow-x: hidden; }
 .hero h1 { font-size: clamp(2.2rem, 4.6vw, 3.6rem); line-height: 1.12; font-weight: 800; margin: 1rem 0 1.2rem; letter-spacing: -.02em; }
 .hero h1 span { color: var(--laranja); }
 .hero-texto p { font-size: 1.08rem; line-height: 1.65; color: var(--texto-suave); max-width: 560px; margin: 0; }
-.destaques { list-style: none; padding: 0; margin: 2.2rem 0 0; display: flex; gap: 2.5rem; flex-wrap: wrap; }
-.destaques li { border-left: 3px solid var(--laranja); padding-left: .9rem; }
-.destaques strong { display: block; font-family: var(--fonte-titulo); font-size: 1.9rem; color: var(--marinho); line-height: 1; }
-.destaques li > span { font-size: .85rem; color: var(--texto-suave); }
+.destaques { margin: 2.2rem 0 0; display: grid; grid-template-columns: repeat(3, minmax(0, 215px)); gap: 1rem; }
+/* Mesmo estilo dos indicadores do painel do colaborador */
+.destaque {
+  display: flex; align-items: center; gap: .85rem; padding: 1rem 1.1rem; border-radius: var(--raio);
+  background: #fff; border: 1px solid var(--linha); box-shadow: 0 6px 18px -12px rgba(14, 59, 92, .35);
+  transition: transform .2s, box-shadow .2s, border-color .2s;
+}
+.destaque:hover { transform: translateY(-3px); border-color: rgba(236, 107, 36, .5); box-shadow: 0 0 22px -4px rgba(236, 107, 36, .35); }
+.destaque .ic { width: 44px; height: 44px; flex-shrink: 0; border-radius: 12px; display: grid; place-items: center; font-size: 1.2rem; background: var(--fundo); }
+.destaque.laranja .ic { background: var(--laranja-suave); }
+.destaque strong { display: block; font-family: var(--fonte-titulo); font-size: 1.5rem; color: var(--marinho); line-height: 1.1; }
+.destaque > div > span { font-size: .8rem; color: var(--texto-suave); white-space: nowrap; }
 
 .cartao-acesso { background: #fff; border-radius: 18px; box-shadow: 0 30px 60px -28px rgba(14, 59, 92, .45); overflow: hidden; border: 1px solid var(--linha); }
 .cartao-acesso-topo { position: relative; background: var(--marinho); color: #fff; padding: 1.8rem 1.8rem 2.6rem; }
@@ -90,7 +98,7 @@ body.landing { background: #fff; overflow-x: hidden; }
 }
 @media (max-width: 560px) {
   .pilares, .passos { grid-template-columns: 1fr; }
-  .destaques { gap: 1.4rem; }
+  .destaques { grid-template-columns: 1fr; }
   .arte-campo { opacity: .5; }
   .hero .contorno { display: none; }
   .hero { padding-top: 2.5rem; }

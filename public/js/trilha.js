@@ -93,7 +93,7 @@ function renderPainel() {
   const t = totais();
   const prox = proximoPasso();
   const primeiroNome = estado.colaborador.nome.split(' ')[0];
-  const notaMin = t.provas[0]?.nota_minima ?? 75;
+  const notaMin = t.provas[0]?.nota_minima ?? 70;
   conteudo.innerHTML = `
     <section class="boasvindas">
       <div class="pontilhado"></div>${ONDA_CARTAO}

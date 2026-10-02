@@ -11,7 +11,7 @@ const { gerarCertificado } = require('./certificado');
 const PORT = Number(process.env.PORT) || 3000;
 const PRODUCAO = process.env.NODE_ENV === 'production';
 const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || (PRODUCAO ? null : 'ambar-dho');
-const NOTA_MINIMA_PADRAO = 75;
+const NOTA_MINIMA_PADRAO = 70;
 
 // Segredo para assinar os cookies de sessão (persistido para sobreviver a reinícios).
 const SECRET_FILE = path.join(DATA_DIR, '.session-secret');

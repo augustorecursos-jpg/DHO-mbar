@@ -11,7 +11,8 @@ const { gerarCertificado } = require('./certificado');
 const PORT = Number(process.env.PORT) || 3000;
 const PRODUCAO = process.env.NODE_ENV === 'production';
 const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || (PRODUCAO ? null : 'ambar-dho');
-const NOTA_MINIMA_PADRAO = 70;
+// Regra da trilha: o certificado é emitido para quem atinge pelo menos 70% em uma avaliação.
+const { NOTA_MINIMA } = require('./db');
 
 // Segredo para assinar os cookies de sessão (persistido para sobreviver a reinícios).
 const SECRET_FILE = path.join(DATA_DIR, '.session-secret');
@@ -187,7 +188,7 @@ app.get('/api/publico/resumo', (_req, res) => {
       (SELECT COUNT(*) FROM aulas a WHERE a.modulo_id = m.id) AS aulas
     FROM modulos m ORDER BY m.ordem, m.id`).all();
   const provas = db.prepare('SELECT COUNT(*) AS n FROM provas').get().n;
-  res.json({ modulos, provas, nota_minima: NOTA_MINIMA_PADRAO });
+  res.json({ modulos, provas, nota_minima: NOTA_MINIMA });
 });
 
 // ===== Colaborador =====
@@ -257,7 +258,7 @@ app.get('/api/provas/:id', exigirColaborador, (req, res) => {
   if (!provaLiberada(req.colab.cpf, prova)) return res.status(403).json({ erro: mensagemBloqueio(prova) });
   const questoes = db.prepare('SELECT id, enunciado, alternativas FROM questoes WHERE prova_id = ? ORDER BY ordem, id').all(prova.id)
     .map(q => ({ id: q.id, enunciado: q.enunciado, alternativas: JSON.parse(q.alternativas) }));
-  res.json({ id: prova.id, titulo: prova.titulo, nota_minima: prova.nota_minima, questoes });
+  res.json({ id: prova.id, titulo: prova.titulo, nota_minima: NOTA_MINIMA, questoes });
 });
 
 // Correção feita no servidor, comparando com o gabarito.
@@ -271,7 +272,7 @@ app.post('/api/provas/:id/responder', exigirColaborador, (req, res) => {
   const respostas = req.body?.respostas || {};
   const acertos = questoes.filter(q => Number(respostas[q.id]) === q.correta).length;
   const nota = Math.round((acertos / questoes.length) * 1000) / 10;
-  const aprovado = nota >= prova.nota_minima;
+  const aprovado = nota >= NOTA_MINIMA;
 
   db.prepare('INSERT INTO tentativas (cpf, prova_id, nota, acertos, total, aprovado, respostas) VALUES (?, ?, ?, ?, ?, ?, ?)')
     .run(req.colab.cpf, prova.id, nota, acertos, questoes.length, aprovado ? 1 : 0, JSON.stringify(respostas));
@@ -288,7 +289,7 @@ app.post('/api/provas/:id/responder', exigirColaborador, (req, res) => {
     }
     certificado = buscar();
   }
-  res.json({ nota, acertos, total: questoes.length, aprovado, nota_minima: prova.nota_minima, certificado: certificado?.codigo || null });
+  res.json({ nota, acertos, total: questoes.length, aprovado, nota_minima: NOTA_MINIMA, certificado: certificado?.codigo || null });
 });
 
 app.get('/api/certificados/:codigo.pdf', exigirColaborador, async (req, res) => {
@@ -447,7 +448,7 @@ app.delete('/api/admin/aulas/:id', exigirAdmin, (req, res) => {
 
 /** Valida o corpo enviado pelo editor e devolve os campos normalizados, ou uma mensagem de erro. */
 function lerAvaliacao(body, moduloId) {
-  const { titulo, nota_minima, questoes } = body || {};
+  const { titulo, questoes } = body || {};
   if (!String(titulo || '').trim()) return { erro: 'Informe o título da avaliação.' };
   if (!Array.isArray(questoes) || !questoes.length) return { erro: 'Cadastre ao menos uma questão.' };
   for (const [i, q] of questoes.entries()) {
@@ -465,7 +466,7 @@ function lerAvaliacao(body, moduloId) {
   }
   return {
     titulo: String(titulo).trim(),
-    nota_minima: Math.min(100, Math.max(1, Number(nota_minima) || NOTA_MINIMA_PADRAO)),
+    nota_minima: NOTA_MINIMA,
     aula_id: aulaId,
     questoes,
   };

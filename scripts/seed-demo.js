@@ -65,7 +65,7 @@ async function pdfDemo(titulo, paginas) {
       });
       continue;
     }
-    const provaId = Number(db.prepare('INSERT INTO provas (modulo_id, titulo, nota_minima) VALUES (?, ?, 75)').run(id, `Avaliação · ${m.titulo}`).lastInsertRowid);
+    const provaId = Number(db.prepare('INSERT INTO provas (modulo_id, titulo, nota_minima) VALUES (?, ?, 70)').run(id, `Avaliação · ${m.titulo}`).lastInsertRowid);
     m.questoes.forEach((q, i) => db.prepare('INSERT INTO questoes (prova_id, enunciado, alternativas, correta, ordem) VALUES (?, ?, ?, ?, ?)')
       .run(provaId, q.enunciado, JSON.stringify(q.alternativas), q.correta, i));
   }

@@ -1,7 +1,11 @@
 // Banco de dados SQLite (módulo nativo node:sqlite, sem dependências nativas).
 const fs = require('node:fs');
 const path = require('node:path');
+const crypto = require('node:crypto');
 const { DatabaseSync } = require('node:sqlite');
+
+// Nota mínima para emissão do certificado (regra única da trilha).
+const NOTA_MINIMA = 70;
 
 const DATA_DIR = process.env.DATA_DIR || path.join(__dirname, 'data');
 const UPLOAD_DIR = path.join(DATA_DIR, 'uploads');
@@ -48,7 +52,7 @@ CREATE TABLE IF NOT EXISTS provas (
   modulo_id  INTEGER NOT NULL REFERENCES modulos(id) ON DELETE CASCADE,
   aula_id    INTEGER REFERENCES aulas(id) ON DELETE SET NULL,
   titulo     TEXT NOT NULL,
-  nota_minima INTEGER NOT NULL DEFAULT 75,
+  nota_minima INTEGER NOT NULL DEFAULT 70,
   ordem      INTEGER NOT NULL DEFAULT 0
 );
 
@@ -93,6 +97,35 @@ CREATE TABLE IF NOT EXISTS certificados (
 `);
 
 migrarParaVariasAvaliacoes();
+aplicarNotaMinima();
+
+/**
+ * Garante a regra de 70% em bases antigas: avaliações criadas com outra nota mínima passam a 70%
+ * e quem já tinha alcançado 70% (mas tinha sido reprovado pela regra anterior) recebe o certificado.
+ * Idempotente: nas próximas inicializações não encontra nada a fazer.
+ */
+function aplicarNotaMinima() {
+  db.exec('BEGIN');
+  try {
+    const alteradas = db.prepare('UPDATE provas SET nota_minima = ? WHERE nota_minima <> ?').run(NOTA_MINIMA, NOTA_MINIMA).changes;
+    const devidos = db.prepare(`
+      SELECT t.cpf, t.prova_id, p.modulo_id, MAX(t.nota) AS nota, MIN(CASE WHEN t.nota >= ? THEN t.feito_em END) AS aprovado_em
+      FROM tentativas t JOIN provas p ON p.id = t.prova_id
+      JOIN colaboradores c ON c.cpf = t.cpf
+      WHERE NOT EXISTS (SELECT 1 FROM certificados ce WHERE ce.cpf = t.cpf AND ce.prova_id = t.prova_id)
+      GROUP BY t.cpf, t.prova_id HAVING MAX(t.nota) >= ?`).all(NOTA_MINIMA, NOTA_MINIMA);
+    const ins = db.prepare('INSERT INTO certificados (codigo, cpf, modulo_id, prova_id, nota, emitido_em) VALUES (?, ?, ?, ?, ?, ?)');
+    for (const d of devidos) ins.run(crypto.randomBytes(5).toString('hex').toUpperCase(), d.cpf, d.modulo_id, d.prova_id, d.nota, d.aprovado_em);
+    db.prepare('UPDATE tentativas SET aprovado = 1 WHERE nota >= ? AND aprovado = 0').run(NOTA_MINIMA);
+    db.exec('COMMIT');
+    if (alteradas || devidos.length) {
+      console.log(`[regra 70%] ${alteradas} avaliação(ões) ajustada(s); ${devidos.length} certificado(s) emitido(s) para notas já atingidas.`);
+    }
+  } catch (e) {
+    db.exec('ROLLBACK');
+    throw e;
+  }
+}
 
 /**
  * Bancos criados antes da v0.2 tinham uma única avaliação por tema (provas.modulo_id UNIQUE)
@@ -152,4 +185,4 @@ function migrarParaVariasAvaliacoes() {
   }
 }
 
-module.exports = { db, DATA_DIR, UPLOAD_DIR };
+module.exports = { db, DATA_DIR, UPLOAD_DIR, NOTA_MINIMA };

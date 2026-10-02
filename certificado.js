@@ -172,7 +172,7 @@ async function gerarCertificado({ colaborador, certificado }) {
   linha([['Parabéns pela sua participação e compromisso com a excelência!', 'script', LARANJA]], 456, 19);
 
   divisor(484, 110, (cx, cy) => page.drawSvgPath('M0 4C-1 1 -6 0 -6 -3C-6 -6 -2 -7 0 -4C2 -7 6 -6 6 -3C6 0 1 1 0 4Z', { x: cx, y: cy + 1, borderColor: LARANJA, borderWidth: 0.9 }));
-  linha([['Time de Recursos Humanos', 'negrito', MARINHO]], 503, 11.5);
+  linha([['Time de DHO', 'negrito', MARINHO]], 503, 11.5);
   linha([['Âmbar Energia', 'regular', CINZA]], 517, 10);
 
   // Rodapé: assinatura institucional e frases da marca

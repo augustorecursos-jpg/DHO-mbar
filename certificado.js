@@ -1,6 +1,6 @@
 // Geração do certificado em PDF (A4 paisagem) com pdf-lib.
 // Layout institucional da plataforma (azul-marinho + laranja, logo e onda no canto) com a usina na lateral
-// esquerda e o selo "Pessoas · Propósito · Energia · Futuro" (imagens em assets/).
+// esquerda (assets/certificado-usina.jpg) e o selo "Pessoas · Propósito · Energia · Futuro" desenhado em vetor.
 const fs = require('node:fs');
 const path = require('node:path');
 const { PDFDocument, rgb } = require('pdf-lib');
@@ -19,7 +19,6 @@ const FONTES = {
 };
 
 const USINA = fs.readFileSync(path.join(__dirname, 'assets', 'certificado-usina.jpg'));
-const SELO = fs.readFileSync(path.join(__dirname, 'assets', 'certificado-selo.png'));
 
 // Nome da trilha impresso no certificado (pode ser trocado sem mexer no código).
 const NOME_TRILHA = process.env.TRILHA_NOME || 'Trilha de Desenvolvimento para Coordenadores e Supervisores';
@@ -30,7 +29,10 @@ const MARINHO_2 = rgb(0.086, 0.302, 0.455); // #164d74
 const LARANJA = rgb(0.925, 0.42, 0.141);    // #ec6b24
 const GRAFITE = rgb(0.114, 0.169, 0.212);
 const CINZA = rgb(0.373, 0.435, 0.486);
-const PAPEL = rgb(246 / 255, 248 / 255, 248 / 255); // mesmo tom do fundo da arte da usina e do selo
+const MARINHO_ESCURO = rgb(0.039, 0.173, 0.271); // #0a2c45
+const LARANJA_ESCURO = rgb(0.85, 0.365, 0.094); // #d95d18
+const BRANCO = rgb(1, 1, 1);
+const PAPEL = rgb(246 / 255, 248 / 255, 248 / 255); // mesmo tom do fundo da arte da usina
 
 const LARGURA = 842, ALTURA = 595;
 const CENTRO = 452;               // eixo da área de texto, entre a usina e o selo
@@ -57,6 +59,32 @@ function tituloAvaliado({ avaliacao, modulo }) {
 
 /** "Módulo - Admissão" → "Admissão" (o texto do certificado já diz "no módulo"). */
 const semPrefixoModulo = (t) => String(t).replace(/^m[óo]dulo\s*[-–:·]\s*/i, '').trim();
+
+/** Selo "Pessoas · Propósito · Energia · Futuro" nas cores da marca, centrado em (cx, cy). */
+function desenharSelo(page, f, cx, cy) {
+  // Fitas
+  for (const lado of [-1, 1]) {
+    const x0 = cx + lado * 6;
+    page.drawSvgPath(`M0 0L${lado * 30} 4L${lado * 40} 74L${lado * 26} 62L${lado * 18} 80L${lado * -4} 8Z`, { x: x0, y: cy - 30, color: lado < 0 ? LARANJA : LARANJA_ESCURO });
+  }
+  // Medalha
+  page.drawCircle({ x: cx, y: cy, size: 50, color: MARINHO_ESCURO });
+  page.drawCircle({ x: cx, y: cy, size: 46, color: MARINHO });
+  page.drawCircle({ x: cx, y: cy, size: 41, borderColor: LARANJA, borderWidth: 0.9, borderDashArray: [2.2, 1.8] });
+  // Ícone de pessoas
+  const iy = cy + 24;
+  for (const [dx, r, oy] of [[-7, 2.6, 0], [7, 2.6, 0], [0, 3.1, 2]]) {
+    page.drawCircle({ x: cx + dx, y: iy + oy, size: r, borderColor: BRANCO, borderWidth: 1 });
+  }
+  page.drawSvgPath('M-12 8C-12 3 -2.5 3 -2.5 8M2.5 8C2.5 3 12 3 12 8M-6 9.5C-6 2.5 6 2.5 6 9.5', { x: cx, y: iy, borderColor: BRANCO, borderWidth: 1 });
+  // Palavras
+  const palavras = [['PESSOAS', BRANCO], ['PROPÓSITO', BRANCO], ['ENERGIA', LARANJA], ['FUTURO', BRANCO]];
+  palavras.forEach(([t, cor], i) => {
+    const s = 8.2;
+    const w = f.negrito.widthOfTextAtSize(t, s);
+    page.drawText(t, { x: cx - w / 2, y: cy + 3 - i * 10.5, size: s, font: f.negrito, color: cor });
+  });
+}
 
 async function gerarCertificado({ colaborador, certificado }) {
   const pdf = await PDFDocument.create();
@@ -108,8 +136,7 @@ async function gerarCertificado({ colaborador, certificado }) {
   page.drawText('Âmbar', { x: LARGURA - 160, y: y(66), size: 30, font: f.logo, color: MARINHO });
   page.drawText('ENERGIA', { x: LARGURA - 158, y: y(82), size: 10, font: f.negrito, color: LARANJA });
 
-  const selo = await pdf.embedPng(SELO);
-  page.drawImage(selo, { x: LARGURA - 152, y: y(400), width: 110, height: 110 * (selo.height / selo.width) });
+  desenharSelo(page, f, LARGURA - 97, y(318));
 
   // ---- Textos ----
   linha([['CERTIFICADO', 'titulo', MARINHO]], 128, 42, { espaco: 2 });

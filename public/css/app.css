@@ -188,7 +188,35 @@ body.app { display: flex; min-height: 100vh; }
 .modal-acoes { display: flex; gap: .5rem; flex-wrap: wrap; }
 .modal-pdf { height: calc(100vh - 48px); }
 .modal-pdf[open] { display: flex; flex-direction: column; }
-.modal-pdf iframe { flex: 1; border: 0; width: 100%; background: #525659; }
+.aula-pagina { font-size: .82rem; color: var(--texto-suave); white-space: nowrap; }
+
+/* Visualizador protegido: páginas como imagem de fundo, sem seleção, arraste ou menu de contexto */
+.visualizador {
+  position: relative; flex: 1; overflow-y: auto; padding: 1.2rem; display: grid; gap: 1.2rem; align-content: start;
+  background: #2f3b46; user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; outline: none;
+}
+.pagina {
+  position: relative; width: min(100%, 1100px); margin: 0 auto; aspect-ratio: 16 / 9; border-radius: 4px;
+  background: #fff center / contain no-repeat; box-shadow: 0 10px 28px -12px rgba(0, 0, 0, .6);
+  transition: filter .2s;
+}
+.pagina:not(.pronta) { background-image: linear-gradient(110deg, #eef1f4 30%, #f8f9fa 50%, #eef1f4 70%); background-size: 200% 100%; animation: brilho-carregando 1.3s linear infinite; }
+@keyframes brilho-carregando { to { background-position: -200% 0; } }
+.pagina-num { position: absolute; right: 10px; bottom: 10px; z-index: 1; font-size: .72rem; font-weight: 700; color: #fff; background: rgba(14, 59, 92, .7); padding: .15rem .5rem; border-radius: 999px; }
+.carregando-paginas { color: #dce7f0; text-align: center; margin: 3rem 0; }
+.visualizador.oculto .pagina { filter: blur(28px) grayscale(.4); }
+.aviso-protecao {
+  position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); z-index: 3; display: grid; gap: .3rem; text-align: center;
+  background: #fff; color: var(--marinho); padding: 1.2rem 1.6rem; border-radius: 14px; box-shadow: var(--sombra);
+}
+.modal-pdf[open] { position: fixed; }
+
+/* Impressão bloqueada na área do colaborador (trilha.html) */
+.bloqueio-impressao { display: none; }
+@media print {
+  body.colaborador > *:not(.bloqueio-impressao), body.colaborador dialog { display: none !important; }
+  .bloqueio-impressao { display: block !important; font: 700 20px sans-serif; text-align: center; margin-top: 40vh; }
+}
 .modal-prova { max-width: 760px; }
 .modal-prova header > div { flex: 1; }
 .prova-corpo { padding: 1.3rem; max-height: calc(100vh - 220px); overflow-y: auto; display: grid; gap: 1.1rem; }

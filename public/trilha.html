@@ -11,7 +11,7 @@
   <link rel="stylesheet" href="css/base.css">
   <link rel="stylesheet" href="css/app.css">
 </head>
-<body class="app">
+<body class="app colaborador">
   <aside class="lateral" id="lateral">
     <a class="lateral-marca logo claro" href="index.html"><b>Âmbar</b><small>ENERGIA</small></a>
     <p class="lateral-grupo">INÍCIO</p>
@@ -45,14 +45,20 @@
   <dialog class="modal modal-pdf" id="modal-aula">
     <header>
       <h3 id="aula-titulo">Material</h3>
+      <span class="aula-pagina" id="aula-pagina" aria-live="polite"></span>
       <div class="modal-acoes">
-        <a class="btn btn-claro btn-sm" id="aula-abrir" target="_blank" rel="noopener">Abrir em nova aba</a>
         <button class="btn btn-laranja btn-sm" id="aula-concluir">✓ Concluí este material</button>
         <button class="btn btn-claro btn-sm" data-fechar aria-label="Fechar">✕</button>
       </div>
     </header>
-    <iframe id="aula-frame" title="Material do tema"></iframe>
+    <!-- Páginas renderizadas no servidor com marca d'água; o PDF original não é enviado ao navegador. -->
+    <div class="visualizador protegido" id="aula-paginas" tabindex="0" aria-label="Páginas do material"></div>
+    <div class="aviso-protecao" id="aviso-protecao" hidden>
+      <strong>🔒 Conteúdo protegido</strong>
+      <span>Volte para esta janela para continuar a leitura.</span>
+    </div>
   </dialog>
+  <div class="bloqueio-impressao" aria-hidden="true">A impressão dos materiais da trilha não é permitida.</div>
 
   <!-- Avaliação -->
   <dialog class="modal modal-prova" id="modal-prova">

@@ -7,6 +7,7 @@ const express = require('express');
 const multer = require('multer');
 const { db, DATA_DIR, UPLOAD_DIR } = require('./db');
 const { gerarCertificado } = require('./certificado');
+const { prepararPaginas, paginaComMarcaDagua, apagarPaginas } = require('./paginas');
 
 const PORT = Number(process.env.PORT) || 3000;
 const PRODUCAO = process.env.NODE_ENV === 'production';
@@ -201,6 +202,7 @@ app.post('/api/entrar', (req, res) => {
     limiteCpf.registrar(req);
     return res.status(403).json({ erro: 'Acesso negado. Procure o time de DHO.' });
   }
+  db.prepare("UPDATE colaboradores SET acessos = acessos + 1, ultimo_acesso = datetime('now') WHERE cpf = ?").run(cpf);
   definirSessao(res, 'sess_colab', { cpf }, 12);
   res.json({ ok: true, nome: colab.nome });
 });
@@ -215,16 +217,51 @@ app.get('/api/me', exigirColaborador, (req, res) => {
   res.json({ colaborador: { cpf, nome, cargo, filial, regional }, modulos: progressoDoColaborador(cpf) });
 });
 
-app.get('/api/aulas/:id/pdf', (req, res) => {
-  const cookies = lerCookies(req);
-  const colab = verificar(cookies.sess_colab);
-  const admin = verificar(cookies.sess_admin);
-  if (!colab && !admin?.admin) return res.status(401).send('Não autorizado');
+// PDF original: somente o RH. O colaborador vê as páginas como imagem com marca d'água (rotas abaixo).
+app.get('/api/aulas/:id/pdf', exigirAdmin, (req, res) => {
   const aula = db.prepare('SELECT * FROM aulas WHERE id = ?').get(Number(req.params.id));
   if (!aula) return res.status(404).send('Aula não encontrada');
   res.type('application/pdf');
   res.setHeader('Content-Disposition', `inline; filename="${encodeURIComponent(aula.nome_original || 'aula.pdf')}"`);
   res.sendFile(path.join(UPLOAD_DIR, aula.arquivo));
+});
+
+/** Colaborador logado ou RH; devolve o colaborador (ou null para o RH) e a aula. */
+function leitorDaAula(req, res) {
+  const cookies = lerCookies(req);
+  const s = verificar(cookies.sess_colab);
+  const colaborador = s && db.prepare('SELECT * FROM colaboradores WHERE cpf = ? AND ativo = 1').get(s.cpf);
+  if (!colaborador && !verificar(cookies.sess_admin)?.admin) {
+    res.status(401).json({ erro: 'Sessão expirada. Entre novamente com seu CPF.' });
+    return null;
+  }
+  const aula = db.prepare('SELECT * FROM aulas WHERE id = ?').get(Number(req.params.id));
+  if (!aula) {
+    res.status(404).json({ erro: 'Material não encontrado' });
+    return null;
+  }
+  return { colaborador: colaborador || null, aula };
+}
+
+app.get('/api/aulas/:id/paginas', async (req, res, next) => {
+  const r = leitorDaAula(req, res);
+  if (!r) return;
+  try {
+    res.setHeader('Cache-Control', 'no-store');
+    res.json({ titulo: r.aula.titulo, paginas: await prepararPaginas(r.aula) });
+  } catch (e) { next(e); }
+});
+
+app.get('/api/aulas/:id/paginas/:n', async (req, res, next) => {
+  const r = leitorDaAula(req, res);
+  if (!r) return;
+  try {
+    const img = await paginaComMarcaDagua(r.aula, Number(req.params.n), r.colaborador);
+    if (!img) return res.status(404).end();
+    res.setHeader('Cache-Control', 'private, no-store');
+    res.setHeader('Content-Disposition', 'inline');
+    res.type('image/jpeg').send(img);
+  } catch (e) { next(e); }
 });
 
 app.post('/api/aulas/:id/concluir', exigirColaborador, (req, res) => {
@@ -414,6 +451,7 @@ app.delete('/api/admin/modulos/:id', exigirAdmin, (req, res) => {
   const id = Number(req.params.id);
   for (const a of db.prepare('SELECT arquivo FROM aulas WHERE modulo_id = ?').all(id)) {
     fs.rm(path.join(UPLOAD_DIR, a.arquivo), { force: true }, () => {});
+    apagarPaginas(a);
   }
   db.prepare('DELETE FROM modulos WHERE id = ?').run(id);
   res.json({ ok: true });
@@ -430,8 +468,11 @@ app.post('/api/admin/modulos/:id/aulas', exigirAdmin, upload.single('pdf'), (req
   }
   const titulo = (req.body.titulo || '').trim() || req.file.originalname.replace(/\.pdf$/i, '');
   const ordem = db.prepare('SELECT COALESCE(MAX(ordem), 0) + 1 AS o FROM aulas WHERE modulo_id = ?').get(moduloId).o;
-  db.prepare('INSERT INTO aulas (modulo_id, titulo, arquivo, nome_original, ordem) VALUES (?, ?, ?, ?, ?)')
+  const r = db.prepare('INSERT INTO aulas (modulo_id, titulo, arquivo, nome_original, ordem) VALUES (?, ?, ?, ?, ?)')
     .run(moduloId, titulo, req.file.filename, req.file.originalname, ordem);
+  // Já prepara as páginas protegidas em segundo plano para o primeiro acesso ser rápido.
+  prepararPaginas({ id: Number(r.lastInsertRowid), arquivo: req.file.filename })
+    .catch(e => console.error(`[páginas] falha ao preparar "${titulo}":`, e.message));
   res.json({ ok: true });
 });
 
@@ -439,6 +480,7 @@ app.delete('/api/admin/aulas/:id', exigirAdmin, (req, res) => {
   const aula = db.prepare('SELECT * FROM aulas WHERE id = ?').get(Number(req.params.id));
   if (aula) {
     fs.rm(path.join(UPLOAD_DIR, aula.arquivo), { force: true }, () => {});
+    apagarPaginas(aula);
     db.prepare('DELETE FROM aulas WHERE id = ?').run(aula.id);
   }
   res.json({ ok: true });
@@ -536,6 +578,114 @@ app.get('/api/admin/resultados', exigirAdmin, (_req, res) => {
       (SELECT MAX(feito_em) FROM tentativas WHERE cpf = c.cpf) AS ultima_prova
     FROM colaboradores c WHERE c.ativo = 1 ORDER BY c.regional, c.filial, c.nome`).all();
   res.json({ total_aulas: totalAulas, total_provas: totalProvas, linhas });
+});
+
+// -- Indicadores (painel do RH) --
+
+app.get('/api/admin/indicadores', exigirAdmin, (req, res) => {
+  const regional = String(req.query.regional || '');
+  const filial = String(req.query.filial || '');
+  const todos = db.prepare('SELECT cpf, nome, cargo, filial, regional, acessos, ultimo_acesso FROM colaboradores WHERE ativo = 1').all();
+  const colabs = todos.filter(c => (!regional || c.regional === regional) && (!filial || c.filial === filial));
+  const noFiltro = new Set(colabs.map(c => c.cpf));
+  const doFiltro = (rows) => rows.filter(r => noFiltro.has(r.cpf));
+
+  const modulos = db.prepare('SELECT id, titulo, icone FROM modulos ORDER BY ordem, id').all();
+  const aulas = db.prepare('SELECT id, modulo_id FROM aulas').all();
+  const provas = db.prepare('SELECT p.id, p.modulo_id, p.titulo, m.titulo AS tema FROM provas p JOIN modulos m ON m.id = p.modulo_id ORDER BY m.ordem, p.ordem, p.id').all();
+  const vistas = doFiltro(db.prepare('SELECT cpf, aula_id FROM aulas_vistas').all());
+  const melhores = doFiltro(db.prepare('SELECT cpf, prova_id, MAX(nota) AS melhor, COUNT(*) AS tentativas FROM tentativas GROUP BY cpf, prova_id').all());
+  const certs = doFiltro(db.prepare('SELECT cpf, prova_id, modulo_id, emitido_em FROM certificados').all());
+
+  const chave = (a, b) => `${a}|${b}`;
+  const vistoSet = new Set(vistas.map(v => chave(v.cpf, v.aula_id)));
+  const certSet = new Set(certs.map(c => chave(c.cpf, c.prova_id)));
+  const ativosComAtividade = new Set([...vistas.map(v => v.cpf), ...melhores.map(m => m.cpf)]);
+  const acessou = (c) => c.acessos > 0 || ativosComAtividade.has(c.cpf);
+
+  // Tema concluído: aprovado em todas as avaliações (ou, sem avaliação, todos os materiais vistos).
+  const temasComConteudo = modulos.map(m => ({
+    ...m,
+    aulas: aulas.filter(a => a.modulo_id === m.id).map(a => a.id),
+    provas: provas.filter(p => p.modulo_id === m.id).map(p => p.id),
+  })).filter(m => m.aulas.length || m.provas.length);
+  const concluiuTema = (cpf, m) => m.provas.length
+    ? m.provas.every(p => certSet.has(chave(cpf, p)))
+    : m.aulas.every(a => vistoSet.has(chave(cpf, a)));
+  const iniciouTema = (cpf, m) => m.aulas.some(a => vistoSet.has(chave(cpf, a))) || melhores.some(x => x.cpf === cpf && m.provas.includes(x.prova_id));
+  const concluiuTrilha = (cpf) => temasComConteudo.length > 0 && temasComConteudo.every(m => concluiuTema(cpf, m));
+
+  const media = (xs) => (xs.length ? Math.round((xs.reduce((s, x) => s + x, 0) / xs.length) * 10) / 10 : null);
+  const pct = (n, d) => (d ? Math.round((n / d) * 1000) / 10 : 0);
+
+  const ativos = colabs.length;
+  const acessaram = colabs.filter(acessou).length;
+  const concluiram = colabs.filter(c => concluiuTrilha(c.cpf)).length;
+  const resumo = {
+    ativos,
+    acessaram, pct_acessaram: pct(acessaram, ativos),
+    concluiram, pct_concluiram: pct(concluiram, ativos),
+    certificados: certs.length,
+    nota_media: media(melhores.map(m => m.melhor)),
+    tentativas_realizadas: melhores.length,
+    aprovacao: pct(melhores.filter(m => m.melhor >= NOTA_MINIMA).length, melhores.length),
+    materiais_vistos: vistas.length,
+    total_materiais: aulas.length,
+  };
+
+  const porTema = temasComConteudo.map(m => {
+    const iniciaram = colabs.filter(c => iniciouTema(c.cpf, m)).length;
+    const conc = colabs.filter(c => concluiuTema(c.cpf, m)).length;
+    const notas = melhores.filter(x => m.provas.includes(x.prova_id)).map(x => x.melhor);
+    return { id: m.id, titulo: m.titulo, icone: m.icone, iniciaram, concluiram: conc, pct_conclusao: pct(conc, ativos), nota_media: media(notas) };
+  });
+
+  const porAvaliacao = provas.map(p => {
+    const daProva = melhores.filter(x => x.prova_id === p.id);
+    const aprovados = daProva.filter(x => x.melhor >= NOTA_MINIMA).length;
+    return {
+      titulo: p.titulo, tema: p.tema, fizeram: daProva.length, aprovados,
+      aprovacao: pct(aprovados, daProva.length), nota_media: media(daProva.map(x => x.melhor)),
+      tentativas_media: media(daProva.map(x => x.tentativas)),
+    };
+  });
+
+  const agrupar = (campo) => {
+    const grupos = new Map();
+    for (const c of colabs) {
+      const k = c[campo] || '(sem informação)';
+      if (!grupos.has(k)) grupos.set(k, []);
+      grupos.get(k).push(c);
+    }
+    return [...grupos.entries()].map(([nome, lista]) => {
+      const conc = lista.filter(c => concluiuTrilha(c.cpf)).length;
+      const cpfs = new Set(lista.map(c => c.cpf));
+      return {
+        nome, ativos: lista.length, acessaram: lista.filter(acessou).length, concluiram: conc,
+        pct_conclusao: pct(conc, lista.length), certificados: certs.filter(x => cpfs.has(x.cpf)).length,
+        nota_media: media(melhores.filter(x => cpfs.has(x.cpf)).map(x => x.melhor)),
+      };
+    }).sort((a, b) => b.pct_conclusao - a.pct_conclusao || b.ativos - a.ativos);
+  };
+
+  // Certificados emitidos por semana (12 últimas semanas, semana começando na segunda-feira)
+  const inicioSemana = (d) => { const x = new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate())); x.setUTCDate(x.getUTCDate() - ((x.getUTCDay() + 6) % 7)); return x; };
+  const atual = inicioSemana(new Date());
+  const semanas = Array.from({ length: 12 }, (_, i) => { const d = new Date(atual); d.setUTCDate(d.getUTCDate() - 7 * (11 - i)); return { inicio: d.toISOString().slice(0, 10), certificados: 0 }; });
+  for (const c of certs) {
+    const ini = inicioSemana(new Date(c.emitido_em.replace(' ', 'T') + 'Z')).toISOString().slice(0, 10);
+    const s = semanas.find(x => x.inicio === ini);
+    if (s) s.certificados += 1;
+  }
+
+  res.json({
+    filtros: {
+      regionais: [...new Set(todos.map(c => c.regional).filter(Boolean))].sort(),
+      filiais: [...new Set(todos.filter(c => !regional || c.regional === regional).map(c => c.filial).filter(Boolean))].sort(),
+    },
+    nota_minima: NOTA_MINIMA, resumo, por_tema: porTema, por_avaliacao: porAvaliacao,
+    por_regional: agrupar('regional'), por_filial: agrupar('filial'), semanas,
+  });
 });
 
 // -- Backup do banco (colaboradores, temas, avaliações, notas e certificados) --

@@ -13,7 +13,7 @@ function mostrarPainel() {
   document.getElementById('tela-login').hidden = true;
   document.getElementById('lateral').hidden = false;
   document.getElementById('principal').hidden = false;
-  trocarAba(location.hash.slice(1) || 'colaboradores');
+  trocarAba(location.hash.slice(1) || 'indicadores');
 }
 
 document.getElementById('form-login').addEventListener('submit', async (e) => {
@@ -30,12 +30,12 @@ document.getElementById('sair').addEventListener('click', async () => {
 });
 
 function trocarAba(aba) {
-  if (!['colaboradores', 'modulos', 'resultados'].includes(aba)) aba = 'colaboradores';
+  if (!['indicadores', 'colaboradores', 'modulos', 'resultados'].includes(aba)) aba = 'indicadores';
   history.replaceState(null, '', `#${aba}`);
   document.querySelectorAll('[data-aba]').forEach(b => b.classList.toggle('ativo', b.dataset.aba === aba));
   document.querySelectorAll('[data-painel]').forEach(s => { s.hidden = s.dataset.painel !== aba; });
   document.getElementById('lateral').classList.remove('aberta');
-  ({ colaboradores: carregarColaboradores, modulos: carregarModulos, resultados: carregarResultados })[aba]();
+  ({ indicadores: carregarIndicadores, colaboradores: carregarColaboradores, modulos: carregarModulos, resultados: carregarResultados })[aba]();
 }
 document.querySelectorAll('[data-aba]').forEach(b => b.addEventListener('click', () => trocarAba(b.dataset.aba)));
 document.getElementById('btn-menu').addEventListener('click', () => document.getElementById('lateral').classList.toggle('aberta'));
@@ -374,6 +374,111 @@ document.getElementById('editor-excluir').addEventListener('click', async () => 
   modalEditor.close();
   carregarModulos();
 });
+
+// ---------- Indicadores ----------
+const fmt = (n, casas = 0) => (n == null ? '–' : Number(n).toLocaleString('pt-BR', { minimumFractionDigits: casas, maximumFractionDigits: casas }));
+const fmtPct = (n) => (n == null ? '–' : `${fmt(n, Number.isInteger(n) ? 0 : 1)}%`);
+
+async function carregarIndicadores() {
+  const regional = document.getElementById('ind-regional').value;
+  const filial = document.getElementById('ind-filial').value;
+  const q = new URLSearchParams({ regional, filial });
+  const d = await api(`/api/admin/indicadores?${q}`);
+  preencherFiltro('ind-regional', d.filtros.regionais, regional, 'Todas as regionais');
+  preencherFiltro('ind-filial', d.filtros.filiais, filial, 'Todas as filiais');
+  const r = d.resumo;
+
+  document.getElementById('ind-kpis').innerHTML = [
+    ['👥', fmt(r.ativos), 'colaboradores ativos', ''],
+    ['🔑', fmt(r.acessaram), 'acessaram a plataforma', `${fmtPct(r.pct_acessaram)} dos ativos`],
+    ['🏁', fmt(r.concluiram), 'concluíram a trilha', `${fmtPct(r.pct_concluiram)} dos ativos`],
+    ['🎓', fmt(r.certificados), 'certificados emitidos', `${fmt(r.materiais_vistos)} materiais estudados`],
+    ['📝', r.nota_media == null ? '–' : `${fmt(r.nota_media, 1)}%`, 'nota média', `melhor nota de ${fmt(r.tentativas_realizadas)} avaliações feitas`],
+    ['✅', fmtPct(r.aprovacao), 'aprovação nas avaliações', `atingiram ${d.nota_minima}% ou mais`],
+  ].map(([ic, valor, rotulo, sub]) => `
+    <div class="kpi"><span class="ic">${ic}</span><div><strong>${valor}</strong><span>${rotulo}</span>${sub ? `<small>${sub}</small>` : ''}</div></div>`).join('');
+
+  barras('ind-temas', d.por_tema.map(t => ({
+    rotulo: t.titulo, valor: t.pct_conclusao,
+    dica: `<strong>${esc(t.titulo)}</strong><br>${fmt(t.concluiram)} concluíram · ${fmt(t.iniciaram)} iniciaram<br>Nota média: ${t.nota_media == null ? '–' : fmt(t.nota_media, 1) + '%'}`,
+  })), 'Nenhum tema com conteúdo ainda.');
+  barras('ind-regionais', d.por_regional.map(g => ({
+    rotulo: g.nome, valor: g.pct_conclusao,
+    dica: `<strong>${esc(g.nome)}</strong><br>${fmt(g.concluiram)} de ${fmt(g.ativos)} concluíram<br>${fmt(g.acessaram)} acessaram · ${fmt(g.certificados)} certificados`,
+  })), 'Sem colaboradores neste filtro.');
+  colunas('ind-semanas', d.semanas);
+
+  document.getElementById('ind-avaliacoes').innerHTML = `
+    <tr><th>Avaliação</th><th>Tema</th><th>Fizeram</th><th>Aprovados</th><th>Aprovação</th><th>Nota média</th><th>Tentativas (média)</th></tr>
+    ${d.por_avaliacao.map(a => `<tr>
+      <td>${esc(a.titulo.replace(/^(avalia[cç][aã]o|prova)\s*[·:\-–]\s*/i, ''))}</td><td>${esc(a.tema)}</td><td>${fmt(a.fizeram)}</td><td>${fmt(a.aprovados)}</td>
+      <td>${a.fizeram ? fmtPct(a.aprovacao) : '–'}</td><td>${a.nota_media == null ? '–' : fmt(a.nota_media, 1) + '%'}</td>
+      <td>${a.tentativas_media == null ? '–' : fmt(a.tentativas_media, 1)}</td></tr>`).join('') || '<tr><td colspan="7">Nenhuma avaliação cadastrada.</td></tr>'}`;
+
+  document.getElementById('ind-filiais').innerHTML = `
+    <tr><th>Filial</th><th>Ativos</th><th>Acessaram</th><th>Concluíram a trilha</th><th>Certificados</th><th>Nota média</th></tr>
+    ${d.por_filial.map(f => `<tr>
+      <td>${esc(f.nome)}</td><td>${fmt(f.ativos)}</td><td>${fmt(f.acessaram)}</td>
+      <td><span class="barra-prog"><i style="width:${f.pct_conclusao}%"></i></span>${fmt(f.concluiram)} (${fmtPct(f.pct_conclusao)})</td>
+      <td>${fmt(f.certificados)}</td><td>${f.nota_media == null ? '–' : fmt(f.nota_media, 1) + '%'}</td></tr>`).join('') || '<tr><td colspan="6">Sem colaboradores neste filtro.</td></tr>'}`;
+}
+
+function preencherFiltro(id, opcoes, atual, rotulo) {
+  const sel = document.getElementById(id);
+  sel.innerHTML = `<option value="">${rotulo}</option>` + opcoes.map(o => `<option ${o === atual ? 'selected' : ''}>${esc(o)}</option>`).join('');
+}
+
+/** Barras horizontais de percentual (0–100%), uma série, valor na ponta e dica ao passar o mouse. */
+function barras(id, itens, vazio) {
+  const el = document.getElementById(id);
+  el.innerHTML = itens.length ? `
+    <div class="barras-eixo"><span>0%</span><span>50%</span><span>100%</span></div>
+    ${itens.map(i => `
+      <div class="barra-linha" data-dica="${esc(i.dica)}" tabindex="0">
+        <span class="barra-rotulo" title="${esc(i.rotulo)}">${esc(i.rotulo)}</span>
+        <span class="barra-trilho"><i style="width:${Math.max(i.valor, 0)}%"></i><b>${fmtPct(i.valor)}</b></span>
+      </div>`).join('')}` : `<p class="q-dica">${vazio}</p>`;
+}
+
+/** Colunas por semana (contagem), uma série, com valor no topo. */
+function colunas(id, semanas) {
+  const max = Math.max(1, ...semanas.map(s => s.certificados));
+  const passo = max <= 5 ? 1 : Math.ceil(max / 4);
+  const topo = Math.ceil(max / passo) * passo;
+  const dia = (iso) => { const [a, m, d] = iso.split('-'); return `${d}/${m}`; };
+  document.getElementById(id).innerHTML = `
+    <div class="colunas-area">
+      <div class="colunas-grade">${Array.from({ length: topo / passo + 1 }, (_, k) => `<span style="bottom:${(k * passo / topo) * 100}%"><em>${fmt(k * passo)}</em></span>`).join('')}</div>
+      ${semanas.map(s => `
+        <div class="coluna" tabindex="0" data-dica="Semana de ${dia(s.inicio)}<br><strong>${fmt(s.certificados)}</strong> certificado(s)">
+          <i style="height:${(s.certificados / topo) * 100}%">${s.certificados ? `<b>${fmt(s.certificados)}</b>` : ''}</i>
+        </div>`).join('')}
+    </div>
+    <div class="colunas-rotulos">${semanas.map((s, i) => `<span>${i % 2 === 1 || i === 11 ? dia(s.inicio) : ''}</span>`).join('')}</div>`;
+}
+
+// Dica flutuante dos gráficos (mouse e teclado)
+const dica = document.getElementById('dica-grafico');
+function mostrarDica(alvo, x, y) {
+  dica.innerHTML = alvo.dataset.dica;
+  dica.hidden = false;
+  const r = dica.getBoundingClientRect();
+  dica.style.left = `${Math.min(x + 14, innerWidth - r.width - 8)}px`;
+  dica.style.top = `${Math.max(8, y - r.height - 12)}px`;
+}
+document.addEventListener('mousemove', (e) => {
+  const alvo = e.target.closest('[data-dica]');
+  if (alvo) mostrarDica(alvo, e.clientX, e.clientY); else dica.hidden = true;
+});
+document.addEventListener('focusin', (e) => {
+  const alvo = e.target.closest('[data-dica]');
+  if (!alvo) return;
+  const r = alvo.getBoundingClientRect();
+  mostrarDica(alvo, r.left + r.width / 2, r.top);
+});
+document.addEventListener('focusout', () => { dica.hidden = true; });
+document.getElementById('ind-regional').addEventListener('change', () => { document.getElementById('ind-filial').value = ''; carregarIndicadores(); });
+document.getElementById('ind-filial').addEventListener('change', carregarIndicadores);
 
 // ---------- Resultados ----------
 async function carregarResultados() {

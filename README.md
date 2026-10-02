@@ -58,6 +58,9 @@ que baixa uma cópia completa do banco.
   e certificados. Dentro do tema: materiais em PDF (marcar como concluído), avaliação liberada após
   todos os materiais, e download do certificado quando aprovado.
 - **`/admin.html`** – área do RH (senha):
+  - **Indicadores**: colaboradores ativos, acessos, conclusão da trilha, certificados, nota média e aprovação;
+    conclusão por tema e por regional, certificados por semana, desempenho por avaliação e tabela por filial,
+    com filtro por regional e filial.
   - **Colaboradores**: importa `.xlsx`/`.csv` com as colunas `CPF, NOME, CARGO, FILIAL, REGIONAL`
     (modelo em `public/exemplos/colaboradores-modelo.csv`). Modo *adicionar/atualizar* ou *substituir base*
     (quem sai da planilha perde o acesso, mas o histórico fica). Também dá para bloquear/liberar um CPF.
@@ -75,6 +78,10 @@ que baixa uma cópia completa do banco.
 - Atualizações do banco são automáticas na inicialização e sempre salvam antes uma cópia
   (`trilha-antes-<versão>-<data>.db`) na pasta de dados.
 - Certificado em PDF com código de autenticidade, verificável em `/api/validar/<código>`.
+- Materiais protegidos: o colaborador nunca recebe o PDF. As páginas são renderizadas no servidor
+  (pdf.js, `paginas.js`) e entregues como imagem com marca d'água (nome, CPF parcial, data e hora).
+  O visualizador bloqueia menu de contexto, arrastar, Ctrl+P/S/C, impressão, e borra o conteúdo ao
+  perder o foco ou ao pressionar Print Screen. O PDF original só é acessível pelo RH.
 
 ## Estrutura
 
@@ -82,6 +89,7 @@ que baixa uma cópia completa do banco.
 server.js        API (colaborador, admin) + arquivos estáticos
 db.js            esquema SQLite
 certificado.js   geração do certificado (pdf-lib)
+paginas.js       páginas protegidas dos materiais (pdf.js + marca d'água)
 scripts/         dados de demonstração
 public/          home, painel do colaborador e área do RH (HTML/CSS/JS puro)
 ```

@@ -98,6 +98,14 @@ CREATE TABLE IF NOT EXISTS certificados (
 
 migrarParaVariasAvaliacoes();
 aplicarNotaMinima();
+adicionarRegistroDeAcesso();
+
+/** Colunas para os indicadores de acesso (bases antigas ganham as colunas zeradas). */
+function adicionarRegistroDeAcesso() {
+  const colunas = db.prepare('PRAGMA table_info(colaboradores)').all().map(c => c.name);
+  if (!colunas.includes('acessos')) db.exec('ALTER TABLE colaboradores ADD COLUMN acessos INTEGER NOT NULL DEFAULT 0');
+  if (!colunas.includes('ultimo_acesso')) db.exec('ALTER TABLE colaboradores ADD COLUMN ultimo_acesso TEXT');
+}
 
 /**
  * Garante a regra de 70% em bases antigas: avaliações criadas com outra nota mínima passam a 70%

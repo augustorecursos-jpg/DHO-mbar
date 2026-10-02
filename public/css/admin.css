@@ -66,3 +66,53 @@
 .q-dica { font-size: .78rem; color: var(--texto-suave); }
 #editor-questoes { display: grid; gap: 1rem; }
 #form-editor footer button[type=submit] { margin-left: auto; }
+
+/* ---------- Indicadores ---------- */
+.ind-cab { display: flex; align-items: center; gap: 1rem; flex-wrap: wrap; margin-bottom: 1.2rem; }
+.ind-cab .titulo-pagina { margin: 0; }
+.kpis { display: grid; grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); gap: 1rem; margin-bottom: 1.4rem; }
+.kpi { display: flex; gap: .9rem; align-items: flex-start; background: #fff; border: 1px solid var(--linha); border-radius: var(--raio); padding: 1.1rem 1.2rem; }
+.kpi .ic { width: 42px; height: 42px; flex-shrink: 0; border-radius: 12px; display: grid; place-items: center; font-size: 1.15rem; background: var(--fundo); }
+.kpi strong { display: block; font-family: var(--fonte-titulo); font-size: 1.7rem; color: var(--marinho); line-height: 1.1; }
+.kpi span { display: block; font-size: .85rem; color: var(--texto); font-weight: 600; }
+.kpi small { display: block; font-size: .76rem; color: var(--texto-suave); margin-top: .15rem; }
+.ind-grade { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1.4rem; }
+.ind-grade .cartao h3 { margin-bottom: 1rem; }
+.ind-grade-regional { grid-template-columns: minmax(0, 1fr) minmax(0, 1.6fr); align-items: start; }
+
+/* Barras horizontais (uma série; cor da marca; ponta arredondada, base reta) */
+.grafico-barras { display: grid; gap: .55rem; }
+.barras-eixo { display: grid; grid-template-columns: 1fr 1fr 1fr; margin-left: calc(38% + .8rem); font-size: .7rem; color: var(--texto-suave); }
+.barras-eixo span:nth-child(2) { text-align: center; }
+.barras-eixo span:last-child { text-align: right; }
+.barra-linha { display: grid; grid-template-columns: 38% 1fr; gap: .8rem; align-items: center; padding: .15rem 0; border-radius: 6px; outline: none; }
+.barra-linha:hover, .barra-linha:focus-visible { background: var(--fundo); }
+.barra-rotulo { font-size: .84rem; color: var(--texto); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.barra-trilho {
+  position: relative; height: 20px; display: flex; align-items: center;
+  background: linear-gradient(90deg, transparent calc(50% - .5px), var(--fundo-2) calc(50% - .5px), var(--fundo-2) calc(50% + .5px), transparent calc(50% + .5px));
+  border-left: 1px solid var(--linha);
+}
+.barra-trilho i { display: block; height: 18px; background: #164d74; border-radius: 0 4px 4px 0; min-width: 2px; }
+.barra-trilho b { margin-left: .45rem; font-size: .78rem; font-weight: 700; color: var(--texto); white-space: nowrap; }
+
+/* Colunas por semana */
+.colunas-area { position: relative; height: 200px; display: grid; grid-template-columns: repeat(12, 1fr); gap: 2px; align-items: end; margin-left: 2rem; border-bottom: 1px solid var(--linha); }
+.colunas-grade { position: absolute; inset: 0; pointer-events: none; }
+.colunas-grade span { position: absolute; left: 0; right: 0; border-top: 1px solid var(--fundo-2); }
+.colunas-grade em { position: absolute; left: -2rem; width: 1.6rem; text-align: right; transform: translateY(-50%); font-style: normal; font-size: .7rem; color: var(--texto-suave); }
+.coluna { position: relative; height: 100%; display: flex; align-items: flex-end; justify-content: center; outline: none; border-radius: 4px; }
+.coluna:hover, .coluna:focus-visible { background: rgba(22, 77, 116, .06); }
+.coluna i { position: relative; width: min(24px, 70%); background: #164d74; border-radius: 4px 4px 0 0; }
+.coluna b { font-weight: 700; font-style: normal; position: absolute; bottom: 100%; left: 50%; transform: translateX(-50%); margin-bottom: 2px; font-size: .72rem; color: var(--texto); }
+.colunas-rotulos { display: grid; grid-template-columns: repeat(12, 1fr); margin-left: 2rem; margin-top: .35rem; font-size: .7rem; color: var(--texto-suave); text-align: center; }
+
+.dica-grafico { position: fixed; z-index: 50; max-width: 260px; padding: .55rem .75rem; border-radius: 8px; background: var(--marinho-escuro); color: #fff; font-size: .8rem; line-height: 1.45; pointer-events: none; box-shadow: var(--sombra); }
+
+@media (max-width: 1100px) { .ind-grade, .ind-grade-regional { grid-template-columns: 1fr; } }
+@media (max-width: 600px) {
+  .ind-grade .cartao, .kpi { min-width: 0; }
+  .barra-linha { grid-template-columns: 34% 1fr; }
+  .barras-eixo { margin-left: calc(34% + .8rem); }
+  .filtros, .filtros .campo { width: 100%; }
+}

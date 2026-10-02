@@ -211,16 +211,52 @@ function rotear() {
 const modalAula = document.getElementById('modal-aula');
 let aulaAtual = null;
 
-function abrirAula(id) {
+const paginasEl = document.getElementById('aula-paginas');
+const avisoProtecao = document.getElementById('aviso-protecao');
+
+async function abrirAula(id) {
   const m = estado.modulos.find(x => x.aulas.some(a => a.id === id));
   aulaAtual = m.aulas.find(a => a.id === id);
   document.getElementById('aula-titulo').textContent = aulaAtual.titulo;
-  const url = `/api/aulas/${id}/pdf`;
-  document.getElementById('aula-frame').src = url;
-  document.getElementById('aula-abrir').href = url;
-  const btn = document.getElementById('aula-concluir');
-  btn.hidden = aulaAtual.vista;
+  document.getElementById('aula-concluir').hidden = aulaAtual.vista;
+  document.getElementById('aula-pagina').textContent = '';
+  paginasEl.innerHTML = '<p class="carregando-paginas">Preparando o material…</p>';
   modalAula.showModal();
+  try {
+    const { paginas } = await api(`/api/aulas/${id}/paginas`);
+    // Cada página é uma imagem de fundo sob uma camada transparente: sem "salvar imagem" nem arrastar.
+    paginasEl.innerHTML = Array.from({ length: paginas }, (_, i) => `
+      <div class="pagina" data-n="${i + 1}" data-src="/api/aulas/${id}/paginas/${i + 1}"><span class="pagina-num">${i + 1} / ${paginas}</span></div>`).join('');
+    observarPaginas(paginas);
+    paginasEl.focus();
+  } catch (err) {
+    paginasEl.innerHTML = `<p class="carregando-paginas">Não foi possível abrir o material: ${esc(err.message)}</p>`;
+  }
+}
+
+// Carrega cada página só quando ela se aproxima da área visível.
+let observador;
+function observarPaginas(total) {
+  observador?.disconnect();
+  observador = new IntersectionObserver((entradas) => {
+    for (const e of entradas) {
+      const el = e.target;
+      if (e.isIntersecting && !el.dataset.carregada) {
+        el.dataset.carregada = '1';
+        const img = new Image();
+        img.onload = () => {
+          el.style.backgroundImage = `url("${img.src}")`;
+          el.style.aspectRatio = `${img.naturalWidth} / ${img.naturalHeight}`;
+          el.classList.add('pronta');
+        };
+        img.src = el.dataset.src;
+      }
+      if (e.isIntersecting && e.intersectionRatio > 0.4) {
+        document.getElementById('aula-pagina').textContent = `Página ${el.dataset.n} de ${total}`;
+      }
+    }
+  }, { root: paginasEl, rootMargin: '600px 0px', threshold: [0, 0.4] });
+  paginasEl.querySelectorAll('.pagina').forEach(p => observador.observe(p));
 }
 
 document.getElementById('aula-concluir').addEventListener('click', async () => {
@@ -230,7 +266,40 @@ document.getElementById('aula-concluir').addEventListener('click', async () => {
   await carregar();
   rotear();
 });
-modalAula.addEventListener('close', () => { document.getElementById('aula-frame').src = 'about:blank'; });
+modalAula.addEventListener('close', () => {
+  observador?.disconnect();
+  paginasEl.innerHTML = '';
+});
+
+// ----- Proteção do material (download, impressão e captura) -----
+const leituraAberta = () => modalAula.open;
+const ocultar = (sim) => {
+  paginasEl.classList.toggle('oculto', sim);
+  avisoProtecao.hidden = !sim;
+};
+['contextmenu', 'dragstart', 'selectstart', 'copy'].forEach(ev =>
+  modalAula.addEventListener(ev, (e) => e.preventDefault()));
+document.addEventListener('keydown', (e) => {
+  if (!leituraAberta()) return;
+  const tecla = e.key.toLowerCase();
+  if ((e.ctrlKey || e.metaKey) && ['p', 's', 'c', 'u'].includes(tecla)) {
+    e.preventDefault();
+    toast('Este material é protegido e não pode ser salvo ou impresso.', 'erro');
+  }
+  if (tecla === 'printscreen') ocultar(true);
+});
+document.addEventListener('keyup', (e) => {
+  if (!leituraAberta() || e.key.toLowerCase() !== 'printscreen') return;
+  navigator.clipboard?.writeText('').catch(() => {});
+  ocultar(true);
+  toast('Captura de tela não é permitida para os materiais da trilha.', 'erro');
+  setTimeout(() => ocultar(false), 1500);
+});
+// Ao sair da janela (ex.: abrir uma ferramenta de captura), o conteúdo fica borrado.
+window.addEventListener('blur', () => { if (leituraAberta()) ocultar(true); });
+window.addEventListener('focus', () => ocultar(false));
+document.addEventListener('visibilitychange', () => { if (document.hidden && leituraAberta()) ocultar(true); });
+window.addEventListener('beforeprint', () => { if (leituraAberta()) ocultar(true); });
 
 // ----- Prova -----
 const modalProva = document.getElementById('modal-prova');

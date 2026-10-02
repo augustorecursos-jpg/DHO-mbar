@@ -30,7 +30,8 @@
   <aside class="lateral" id="lateral" hidden>
     <a class="lateral-marca logo claro" href="index.html"><b>Âmbar</b><small>ENERGIA · RH</small></a>
     <p class="lateral-grupo">GESTÃO</p>
-    <button class="lateral-item ativo" data-aba="colaboradores"><span class="ic">👥</span>Colaboradores</button>
+    <button class="lateral-item ativo" data-aba="indicadores"><span class="ic">📈</span>Indicadores</button>
+    <button class="lateral-item" data-aba="colaboradores"><span class="ic">👥</span>Colaboradores</button>
     <button class="lateral-item" data-aba="modulos"><span class="ic">📚</span>Temas & Materiais</button>
     <button class="lateral-item" data-aba="resultados"><span class="ic">📊</span>Resultados</button>
     <div class="lateral-rodape"><button class="lateral-item" id="sair"><span class="ic">⎋</span>Sair</button></div>
@@ -50,7 +51,45 @@
 
     <main class="conteudo">
       <!-- Colaboradores -->
-      <section data-painel="colaboradores">
+      <section data-painel="indicadores">
+        <div class="ind-cab">
+          <h1 class="titulo-pagina">Indicadores da <em>trilha</em></h1>
+          <div class="filtros">
+            <select class="campo" id="ind-regional" aria-label="Regional"><option value="">Todas as regionais</option></select>
+            <select class="campo" id="ind-filial" aria-label="Filial"><option value="">Todas as filiais</option></select>
+          </div>
+        </div>
+        <div class="kpis" id="ind-kpis"></div>
+        <div class="ind-grade">
+          <section class="cartao">
+            <h3>Conclusão por tema <small>· % dos colaboradores ativos que concluíram</small></h3>
+            <div class="grafico-barras" id="ind-temas"></div>
+          </section>
+          <section class="cartao">
+            <h3>Certificados emitidos por semana <small>· últimas 12 semanas</small></h3>
+            <div class="grafico-colunas" id="ind-semanas"></div>
+          </section>
+
+
+        </div>
+        <section class="cartao" style="margin-top:1.4rem">
+            <h3>Avaliações <small>· desempenho por avaliação (vale a melhor nota de cada colaborador)</small></h3>
+            <div class="tabela-wrap"><table class="tabela" id="ind-avaliacoes"></table></div>
+        </section>
+        <div class="ind-grade ind-grade-regional" style="margin-top:1.4rem">
+          <section class="cartao">
+            <h3>Conclusão da trilha por regional <small>· % dos ativos da regional</small></h3>
+            <div class="grafico-barras" id="ind-regionais"></div>
+          </section>
+          <section class="cartao">
+            <h3>Por filial</h3>
+            <div class="tabela-wrap"><table class="tabela" id="ind-filiais"></table></div>
+          </section>
+        </div>
+        <div class="dica-grafico" id="dica-grafico" role="tooltip" hidden></div>
+      </section>
+
+      <section data-painel="colaboradores" hidden>
         <h1 class="titulo-pagina">Base de <em>colaboradores</em></h1>
         <div class="cartao">
           <h3>📥 Importar planilha <small>· Excel (.xlsx) ou CSV com as colunas CPF, NOME, CARGO, FILIAL e REGIONAL</small></h3>

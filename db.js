@@ -41,11 +41,15 @@ CREATE TABLE IF NOT EXISTS aulas (
   criado_em TEXT NOT NULL DEFAULT (datetime('now'))
 );
 
+-- Várias avaliações por tema; cada uma pode ser liberada após um material específico (aula_id)
+-- ou, se aula_id for nulo, após todos os materiais do tema.
 CREATE TABLE IF NOT EXISTS provas (
   id         INTEGER PRIMARY KEY AUTOINCREMENT,
-  modulo_id  INTEGER NOT NULL UNIQUE REFERENCES modulos(id) ON DELETE CASCADE,
+  modulo_id  INTEGER NOT NULL REFERENCES modulos(id) ON DELETE CASCADE,
+  aula_id    INTEGER REFERENCES aulas(id) ON DELETE SET NULL,
   titulo     TEXT NOT NULL,
-  nota_minima INTEGER NOT NULL DEFAULT 75
+  nota_minima INTEGER NOT NULL DEFAULT 75,
+  ordem      INTEGER NOT NULL DEFAULT 0
 );
 
 CREATE TABLE IF NOT EXISTS questoes (
@@ -76,14 +80,76 @@ CREATE TABLE IF NOT EXISTS tentativas (
   feito_em  TEXT NOT NULL DEFAULT (datetime('now'))
 );
 
+-- Um certificado por avaliação aprovada.
 CREATE TABLE IF NOT EXISTS certificados (
   codigo    TEXT PRIMARY KEY,
   cpf       TEXT NOT NULL REFERENCES colaboradores(cpf) ON DELETE CASCADE,
   modulo_id INTEGER NOT NULL REFERENCES modulos(id) ON DELETE CASCADE,
+  prova_id  INTEGER REFERENCES provas(id) ON DELETE CASCADE,
   nota      REAL NOT NULL,
   emitido_em TEXT NOT NULL DEFAULT (datetime('now')),
-  UNIQUE (cpf, modulo_id)
+  UNIQUE (cpf, prova_id)
 );
 `);
+
+migrarParaVariasAvaliacoes();
+
+/**
+ * Bancos criados antes da v0.2 tinham uma única avaliação por tema (provas.modulo_id UNIQUE)
+ * e um certificado por tema. Recria as duas tabelas no formato novo preservando todos os dados
+ * (avaliações, questões, tentativas e certificados). Antes, salva uma cópia do banco em DATA_DIR.
+ */
+function migrarParaVariasAvaliacoes() {
+  const colunas = db.prepare('PRAGMA table_info(provas)').all().map(c => c.name);
+  if (colunas.includes('aula_id')) return;
+
+  const copia = path.join(DATA_DIR, `trilha-antes-v0.2-${Date.now()}.db`);
+  db.exec(`VACUUM INTO '${copia.replace(/'/g, "''")}'`);
+  console.log(`[migração] Cópia de segurança salva em ${copia}`);
+
+  // Com as chaves estrangeiras ligadas, apagar a tabela antiga apagaria em cascata as questões.
+  db.exec('PRAGMA foreign_keys = OFF');
+  db.exec('BEGIN');
+  try {
+    db.exec(`
+      CREATE TABLE provas_v2 (
+        id         INTEGER PRIMARY KEY AUTOINCREMENT,
+        modulo_id  INTEGER NOT NULL REFERENCES modulos(id) ON DELETE CASCADE,
+        aula_id    INTEGER REFERENCES aulas(id) ON DELETE SET NULL,
+        titulo     TEXT NOT NULL,
+        nota_minima INTEGER NOT NULL DEFAULT 75,
+        ordem      INTEGER NOT NULL DEFAULT 0
+      );
+      INSERT INTO provas_v2 (id, modulo_id, aula_id, titulo, nota_minima, ordem)
+        SELECT id, modulo_id, NULL, titulo, nota_minima, 0 FROM provas;
+      DROP TABLE provas;
+      ALTER TABLE provas_v2 RENAME TO provas;
+
+      CREATE TABLE certificados_v2 (
+        codigo    TEXT PRIMARY KEY,
+        cpf       TEXT NOT NULL REFERENCES colaboradores(cpf) ON DELETE CASCADE,
+        modulo_id INTEGER NOT NULL REFERENCES modulos(id) ON DELETE CASCADE,
+        prova_id  INTEGER REFERENCES provas(id) ON DELETE CASCADE,
+        nota      REAL NOT NULL,
+        emitido_em TEXT NOT NULL DEFAULT (datetime('now')),
+        UNIQUE (cpf, prova_id)
+      );
+      INSERT INTO certificados_v2 (codigo, cpf, modulo_id, prova_id, nota, emitido_em)
+        SELECT c.codigo, c.cpf, c.modulo_id, (SELECT p.id FROM provas p WHERE p.modulo_id = c.modulo_id), c.nota, c.emitido_em
+        FROM certificados c;
+      DROP TABLE certificados;
+      ALTER TABLE certificados_v2 RENAME TO certificados;
+    `);
+    const problemas = db.prepare('PRAGMA foreign_key_check').all();
+    if (problemas.length) throw new Error(`Chaves inconsistentes após a migração: ${JSON.stringify(problemas)}`);
+    db.exec('COMMIT');
+    console.log('[migração] Banco atualizado para várias avaliações por tema.');
+  } catch (e) {
+    db.exec('ROLLBACK');
+    throw e;
+  } finally {
+    db.exec('PRAGMA foreign_keys = ON');
+  }
+}
 
 module.exports = { db, DATA_DIR, UPLOAD_DIR };

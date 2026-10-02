@@ -1,4 +1,4 @@
-// Área do RH: base de colaboradores, módulos/aulas/provas e resultados.
+// Área do RH: base de colaboradores, temas/materiais/avaliações e resultados.
 const adm = { colaboradores: [], modulos: [], resultados: null, linhasImportar: [] };
 
 // ---------- Sessão ----------
@@ -157,9 +157,20 @@ async function carregarModulos() {
         <input class="campo" type="file" name="pdf" accept="application/pdf,.pdf" required>
         <button class="btn btn-laranja btn-sm" type="submit">⬆ Enviar PDF</button>
       </form>
-      <div class="adm-prova">
-        <span>📝 ${m.prova ? `<strong>${esc(m.prova.titulo)}</strong> · ${m.prova.questoes.length} questões · nota mínima ${m.prova.nota_minima}%` : 'Sem avaliação cadastrada'}</span>
-        <button class="btn ${m.prova ? 'btn-claro' : 'btn-marinho'} btn-sm" data-acao="prova">${m.prova ? 'Editar avaliação e gabarito' : 'Criar avaliação'}</button>
+      <div class="adm-provas">
+        <div class="adm-provas-cab">
+          <strong>📝 Avaliações <small>(${m.provas.length})</small></strong>
+          <button class="btn btn-marinho btn-sm" data-acao="nova-prova">➕ Nova avaliação</button>
+        </div>
+        ${m.provas.map(p => {
+          const aula = m.aulas.find(a => a.id === p.aula_id);
+          return `
+          <div class="adm-prova">
+            <span><strong>${esc(p.titulo)}</strong> · ${p.questoes.length} ${p.questoes.length === 1 ? 'questão' : 'questões'} · nota mínima ${p.nota_minima}%
+              <small class="libera">${aula ? `Liberada após: ${esc(aula.titulo)}` : 'Liberada após todos os materiais'}</small></span>
+            <button class="btn btn-claro btn-sm" data-editar-prova="${p.id}">Editar avaliação e gabarito</button>
+          </div>`;
+        }).join('') || '<p class="q-dica">Nenhuma avaliação ainda. Você pode criar uma para cada material do tema.</p>'}
       </div>
     </article>`).join('') || '<p class="carregando">Nenhum tema ainda. Crie o primeiro acima.</p>';
 }
@@ -195,7 +206,7 @@ listaModulos.addEventListener('submit', async (e) => {
 });
 
 listaModulos.addEventListener('click', async (e) => {
-  const alvo = e.target.closest('[data-acao],[data-excluir-aula]');
+  const alvo = e.target.closest('[data-acao],[data-excluir-aula],[data-editar-prova]');
   if (!alvo) return;
   const card = alvo.closest('[data-id]');
   const m = adm.modulos.find(x => x.id === Number(card.dataset.id));
@@ -219,25 +230,36 @@ listaModulos.addEventListener('click', async (e) => {
       const ordem = adm.modulos.map(x => x.id);
       [ordem[i], ordem[j]] = [ordem[j], ordem[i]];
       await Promise.all(ordem.map((id, k) => api(`/api/admin/modulos/${id}`, { method: 'PUT', body: { ordem: k + 1 } })));
-    } else if (alvo.dataset.acao === 'prova') {
-      abrirEditor(m);
+    } else if (alvo.dataset.acao === 'nova-prova') {
+      abrirEditor(m, null);
+      return;
+    } else if (alvo.dataset.editarProva) {
+      abrirEditor(m, m.provas.find(p => p.id === Number(alvo.dataset.editarProva)));
       return;
     }
     carregarModulos();
   } catch (err) { toast(err.message, 'erro'); }
 });
 
-// ---------- Editor de prova ----------
-const editor = { modulo: null, questoes: [] };
+// ---------- Editor de avaliação (cada tema pode ter várias) ----------
+const editor = { modulo: null, prova: null, questoes: [] };
 const modalEditor = document.getElementById('modal-editor');
 
-function abrirEditor(m) {
+/** prova = null cria uma nova avaliação no tema; caso contrário edita a existente. */
+function abrirEditor(m, prova) {
   editor.modulo = m;
-  editor.questoes = m.prova ? structuredClone(m.prova.questoes) : [novaQuestao()];
+  editor.prova = prova;
+  editor.questoes = prova ? structuredClone(prova.questoes) : [novaQuestao()];
+  // Sugere, para uma avaliação nova, o primeiro material que ainda não tem avaliação própria.
+  const semAvaliacao = m.aulas.find(a => !m.provas.some(p => p.aula_id === a.id));
+  const aulaId = prova ? prova.aula_id : semAvaliacao?.id ?? null;
   document.getElementById('editor-modulo').textContent = m.titulo;
-  document.getElementById('editor-titulo').value = m.prova?.titulo || `Avaliação · ${m.titulo}`;
-  document.getElementById('editor-nota').value = m.prova?.nota_minima ?? 75;
-  document.getElementById('editor-excluir').hidden = !m.prova;
+  document.getElementById('editor-aula').innerHTML = '<option value="">Todos os materiais do tema</option>' +
+    m.aulas.map(a => `<option value="${a.id}" ${a.id === aulaId ? 'selected' : ''}>${esc(a.titulo)}</option>`).join('');
+  const aula = m.aulas.find(a => a.id === aulaId);
+  document.getElementById('editor-titulo').value = prova?.titulo || `Avaliação · ${aula ? aula.titulo : m.titulo}`;
+  document.getElementById('editor-nota').value = prova?.nota_minima ?? m.provas[0]?.nota_minima ?? 75;
+  document.getElementById('editor-excluir').hidden = !prova;
   document.getElementById('editor-texto').value = '';
   renderEditor();
   modalEditor.showModal();
@@ -336,10 +358,12 @@ document.getElementById('form-editor').addEventListener('submit', async (e) => {
   const corpo = {
     titulo: document.getElementById('editor-titulo').value,
     nota_minima: Number(document.getElementById('editor-nota').value),
+    aula_id: Number(document.getElementById('editor-aula').value) || null,
     questoes: editor.questoes,
   };
   try {
-    await api(`/api/admin/modulos/${editor.modulo.id}/prova`, { method: 'PUT', body: corpo });
+    if (editor.prova) await api(`/api/admin/provas/${editor.prova.id}`, { method: 'PUT', body: corpo });
+    else await api(`/api/admin/modulos/${editor.modulo.id}/provas`, { method: 'POST', body: corpo });
     modalEditor.close();
     toast('Avaliação salva ✅');
     carregarModulos();
@@ -347,8 +371,8 @@ document.getElementById('form-editor').addEventListener('submit', async (e) => {
 });
 
 document.getElementById('editor-excluir').addEventListener('click', async () => {
-  if (!confirm('Excluir a avaliação deste tema? As notas e tentativas registradas serão apagadas.')) return;
-  await api(`/api/admin/modulos/${editor.modulo.id}/prova`, { method: 'DELETE' });
+  if (!confirm(`Excluir a avaliação "${editor.prova.titulo}"? As notas, tentativas e certificados dela serão apagados.`)) return;
+  await api(`/api/admin/provas/${editor.prova.id}`, { method: 'DELETE' });
   modalEditor.close();
   carregarModulos();
 });

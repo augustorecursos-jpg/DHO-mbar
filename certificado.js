@@ -16,6 +16,16 @@ function dataPorExtenso(iso) {
   return d.toLocaleDateString('pt-BR', { day: '2-digit', month: 'long', year: 'numeric', timeZone: 'America/Sao_Paulo' });
 }
 
+/** "Avaliação · Tema - Assunto" → "Assunto" quando o título repete o nome do tema. */
+function tituloAvaliado({ avaliacao, modulo }) {
+  let t = String(avaliacao || '').replace(/^(avalia[cç][aã]o|prova)\s*[·:\-–]\s*/i, '').trim();
+  if (!t) return modulo;
+  if (t.toLowerCase().startsWith(String(modulo).toLowerCase())) {
+    t = t.slice(modulo.length).replace(/^\s*[·:\-–]\s*/, '').trim() || modulo;
+  }
+  return t;
+}
+
 async function gerarCertificado({ colaborador, certificado }) {
   const pdf = await PDFDocument.create();
   pdf.setTitle(`Certificado - ${limpar(certificado.modulo)}`);
@@ -52,9 +62,13 @@ async function gerarCertificado({ colaborador, certificado }) {
 
   const cargo = [colaborador.cargo, colaborador.filial].filter(Boolean).join(' · ');
   if (cargo) centro(cargo, height - 332, regular, 11, CINZA);
-  centro('concluiu com aproveitamento o tema', height - 368, regular, 14, GRAFITE);
-  centro(certificado.modulo, height - 396, negrito, 20, MARINHO);
-  centro(`da Trilha de Desenvolvimento Âmbar, com nota ${String(certificado.nota).replace('.', ',')}% na avaliação final.`, height - 422, regular, 13, GRAFITE);
+  // Com várias avaliações por tema, o destaque é o conteúdo avaliado; o tema aparece logo abaixo.
+  const avaliado = tituloAvaliado(certificado);
+  const nota = String(certificado.nota).replace('.', ',');
+  centro('concluiu com aproveitamento', height - 366, regular, 14, GRAFITE);
+  centro(avaliado, height - 394, negrito, 20, MARINHO);
+  if (avaliado !== certificado.modulo) centro(`Tema: ${certificado.modulo}`, height - 414, regular, 11, CINZA);
+  centro(`da Trilha de Desenvolvimento Âmbar, com nota ${nota}% na avaliação.`, height - 438, regular, 13, GRAFITE);
 
   // Rodapé: data, assinatura e código
   const yBase = 100;

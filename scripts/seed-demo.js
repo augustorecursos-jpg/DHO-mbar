@@ -42,13 +42,28 @@ async function pdfDemo(titulo, paginas) {
         { enunciado: 'A integração do novo colaborador deve acontecer…', alternativas: ['No primeiro dia', 'Após 6 meses', 'Somente se ele pedir'], correta: 0 },
         { enunciado: 'Quem é o responsável por acolher o novo colaborador na equipe?', alternativas: ['Apenas o RH', 'O gestor direto, com apoio do RH', 'Ninguém'], correta: 1 },
       ] },
+    { titulo: 'Segurança do Trabalho', icone: '🦺', descricao: 'Uma avaliação para cada material do tema.', aulas: ['Ferramentas de Segurança', 'Papel da Liderança na Segurança'],
+      porMaterial: [
+        [{ enunciado: 'Antes de iniciar uma atividade de risco, deve-se…', alternativas: ['Fazer a análise de risco', 'Começar logo', 'Pedir para outro fazer'], correta: 0 }],
+        [{ enunciado: 'O líder é responsável pela segurança da equipe?', alternativas: ['Não, só o técnico de segurança', 'Sim, dando o exemplo e cobrando os procedimentos'], correta: 1 }],
+      ] },
   ];
   for (const [ordem, m] of modulos.entries()) {
     if (db.prepare('SELECT 1 FROM modulos WHERE titulo = ?').get(m.titulo)) continue;
     const id = Number(db.prepare('INSERT INTO modulos (titulo, descricao, icone, ordem) VALUES (?, ?, ?, ?)').run(m.titulo, m.descricao, m.icone, ordem + 1).lastInsertRowid);
+    const aulaIds = [];
     for (const [i, a] of m.aulas.entries()) {
       const arquivo = await pdfDemo(a, 4);
-      db.prepare('INSERT INTO aulas (modulo_id, titulo, arquivo, nome_original, ordem) VALUES (?, ?, ?, ?, ?)').run(id, a, arquivo, `${a}.pdf`, i + 1);
+      aulaIds.push(Number(db.prepare('INSERT INTO aulas (modulo_id, titulo, arquivo, nome_original, ordem) VALUES (?, ?, ?, ?, ?)').run(id, a, arquivo, `${a}.pdf`, i + 1).lastInsertRowid));
+    }
+    if (m.porMaterial) {
+      m.porMaterial.forEach((questoes, i) => {
+        const provaId = Number(db.prepare('INSERT INTO provas (modulo_id, aula_id, titulo, nota_minima, ordem) VALUES (?, ?, ?, 70, ?)')
+          .run(id, aulaIds[i], `Avaliação · ${m.aulas[i]}`, i + 1).lastInsertRowid);
+        questoes.forEach((q, j) => db.prepare('INSERT INTO questoes (prova_id, enunciado, alternativas, correta, ordem) VALUES (?, ?, ?, ?, ?)')
+          .run(provaId, q.enunciado, JSON.stringify(q.alternativas), q.correta, j));
+      });
+      continue;
     }
     const provaId = Number(db.prepare('INSERT INTO provas (modulo_id, titulo, nota_minima) VALUES (?, ?, 75)').run(id, `Avaliação · ${m.titulo}`).lastInsertRowid);
     m.questoes.forEach((q, i) => db.prepare('INSERT INTO questoes (prova_id, enunciado, alternativas, correta, ordem) VALUES (?, ?, ?, ?, ?)')

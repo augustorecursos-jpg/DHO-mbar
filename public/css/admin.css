@@ -43,8 +43,14 @@
 .adm-aula a { font-weight: 700; color: var(--laranja); text-decoration: none; }
 .form-aula { display: flex; gap: .6rem; flex-wrap: wrap; align-items: center; }
 .form-aula .campo { flex: 1; min-width: 200px; }
-.adm-prova { display: flex; align-items: center; gap: .8rem; margin-top: 1rem; padding-top: 1rem; border-top: 1px dashed var(--linha); flex-wrap: wrap; }
+.adm-provas { margin-top: 1rem; padding-top: 1rem; border-top: 1px dashed var(--linha); display: grid; gap: .5rem; }
+.adm-provas-cab { display: flex; align-items: center; justify-content: space-between; gap: .8rem; color: var(--marinho); }
+.adm-provas-cab small { color: var(--texto-suave); font-weight: 400; }
+.adm-prova { display: flex; align-items: center; gap: .8rem; flex-wrap: wrap; padding: .6rem .8rem; border-radius: 10px; background: var(--fundo); }
 .adm-prova span { flex: 1; font-size: .9rem; color: var(--texto-suave); }
+.adm-prova strong { color: var(--marinho); }
+.adm-prova .libera { display: block; font-size: .78rem; margin-top: .15rem; }
+.libera-campo { display: grid; gap: .35rem; font-weight: 700; font-size: .85rem; color: var(--marinho); }
 
 .colar { border: 1px dashed var(--linha); border-radius: 12px; padding: .8rem 1rem; }
 .colar summary { cursor: pointer; font-weight: 700; }
@@ -59,3 +65,4 @@
 .q-alt button, .q-rem { border: 0; background: none; color: var(--texto-suave); font-size: 1rem; }
 .q-dica { font-size: .78rem; color: var(--texto-suave); }
 #editor-questoes { display: grid; gap: 1rem; }
+#form-editor footer button[type=submit] { margin-left: auto; }

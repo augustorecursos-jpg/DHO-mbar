@@ -61,15 +61,19 @@ que baixa uma cópia completa do banco.
   - **Colaboradores**: importa `.xlsx`/`.csv` com as colunas `CPF, NOME, CARGO, FILIAL, REGIONAL`
     (modelo em `public/exemplos/colaboradores-modelo.csv`). Modo *adicionar/atualizar* ou *substituir base*
     (quem sai da planilha perde o acesso, mas o histórico fica). Também dá para bloquear/liberar um CPF.
-  - **Temas & Materiais**: cria os temas (itens do menu lateral), envia os PDFs e monta a avaliação com gabarito
-    (formulário ou colando as questões em texto, marcando a correta com `*`).
+  - **Temas & Materiais**: cria os temas (itens do menu lateral), envia os PDFs e monta **quantas avaliações quiser
+    por tema**, com gabarito (formulário ou colando as questões em texto, marcando a correta com `*`). Cada avaliação
+    pode ser liberada após um material específico ou após todos os materiais do tema.
   - **Resultados**: progresso por colaborador com filtro por regional/filial e exportação CSV.
 
 ## Regras implementadas
 
 - CPF normalizado (aceita com ou sem pontuação e recupera zeros à esquerda que o Excel remove).
 - O gabarito nunca vai para o navegador do colaborador; a correção é feita no servidor.
-- Aprovação: nota ≥ nota mínima da prova (padrão 75%). Pode refazer; vale a melhor nota.
+- Aprovação: nota ≥ nota mínima da avaliação (padrão 75%). Pode refazer; vale a melhor nota.
+  Cada avaliação aprovada gera o seu próprio certificado.
+- Atualizações do banco são automáticas na inicialização e sempre salvam antes uma cópia
+  (`trilha-antes-<versão>-<data>.db`) na pasta de dados.
 - Certificado em PDF com código de autenticidade, verificável em `/api/validar/<código>`.
 
 ## Estrutura

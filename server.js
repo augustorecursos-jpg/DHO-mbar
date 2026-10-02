@@ -85,31 +85,37 @@ function exigirAdmin(req, res, next) {
 function progressoDoColaborador(cpf) {
   const modulos = db.prepare('SELECT * FROM modulos ORDER BY ordem, id').all();
   const vistas = new Set(db.prepare('SELECT aula_id FROM aulas_vistas WHERE cpf = ?').all(cpf).map(r => r.aula_id));
-  const certificados = db.prepare('SELECT * FROM certificados WHERE cpf = ?').all(cpf);
-  const certPorModulo = new Map(certificados.map(c => [c.modulo_id, c]));
+  const certPorProva = new Map(db.prepare('SELECT * FROM certificados WHERE cpf = ?').all(cpf).map(c => [c.prova_id, c]));
 
   return modulos.map(m => {
     const aulas = db.prepare('SELECT id, titulo, ordem FROM aulas WHERE modulo_id = ? ORDER BY ordem, id').all(m.id)
       .map(a => ({ ...a, vista: vistas.has(a.id) }));
-    const prova = db.prepare('SELECT id, titulo, nota_minima FROM provas WHERE modulo_id = ?').get(m.id);
-    let provaInfo = null;
-    if (prova) {
-      const total = db.prepare('SELECT COUNT(*) AS n FROM questoes WHERE prova_id = ?').get(prova.id).n;
-      const melhor = db.prepare('SELECT MAX(nota) AS nota, COUNT(*) AS tentativas FROM tentativas WHERE cpf = ? AND prova_id = ?').get(cpf, prova.id);
-      provaInfo = { ...prova, questoes: total, melhor_nota: melhor.nota, tentativas: melhor.tentativas };
-    }
+    const todasVistas = aulas.every(a => a.vista);
+    const provas = db.prepare('SELECT id, aula_id, titulo, nota_minima FROM provas WHERE modulo_id = ? ORDER BY ordem, id').all(m.id).map(p => {
+      const total = db.prepare('SELECT COUNT(*) AS n FROM questoes WHERE prova_id = ?').get(p.id).n;
+      const melhor = db.prepare('SELECT MAX(nota) AS nota, COUNT(*) AS tentativas FROM tentativas WHERE cpf = ? AND prova_id = ?').get(cpf, p.id);
+      const cert = certPorProva.get(p.id);
+      return {
+        ...p,
+        questoes: total,
+        melhor_nota: melhor.nota,
+        tentativas: melhor.tentativas,
+        liberada: p.aula_id ? vistas.has(p.aula_id) : todasVistas,
+        certificado: cert ? { codigo: cert.codigo, nota: cert.nota, emitido_em: cert.emitido_em } : null,
+      };
+    });
     const aulasFeitas = aulas.filter(a => a.vista).length;
-    const cert = certPorModulo.get(m.id) || null;
-    // Etapas do módulo: cada aula + a prova (se houver). A prova conta como concluída quando aprovada.
-    const etapas = aulas.length + (provaInfo ? 1 : 0);
-    const feitas = aulasFeitas + (cert ? 1 : 0);
+    const aprovadas = provas.filter(p => p.certificado).length;
+    // Etapas do tema: cada material + cada avaliação (concluída quando aprovada).
+    const etapas = aulas.length + provas.length;
     return {
       ...m,
       aulas,
-      prova: provaInfo,
+      provas,
       aulas_feitas: aulasFeitas,
-      progresso: etapas ? Math.round((feitas / etapas) * 100) : 0,
-      certificado: cert ? { codigo: cert.codigo, nota: cert.nota, emitido_em: cert.emitido_em } : null,
+      provas_aprovadas: aprovadas,
+      progresso: etapas ? Math.round(((aulasFeitas + aprovadas) / etapas) * 100) : 0,
+      concluido: provas.length > 0 && aprovadas === provas.length,
     };
   });
 }
@@ -227,20 +233,28 @@ app.post('/api/aulas/:id/concluir', exigirColaborador, (req, res) => {
   res.json({ ok: true });
 });
 
-function provaLiberada(cpf, moduloId) {
+/** Avaliação ligada a um material: libera após esse material. Sem material: após todos os materiais do tema. */
+function provaLiberada(cpf, prova) {
+  if (prova.aula_id) {
+    return Boolean(db.prepare('SELECT 1 FROM aulas_vistas WHERE cpf = ? AND aula_id = ?').get(cpf, prova.aula_id));
+  }
   const pendentes = db.prepare(`
     SELECT COUNT(*) AS n FROM aulas a
-    WHERE a.modulo_id = ? AND NOT EXISTS (SELECT 1 FROM aulas_vistas v WHERE v.aula_id = a.id AND v.cpf = ?)`).get(moduloId, cpf).n;
+    WHERE a.modulo_id = ? AND NOT EXISTS (SELECT 1 FROM aulas_vistas v WHERE v.aula_id = a.id AND v.cpf = ?)`).get(prova.modulo_id, cpf).n;
   return pendentes === 0;
 }
 
-// Entrega a prova SEM o gabarito.
+function mensagemBloqueio(prova) {
+  return prova.aula_id
+    ? 'Conclua o material desta avaliação para liberá-la.'
+    : 'Conclua todos os materiais do tema para liberar a avaliação.';
+}
+
+// Entrega a avaliação SEM o gabarito.
 app.get('/api/provas/:id', exigirColaborador, (req, res) => {
   const prova = db.prepare('SELECT * FROM provas WHERE id = ?').get(Number(req.params.id));
-  if (!prova) return res.status(404).json({ erro: 'Prova não encontrada' });
-  if (!provaLiberada(req.colab.cpf, prova.modulo_id)) {
-    return res.status(403).json({ erro: 'Conclua todas as aulas do módulo para liberar a prova.' });
-  }
+  if (!prova) return res.status(404).json({ erro: 'Avaliação não encontrada' });
+  if (!provaLiberada(req.colab.cpf, prova)) return res.status(403).json({ erro: mensagemBloqueio(prova) });
   const questoes = db.prepare('SELECT id, enunciado, alternativas FROM questoes WHERE prova_id = ? ORDER BY ordem, id').all(prova.id)
     .map(q => ({ id: q.id, enunciado: q.enunciado, alternativas: JSON.parse(q.alternativas) }));
   res.json({ id: prova.id, titulo: prova.titulo, nota_minima: prova.nota_minima, questoes });
@@ -249,12 +263,10 @@ app.get('/api/provas/:id', exigirColaborador, (req, res) => {
 // Correção feita no servidor, comparando com o gabarito.
 app.post('/api/provas/:id/responder', exigirColaborador, (req, res) => {
   const prova = db.prepare('SELECT * FROM provas WHERE id = ?').get(Number(req.params.id));
-  if (!prova) return res.status(404).json({ erro: 'Prova não encontrada' });
-  if (!provaLiberada(req.colab.cpf, prova.modulo_id)) {
-    return res.status(403).json({ erro: 'Conclua todas as aulas do módulo para liberar a prova.' });
-  }
+  if (!prova) return res.status(404).json({ erro: 'Avaliação não encontrada' });
+  if (!provaLiberada(req.colab.cpf, prova)) return res.status(403).json({ erro: mensagemBloqueio(prova) });
   const questoes = db.prepare('SELECT id, correta FROM questoes WHERE prova_id = ?').all(prova.id);
-  if (!questoes.length) return res.status(400).json({ erro: 'Prova sem questões cadastradas.' });
+  if (!questoes.length) return res.status(400).json({ erro: 'Avaliação sem questões cadastradas.' });
 
   const respostas = req.body?.respostas || {};
   const acertos = questoes.filter(q => Number(respostas[q.id]) === q.correta).length;
@@ -264,23 +276,25 @@ app.post('/api/provas/:id/responder', exigirColaborador, (req, res) => {
   db.prepare('INSERT INTO tentativas (cpf, prova_id, nota, acertos, total, aprovado, respostas) VALUES (?, ?, ?, ?, ?, ?, ?)')
     .run(req.colab.cpf, prova.id, nota, acertos, questoes.length, aprovado ? 1 : 0, JSON.stringify(respostas));
 
-  let certificado = db.prepare('SELECT * FROM certificados WHERE cpf = ? AND modulo_id = ?').get(req.colab.cpf, prova.modulo_id);
+  const buscar = () => db.prepare('SELECT * FROM certificados WHERE cpf = ? AND prova_id = ?').get(req.colab.cpf, prova.id);
+  let certificado = buscar();
   if (aprovado) {
     if (!certificado) {
       const codigo = crypto.randomBytes(5).toString('hex').toUpperCase();
-      db.prepare('INSERT INTO certificados (codigo, cpf, modulo_id, nota) VALUES (?, ?, ?, ?)').run(codigo, req.colab.cpf, prova.modulo_id, nota);
+      db.prepare('INSERT INTO certificados (codigo, cpf, modulo_id, prova_id, nota) VALUES (?, ?, ?, ?, ?)')
+        .run(codigo, req.colab.cpf, prova.modulo_id, prova.id, nota);
     } else if (nota > certificado.nota) {
       db.prepare('UPDATE certificados SET nota = ? WHERE codigo = ?').run(nota, certificado.codigo);
     }
-    certificado = db.prepare('SELECT * FROM certificados WHERE cpf = ? AND modulo_id = ?').get(req.colab.cpf, prova.modulo_id);
+    certificado = buscar();
   }
   res.json({ nota, acertos, total: questoes.length, aprovado, nota_minima: prova.nota_minima, certificado: certificado?.codigo || null });
 });
 
 app.get('/api/certificados/:codigo.pdf', exigirColaborador, async (req, res) => {
   const cert = db.prepare(`
-    SELECT c.*, m.titulo AS modulo, (SELECT COUNT(*) FROM aulas a WHERE a.modulo_id = m.id) AS aulas
-    FROM certificados c JOIN modulos m ON m.id = c.modulo_id
+    SELECT c.*, m.titulo AS modulo, p.titulo AS avaliacao
+    FROM certificados c JOIN modulos m ON m.id = c.modulo_id LEFT JOIN provas p ON p.id = c.prova_id
     WHERE c.codigo = ? AND c.cpf = ?`).get(req.params.codigo, req.colab.cpf);
   if (!cert) return res.status(404).json({ erro: 'Certificado não encontrado' });
   const pdf = await gerarCertificado({ colaborador: req.colab, certificado: cert });
@@ -292,8 +306,9 @@ app.get('/api/certificados/:codigo.pdf', exigirColaborador, async (req, res) => 
 // Validação pública de autenticidade do certificado (código impresso no PDF).
 app.get('/api/validar/:codigo', (req, res) => {
   const c = db.prepare(`
-    SELECT c.codigo, c.nota, c.emitido_em, col.nome, m.titulo AS modulo
+    SELECT c.codigo, c.nota, c.emitido_em, col.nome, m.titulo AS modulo, p.titulo AS avaliacao
     FROM certificados c JOIN colaboradores col ON col.cpf = c.cpf JOIN modulos m ON m.id = c.modulo_id
+    LEFT JOIN provas p ON p.id = c.prova_id
     WHERE c.codigo = ?`).get(String(req.params.codigo).toUpperCase());
   if (!c) return res.status(404).json({ valido: false });
   res.json({ valido: true, ...c });
@@ -368,12 +383,12 @@ app.patch('/api/admin/colaboradores/:cpf', exigirAdmin, (req, res) => {
 app.get('/api/admin/modulos', exigirAdmin, (_req, res) => {
   const modulos = db.prepare('SELECT * FROM modulos ORDER BY ordem, id').all().map(m => {
     const aulas = db.prepare('SELECT * FROM aulas WHERE modulo_id = ? ORDER BY ordem, id').all(m.id);
-    const prova = db.prepare('SELECT * FROM provas WHERE modulo_id = ?').get(m.id);
-    const questoes = prova
-      ? db.prepare('SELECT * FROM questoes WHERE prova_id = ? ORDER BY ordem, id').all(prova.id)
-        .map(q => ({ enunciado: q.enunciado, alternativas: JSON.parse(q.alternativas), correta: q.correta }))
-      : [];
-    return { ...m, aulas, prova: prova ? { ...prova, questoes } : null };
+    const provas = db.prepare('SELECT * FROM provas WHERE modulo_id = ? ORDER BY ordem, id').all(m.id).map(p => ({
+      ...p,
+      questoes: db.prepare('SELECT * FROM questoes WHERE prova_id = ? ORDER BY ordem, id').all(p.id)
+        .map(q => ({ enunciado: q.enunciado, alternativas: JSON.parse(q.alternativas), correta: q.correta })),
+    }));
+    return { ...m, aulas, provas };
   });
   res.json(modulos);
 });
@@ -428,44 +443,82 @@ app.delete('/api/admin/aulas/:id', exigirAdmin, (req, res) => {
   res.json({ ok: true });
 });
 
-// -- Prova + gabarito (uma por módulo; salvar substitui as questões) --
+// -- Avaliações + gabarito (várias por tema; salvar substitui as questões daquela avaliação) --
 
-app.put('/api/admin/modulos/:id/prova', exigirAdmin, (req, res) => {
-  const moduloId = Number(req.params.id);
-  const { titulo, nota_minima, questoes } = req.body || {};
-  if (!Array.isArray(questoes) || !questoes.length) return res.status(400).json({ erro: 'Cadastre ao menos uma questão.' });
+/** Valida o corpo enviado pelo editor e devolve os campos normalizados, ou uma mensagem de erro. */
+function lerAvaliacao(body, moduloId) {
+  const { titulo, nota_minima, questoes } = body || {};
+  if (!String(titulo || '').trim()) return { erro: 'Informe o título da avaliação.' };
+  if (!Array.isArray(questoes) || !questoes.length) return { erro: 'Cadastre ao menos uma questão.' };
   for (const [i, q] of questoes.entries()) {
     const alts = (q.alternativas || []).map(a => String(a).trim());
     if (!String(q.enunciado || '').trim() || alts.length < 2 || alts.some(a => !a)) {
-      return res.status(400).json({ erro: `Questão ${i + 1}: preencha o enunciado e ao menos 2 alternativas.` });
+      return { erro: `Questão ${i + 1}: preencha o enunciado e ao menos 2 alternativas.` };
     }
     if (!(Number.isInteger(q.correta) && q.correta >= 0 && q.correta < alts.length)) {
-      return res.status(400).json({ erro: `Questão ${i + 1}: marque a alternativa correta (gabarito).` });
+      return { erro: `Questão ${i + 1}: marque a alternativa correta (gabarito).` };
     }
   }
+  const aulaId = body.aula_id ? Number(body.aula_id) : null;
+  if (aulaId && !db.prepare('SELECT 1 FROM aulas WHERE id = ? AND modulo_id = ?').get(aulaId, moduloId)) {
+    return { erro: 'O material escolhido não pertence a este tema.' };
+  }
+  return {
+    titulo: String(titulo).trim(),
+    nota_minima: Math.min(100, Math.max(1, Number(nota_minima) || NOTA_MINIMA_PADRAO)),
+    aula_id: aulaId,
+    questoes,
+  };
+}
+
+function salvarQuestoes(provaId, questoes) {
+  db.prepare('DELETE FROM questoes WHERE prova_id = ?').run(provaId);
+  const ins = db.prepare('INSERT INTO questoes (prova_id, enunciado, alternativas, correta, ordem) VALUES (?, ?, ?, ?, ?)');
+  questoes.forEach((q, i) => ins.run(provaId, q.enunciado.trim(), JSON.stringify(q.alternativas.map(a => String(a).trim())), q.correta, i));
+}
+
+function emTransacao(fn) {
   db.exec('BEGIN');
   try {
-    let prova = db.prepare('SELECT * FROM provas WHERE modulo_id = ?').get(moduloId);
-    const minima = Math.min(100, Math.max(1, Number(nota_minima) || NOTA_MINIMA_PADRAO));
-    if (prova) {
-      db.prepare('UPDATE provas SET titulo = ?, nota_minima = ? WHERE id = ?').run(titulo || 'Prova do módulo', minima, prova.id);
-      db.prepare('DELETE FROM questoes WHERE prova_id = ?').run(prova.id);
-    } else {
-      const r = db.prepare('INSERT INTO provas (modulo_id, titulo, nota_minima) VALUES (?, ?, ?)').run(moduloId, titulo || 'Prova do módulo', minima);
-      prova = { id: Number(r.lastInsertRowid) };
-    }
-    const ins = db.prepare('INSERT INTO questoes (prova_id, enunciado, alternativas, correta, ordem) VALUES (?, ?, ?, ?, ?)');
-    questoes.forEach((q, i) => ins.run(prova.id, q.enunciado.trim(), JSON.stringify(q.alternativas.map(a => String(a).trim())), q.correta, i));
+    const r = fn();
     db.exec('COMMIT');
+    return r;
   } catch (e) {
     db.exec('ROLLBACK');
     throw e;
   }
+}
+
+app.post('/api/admin/modulos/:id/provas', exigirAdmin, (req, res) => {
+  const moduloId = Number(req.params.id);
+  if (!db.prepare('SELECT 1 FROM modulos WHERE id = ?').get(moduloId)) return res.status(404).json({ erro: 'Tema não encontrado' });
+  const av = lerAvaliacao(req.body, moduloId);
+  if (av.erro) return res.status(400).json({ erro: av.erro });
+  const id = emTransacao(() => {
+    const ordem = db.prepare('SELECT COALESCE(MAX(ordem), 0) + 1 AS o FROM provas WHERE modulo_id = ?').get(moduloId).o;
+    const r = db.prepare('INSERT INTO provas (modulo_id, aula_id, titulo, nota_minima, ordem) VALUES (?, ?, ?, ?, ?)')
+      .run(moduloId, av.aula_id, av.titulo, av.nota_minima, ordem);
+    const provaId = Number(r.lastInsertRowid);
+    salvarQuestoes(provaId, av.questoes);
+    return provaId;
+  });
+  res.json({ id });
+});
+
+app.put('/api/admin/provas/:id', exigirAdmin, (req, res) => {
+  const prova = db.prepare('SELECT * FROM provas WHERE id = ?').get(Number(req.params.id));
+  if (!prova) return res.status(404).json({ erro: 'Avaliação não encontrada' });
+  const av = lerAvaliacao(req.body, prova.modulo_id);
+  if (av.erro) return res.status(400).json({ erro: av.erro });
+  emTransacao(() => {
+    db.prepare('UPDATE provas SET titulo = ?, nota_minima = ?, aula_id = ? WHERE id = ?').run(av.titulo, av.nota_minima, av.aula_id, prova.id);
+    salvarQuestoes(prova.id, av.questoes);
+  });
   res.json({ ok: true });
 });
 
-app.delete('/api/admin/modulos/:id/prova', exigirAdmin, (req, res) => {
-  db.prepare('DELETE FROM provas WHERE modulo_id = ?').run(Number(req.params.id));
+app.delete('/api/admin/provas/:id', exigirAdmin, (req, res) => {
+  db.prepare('DELETE FROM provas WHERE id = ?').run(Number(req.params.id));
   res.json({ ok: true });
 });
 

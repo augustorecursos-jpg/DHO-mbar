@@ -1,4 +1,4 @@
-// Painel do colaborador: dashboard, módulos, aulas em PDF, prova e certificados.
+// Painel do colaborador: dashboard, temas, materiais em PDF, avaliações e certificados.
 const estado = { colaborador: null, modulos: [] };
 const conteudo = document.getElementById('conteudo');
 
@@ -19,51 +19,68 @@ async function carregar() {
   return true;
 }
 
+const pct = (n) => String(n).replace('.', ',');
+
+function statusTema(m) {
+  if (m.concluido) return { classe: 'ok', texto: 'Concluído' };
+  if (m.progresso > 0) return { classe: 'pend', texto: 'Em andamento' };
+  if (!m.aulas.length && !m.provas.length) return { classe: 'neutra', texto: 'Em breve' };
+  return { classe: 'neutra', texto: 'Não iniciado' };
+}
+
 function renderLateral() {
   const rota = location.hash.match(/^#\/modulo\/(\d+)/);
   document.querySelector('[data-rota="painel"]').classList.toggle('ativo', !rota);
-  document.getElementById('lista-modulos').innerHTML = estado.modulos.map(m => `
-    <button class="lateral-item ${rota && Number(rota[1]) === m.id ? 'ativo' : ''}" data-modulo="${m.id}" title="${m.aulas.length} material(is) em PDF">
-      <span class="ic">${esc(m.icone)}</span>${esc(m.titulo)}
-      <span class="qtd ${m.certificado ? 'ok' : ''}">${m.certificado ? '✓' : m.aulas.length}</span>
-    </button>`).join('');
+  document.getElementById('lista-modulos').innerHTML = estado.modulos.map(m => {
+    const st = statusTema(m);
+    return `
+    <button class="tema-lateral ${st.classe} ${rota && Number(rota[1]) === m.id ? 'ativo' : ''}" data-modulo="${m.id}">
+      <span class="ic">${esc(m.icone)}</span>
+      <span class="tema-lateral-txt">
+        <strong>${esc(m.titulo)}</strong>
+        <small>${m.aulas.length} ${m.aulas.length === 1 ? 'material' : 'materiais'}${m.provas.length ? ` · ${m.provas.length} ${m.provas.length === 1 ? 'avaliação' : 'avaliações'}` : ''}</small>
+        <span class="mini-prog"><i style="width:${m.progresso}%"></i></span>
+      </span>
+      <span class="tema-lateral-pct">${m.concluido ? '✓' : `${m.progresso}%`}</span>
+    </button>`;
+  }).join('');
+}
+
+/** Todas as avaliações da trilha, com o tema de cada uma. */
+function todasProvas() {
+  return estado.modulos.flatMap(m => m.provas.map(p => ({ ...p, modulo: m })));
 }
 
 function totais() {
   const aulas = estado.modulos.reduce((s, m) => s + m.aulas.length, 0);
   const feitas = estado.modulos.reduce((s, m) => s + m.aulas_feitas, 0);
-  const provas = estado.modulos.filter(m => m.prova);
-  const certificados = estado.modulos.filter(m => m.certificado);
+  const provas = todasProvas();
+  const certificados = provas.filter(p => p.certificado);
   const etapas = aulas + provas.length;
   const progresso = etapas ? Math.round(((feitas + certificados.length) / etapas) * 100) : 0;
-  return { aulas, feitas, provasAbertas: provas.length - certificados.length, certificados, progresso };
+  return { aulas, feitas, provas, provasAbertas: provas.length - certificados.length, certificados, progresso };
 }
 
-function anel(pct) {
+function anel(valor) {
   const r = 62, comp = 2 * Math.PI * r;
   return `
-    <div class="anel" role="img" aria-label="Progresso geral: ${pct}%">
+    <div class="anel" role="img" aria-label="Progresso geral: ${valor}%">
       <svg viewBox="0 0 150 150">
         <circle class="trilho" cx="75" cy="75" r="${r}"/>
-        <circle class="carga" cx="75" cy="75" r="${r}" stroke-dasharray="${comp}" stroke-dashoffset="${comp}" data-alvo="${comp * (1 - pct / 100)}"/>
+        <circle class="carga" cx="75" cy="75" r="${r}" stroke-dasharray="${comp}" stroke-dashoffset="${comp}" data-alvo="${comp * (1 - valor / 100)}"/>
       </svg>
-      <div class="anel-texto"><strong>${pct}%</strong><span>CONCLUÍDO</span></div>
+      <div class="anel-texto"><strong>${valor}%</strong><span>CONCLUÍDO</span></div>
     </div>`;
 }
 
 function proximoPasso() {
   for (const m of estado.modulos) {
+    const prova = m.provas.find(p => p.liberada && !p.certificado);
+    if (prova) return { modulo: m, texto: `A avaliação “${prova.titulo}” está liberada para você.` };
     const aula = m.aulas.find(a => !a.vista);
     if (aula) return { modulo: m, texto: `Seu próximo passo: “${aula.titulo}”, no tema ${m.titulo}.` };
-    if (m.prova && !m.certificado) return { modulo: m, texto: `Materiais de “${m.titulo}” concluídos — sua avaliação está liberada.` };
   }
   return null;
-}
-
-function statusTema(m) {
-  if (m.certificado) return '<span class="etiqueta ok">Certificado</span>';
-  if (m.progresso > 0) return '<span class="etiqueta pend">Em andamento</span>';
-  return '<span class="etiqueta neutra">Não iniciado</span>';
 }
 
 const ONDA_CARTAO = `
@@ -76,7 +93,7 @@ function renderPainel() {
   const t = totais();
   const prox = proximoPasso();
   const primeiroNome = estado.colaborador.nome.split(' ')[0];
-  const nProvas = estado.modulos.filter(m => m.prova).length;
+  const notaMin = t.provas[0]?.nota_minima ?? 75;
   conteudo.innerHTML = `
     <section class="boasvindas">
       <div class="pontilhado"></div>${ONDA_CARTAO}
@@ -98,23 +115,26 @@ function renderPainel() {
 
     <div class="grade-painel">
       <section>
-        <h2 class="titulo-secao">Temas da trilha <small>${estado.modulos.length} temas · ${t.aulas} materiais · ${nProvas} avaliações</small></h2>
+        <h2 class="titulo-secao">Temas da trilha <small>${estado.modulos.length} temas · ${t.aulas} materiais · ${t.provas.length} avaliações</small></h2>
         <div class="temas">
-          ${estado.modulos.map(m => `
-            <button class="tema" data-modulo="${m.id}">
+          ${estado.modulos.map(m => {
+            const st = statusTema(m);
+            return `
+            <button class="tema ${st.classe}" data-modulo="${m.id}">
               <span class="tema-topo"><span class="ic">${esc(m.icone)}</span><strong>${esc(m.titulo)}</strong></span>
-              <span class="tema-meta">${m.aulas.length} ${m.aulas.length === 1 ? 'material' : 'materiais'} em PDF${m.prova ? ' · avaliação' : ''}</span>
+              <span class="tema-meta">📘 ${m.aulas.length} ${m.aulas.length === 1 ? 'material' : 'materiais'} · 📝 ${m.provas.length} ${m.provas.length === 1 ? 'avaliação' : 'avaliações'}</span>
               <span class="tema-rodape"><span class="barra-prog"><i style="width:${m.progresso}%"></i></span><span class="pct">${m.progresso}%</span></span>
-              ${statusTema(m)}
-            </button>`).join('') || '<p class="carregando">O RH ainda não publicou temas.</p>'}
+              <span class="tema-acao"><span class="etiqueta ${st.classe}">${st.texto}</span><span class="tema-cta">${m.progresso > 0 && !m.concluido ? 'Continuar' : 'Acessar tema'} →</span></span>
+            </button>`;
+          }).join('') || '<p class="carregando">O RH ainda não publicou temas.</p>'}
         </div>
       </section>
       <section>
         <h2 class="titulo-secao">Meus certificados</h2>
         <div class="cartao certificados">
-          ${t.certificados.length ? `<ul>${t.certificados.map(m => `
-            <li>🎓 ${esc(m.titulo)} <a href="/api/certificados/${m.certificado.codigo}.pdf">Baixar PDF</a></li>`).join('')}</ul>`
-            : `<p class="vazio"><span>🎓</span>Conclua a avaliação de um tema com ${estado.modulos.find(m => m.prova)?.prova.nota_minima ?? 75}% de acerto ou mais para receber seu certificado.</p>`}
+          ${t.certificados.length ? `<ul>${t.certificados.map(p => `
+            <li><span>🎓 ${esc(p.titulo)}<small>${esc(p.modulo.titulo)}</small></span> <a href="/api/certificados/${p.certificado.codigo}.pdf">Baixar PDF</a></li>`).join('')}</ul>`
+            : `<p class="vazio"><span>🎓</span>Seja aprovado em uma avaliação com ${notaMin}% de acerto ou mais para receber seu certificado.</p>`}
         </div>
       </section>
     </div>`;
@@ -124,49 +144,56 @@ function renderPainel() {
   }));
 }
 
+function cartaoProva(p, aula) {
+  const status = p.certificado
+    ? `<span class="etiqueta ok">Aprovado · ${pct(p.certificado.nota)}%</span>`
+    : p.tentativas ? `<span class="etiqueta pend">Melhor nota: ${pct(p.melhor_nota)}%</span>` : '';
+  const bloqueio = aula ? `Conclua o material “${esc(aula.titulo)}” para liberar.` : 'Conclua todos os materiais do tema para liberar.';
+  return `
+    <div class="prova-card ${p.liberada ? '' : 'bloqueada'}">
+      <span class="ic">${p.liberada ? '📝' : '🔒'}</span>
+      <div class="txt">
+        <h3>${esc(p.titulo)} ${status}</h3>
+        <p>${p.questoes} ${p.questoes === 1 ? 'questão' : 'questões'} · nota mínima ${p.nota_minima}% · ${p.tentativas} tentativa(s)${p.liberada ? '' : `<br>${bloqueio}`}</p>
+      </div>
+      ${p.certificado ? `<a class="btn btn-marinho btn-sm" href="/api/certificados/${p.certificado.codigo}.pdf">⬇ Certificado</a>` : ''}
+      <button class="btn ${p.certificado ? 'btn-claro' : 'btn-laranja'} btn-sm" data-prova="${p.id}" ${p.liberada ? '' : 'disabled'}>
+        ${p.certificado ? 'Refazer' : p.tentativas ? 'Tentar novamente' : 'Iniciar avaliação'}</button>
+    </div>`;
+}
+
 function renderModulo(id) {
   const m = estado.modulos.find(x => x.id === id);
   if (!m) { location.hash = '#/'; return; }
-  const aulasOk = m.aulas.every(a => a.vista);
-  let provaHtml = '';
-  if (m.prova) {
-    const p = m.prova;
-    const status = m.certificado
-      ? `<span class="etiqueta ok">Aprovado · ${String(m.certificado.nota).replace('.', ',')}%</span>`
-      : p.tentativas ? `<span class="etiqueta pend">Melhor nota: ${String(p.melhor_nota).replace('.', ',')}%</span>` : '';
-    provaHtml = `
-      <section class="cartao prova-card">
-        <span class="ic">📝</span>
-        <div class="txt">
-          <h3>${esc(p.titulo)} ${status}</h3>
-          <p>${p.questoes} questões · nota mínima ${p.nota_minima}% · ${p.tentativas} tentativa(s)
-          ${aulasOk ? '' : '<br>🔒 Conclua todos os materiais para liberar a avaliação.'}</p>
-        </div>
-        ${m.certificado ? `<a class="btn btn-marinho" href="/api/certificados/${m.certificado.codigo}.pdf">⬇ Baixar certificado</a>` : ''}
-        <button class="btn ${m.certificado ? 'btn-claro' : 'btn-laranja'}" data-prova="${p.id}" ${aulasOk ? '' : 'disabled'}>
-          ${m.certificado ? 'Refazer avaliação' : p.tentativas ? 'Tentar novamente' : 'Iniciar avaliação'}</button>
-      </section>`;
-  }
+  // Avaliações ligadas a um material aparecem logo abaixo dele; as demais, ao final do tema.
+  const gerais = m.provas.filter(p => !p.aula_id || !m.aulas.some(a => a.id === p.aula_id));
   conteudo.innerHTML = `
     <button class="voltar" data-rota="painel">← Voltar ao painel</button>
     <div class="tema-cab">
       <span class="ic">${esc(m.icone)}</span>
       <div><h1 class="titulo-pagina" style="margin:0">${esc(m.titulo)}</h1>${m.descricao ? `<p>${esc(m.descricao)}</p>` : ''}</div>
-      <div class="progresso"><span>${m.progresso}% concluído</span><span class="barra-prog"><i style="width:${m.progresso}%"></i></span></div>
+      <div class="progresso"><span>${m.progresso}% concluído · ${m.provas_aprovadas}/${m.provas.length} avaliações aprovadas</span><span class="barra-prog"><i style="width:${m.progresso}%"></i></span></div>
     </div>
     <section class="cartao">
-      <h3>📘 Materiais do tema <small>· ${m.aulas_feitas} de ${m.aulas.length} concluídos</small></h3>
+      <h3>📘 Materiais e avaliações <small>· ${m.aulas_feitas} de ${m.aulas.length} materiais concluídos</small></h3>
       <div class="lista-aulas">
         ${m.aulas.map((a, i) => `
-          <div class="aula ${a.vista ? 'feita' : ''}">
-            <span class="num">${a.vista ? '✓' : i + 1}</span>
-            <strong>${esc(a.titulo)}</strong>
-            <span class="pdf">PDF</span>
-            <button class="btn ${a.vista ? 'btn-claro' : 'btn-marinho'} btn-sm" data-aula="${a.id}">${a.vista ? 'Rever' : 'Abrir'}</button>
+          <div class="bloco-aula">
+            <div class="aula ${a.vista ? 'feita' : ''}">
+              <span class="num">${a.vista ? '✓' : i + 1}</span>
+              <strong>${esc(a.titulo)}</strong>
+              <span class="pdf">PDF</span>
+              <button class="btn ${a.vista ? 'btn-claro' : 'btn-marinho'} btn-sm" data-aula="${a.id}">${a.vista ? 'Rever' : 'Abrir'}</button>
+            </div>
+            ${m.provas.filter(p => p.aula_id === a.id).map(p => cartaoProva(p, a)).join('')}
           </div>`).join('') || '<p class="carregando">Nenhum material neste tema ainda.</p>'}
       </div>
     </section>
-    ${provaHtml}`;
+    ${gerais.length ? `
+    <section class="cartao" style="margin-top:1.4rem">
+      <h3>📝 Avaliação final do tema</h3>
+      <div class="lista-aulas">${gerais.map(p => cartaoProva(p, null)).join('')}</div>
+    </section>` : ''}`;
 }
 
 function rotear() {

@@ -272,10 +272,12 @@ async function desenharPagina(el) {
   el.classList.add('pronta');
 }
 
-// Desenha cada página só quando ela se aproxima da área visível.
-let observador;
+// Desenha cada página só quando ela se aproxima da área visível; um segundo observador (sem margem)
+// indica a página que está de fato na tela.
+let observador, observadorPagina;
 function observarPaginas(total) {
   observador?.disconnect();
+  observadorPagina?.disconnect();
   observador = new IntersectionObserver((entradas) => {
     for (const e of entradas) {
       const el = e.target;
@@ -283,12 +285,15 @@ function observarPaginas(total) {
         el.dataset.carregada = '1';
         desenharPagina(el).catch(() => { el.dataset.carregada = ''; });
       }
-      if (e.isIntersecting && e.intersectionRatio > 0.4) {
-        document.getElementById('aula-pagina').textContent = `Página ${el.dataset.n} de ${total}`;
-      }
     }
-  }, { root: paginasEl, rootMargin: '600px 0px', threshold: [0, 0.4] });
-  paginasEl.querySelectorAll('.pagina').forEach(p => observador.observe(p));
+  }, { root: paginasEl, rootMargin: '800px 0px' });
+  const visiveis = new Map();
+  observadorPagina = new IntersectionObserver((entradas) => {
+    for (const e of entradas) visiveis.set(Number(e.target.dataset.n), e.intersectionRatio);
+    const [n] = [...visiveis.entries()].sort((a, b) => b[1] - a[1] || a[0] - b[0])[0] || [1];
+    document.getElementById('aula-pagina').textContent = `Página ${n} de ${total}`;
+  }, { root: paginasEl, threshold: [0, 0.25, 0.5, 0.75, 1] });
+  paginasEl.querySelectorAll('.pagina').forEach(p => { observador.observe(p); observadorPagina.observe(p); });
 }
 
 document.getElementById('aula-concluir').addEventListener('click', async () => {
@@ -300,6 +305,7 @@ document.getElementById('aula-concluir').addEventListener('click', async () => {
 });
 modalAula.addEventListener('close', () => {
   observador?.disconnect();
+  observadorPagina?.disconnect();
   docAtual?.destroy();
   docAtual = null;
   paginasEl.innerHTML = '';

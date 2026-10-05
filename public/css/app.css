@@ -192,15 +192,18 @@ body.app { display: flex; min-height: 100vh; }
 
 /* Visualizador protegido: páginas como imagem de fundo, sem seleção, arraste ou menu de contexto */
 .visualizador {
-  position: relative; flex: 1; overflow-y: auto; padding: 1.2rem; display: grid; gap: 1.2rem; align-content: start;
+  /* Lista simples (bloco): cada página ocupa a altura do próprio conteúdo. Em grade, dentro do modal de
+     altura fixa, as linhas encolhiam e as páginas ficavam sobrepostas. */
+  position: relative; flex: 1 1 auto; min-height: 0; overflow-y: auto; padding: 1.2rem; display: block;
   background: #2f3b46; user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; outline: none;
 }
 .pagina {
-  position: relative; width: min(100%, 1100px); margin: 0 auto; aspect-ratio: 16 / 9; border-radius: 4px;
-  background: #fff; box-shadow: 0 10px 28px -12px rgba(0, 0, 0, .6); overflow: hidden;
+  position: relative; width: min(100%, 1100px); margin: 0 auto 1.2rem; aspect-ratio: 16 / 9; border-radius: 4px;
+  background: #fff; box-shadow: 0 10px 28px -12px rgba(0, 0, 0, .6); overflow: hidden; flex-shrink: 0;
   transition: filter .2s;
 }
-.pagina canvas { display: block; width: 100%; height: 100%; pointer-events: none; }
+.pagina.pronta { aspect-ratio: auto; }
+.pagina canvas { display: block; width: 100%; height: auto; pointer-events: none; }
 .pagina:not(.pronta) { background-image: linear-gradient(110deg, #eef1f4 30%, #f8f9fa 50%, #eef1f4 70%); background-size: 200% 100%; animation: brilho-carregando 1.3s linear infinite; }
 @keyframes brilho-carregando { to { background-position: -200% 0; } }
 .pagina-num { position: absolute; right: 10px; bottom: 10px; z-index: 1; font-size: .72rem; font-weight: 700; color: #fff; background: rgba(14, 59, 92, .7); padding: .15rem .5rem; border-radius: 999px; }

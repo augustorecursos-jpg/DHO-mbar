@@ -33,6 +33,7 @@
     <button class="lateral-item ativo" data-aba="indicadores"><span class="ic">📈</span>Indicadores</button>
     <button class="lateral-item" data-aba="colaboradores"><span class="ic">👥</span>Colaboradores</button>
     <button class="lateral-item" data-aba="modulos"><span class="ic">📚</span>Temas & Materiais</button>
+    <button class="lateral-item" data-aba="reacao"><span class="ic">💬</span>Avaliação de Reação</button>
     <button class="lateral-item" data-aba="resultados"><span class="ic">📊</span>Resultados</button>
     <div class="lateral-rodape"><button class="lateral-item" id="sair"><span class="ic">⎋</span>Sair</button></div>
   </aside>
@@ -127,6 +128,30 @@
       </section>
 
       <!-- Resultados -->
+      <section data-painel="reacao" hidden>
+        <h1 class="titulo-pagina">Avaliação de <em>reação</em></h1>
+        <form class="cartao" id="form-reacao">
+          <h3>📝 Formulário <small>· o mesmo para todos os módulos; aparece ao final da avaliação de cada módulo</small></h3>
+          <p class="q-dica">Escala usada em todos os critérios: 1 – Muito ruim | 2 – Ruim | 3 – Regular | 4 – Bom | 5 – Excelente.
+            Escreva um critério por linha.</p>
+          <div id="reacao-secoes" class="reacao-editor"></div>
+          <div class="linha-form">
+            <button type="button" class="btn btn-claro btn-sm" id="reacao-add-secao">➕ Adicionar seção</button>
+            <label class="check"><input type="checkbox" id="reacao-comentario"> Campo aberto para comentários</label>
+            <label class="check"><input type="checkbox" id="reacao-ativa"> Avaliação de reação ativa</label>
+            <button class="btn btn-laranja" type="submit" style="margin-left:auto">Salvar formulário</button>
+          </div>
+        </form>
+        <div class="cartao" style="margin-top:1.4rem">
+          <div class="cab-tabela">
+            <h3>📊 Resultados <small id="reacao-resumo"></small></h3>
+            <div class="filtros"><select class="campo" id="reacao-modulo"><option value="">Todos os módulos</option></select></div>
+          </div>
+          <div class="tabela-wrap"><table class="tabela" id="reacao-tabela"></table></div>
+          <div id="reacao-comentarios"></div>
+        </div>
+      </section>
+
       <section data-painel="resultados" hidden>
         <h1 class="titulo-pagina">Resultados da <em>trilha</em></h1>
         <div class="cartao">

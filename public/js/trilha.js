@@ -193,7 +193,14 @@ function renderModulo(id) {
     <section class="cartao" style="margin-top:1.4rem">
       <h3>📝 Avaliação final do tema</h3>
       <div class="lista-aulas">${gerais.map(p => cartaoProva(p, null)).join('')}</div>
+    </section>` : ''}
+    ${m.reacao ? `
+    <section class="cartao" style="margin-top:1.4rem" id="reacao-modulo">
+      ${m.reacao === 'respondida'
+        ? '<h3>💬 Avaliação de reação <span class="etiqueta ok">Respondida</span></h3><p class="q-dica">Obrigado por avaliar este módulo!</p>'
+        : '<h3>💬 Avaliação de reação <span class="etiqueta pend">Pendente</span></h3><div id="reacao-pagina"></div>'}
     </section>` : ''}`;
+  if (m.reacao === 'pendente') montarReacao(document.getElementById('reacao-pagina'), m).catch(() => {});
 }
 
 function rotear() {
@@ -333,12 +340,25 @@ const modalProva = document.getElementById('modal-prova');
 const formProva = document.getElementById('form-prova');
 let provaAtual = null;
 
+const INTRO_AVALIACAO = `
+  <section class="prova-intro">
+    <small>SEU DESENVOLVIMENTO CONTINUA AQUI!</small>
+    <h4>Transforme conhecimento em desenvolvimento</h4>
+    <p>Ao concluir cada etapa da Trilha de Desenvolvimento, reserve alguns minutos para realizar a Avaliação.</p>
+    <p><strong>Concluiu o treinamento? Agora é hora de avaliar o seu aprendizado!</strong><br>
+      Este é o momento de revisar os principais conteúdos, consolidar os conhecimentos adquiridos e avaliar
+      o seu aproveitamento após a capacitação.</p>
+    <p>Mais do que uma prova, é uma oportunidade de reconhecer o quanto você avançou e fortalecer ainda mais
+      o seu desenvolvimento. Participe, coloque seu conhecimento em prática e siga avançando conosco!</p>
+    <p class="assinatura">Âmbar, a energia que te desenvolve.</p>
+  </section>`;
+
 async function abrirProva(id) {
   try {
     provaAtual = await api(`/api/provas/${id}`);
   } catch (err) { toast(err.message, 'erro'); return; }
   document.getElementById('prova-titulo').textContent = provaAtual.titulo;
-  document.getElementById('prova-corpo').innerHTML = provaAtual.questoes.map((q, i) => `
+  document.getElementById('prova-corpo').innerHTML = INTRO_AVALIACAO + provaAtual.questoes.map((q, i) => `
     <fieldset class="questao">
       <legend>Questão ${i + 1}</legend>
       <p>${esc(q.enunciado)}</p>
@@ -383,9 +403,69 @@ formProva.addEventListener('submit', async (e) => {
     document.getElementById('prova-info').textContent = '';
     await carregar();
     rotear();
+    // Ao final da avaliação, pede a avaliação de reação do módulo (uma vez por módulo).
+    const modulo = estado.modulos.find(m => m.provas.some(p => p.id === provaAtual.id));
+    if (modulo?.reacao === 'pendente') {
+      document.getElementById('prova-corpo').insertAdjacentHTML('beforeend', '<div id="reacao-na-prova"></div>');
+      await montarReacao(document.getElementById('reacao-na-prova'), modulo);
+    }
   } catch (err) {
     toast(err.message, 'erro');
     enviar.disabled = false;
+  }
+});
+
+// Ao fechar a avaliação, atualiza a página do tema (ex.: reação respondida dentro da janela).
+modalProva.addEventListener('close', () => rotear());
+
+// ----- Avaliação de reação -----
+let formReacao = null;
+
+async function montarReacao(alvo, modulo) {
+  formReacao ??= await api('/api/reacao');
+  const f = formReacao;
+  alvo.innerHTML = `
+    <section class="reacao" data-reacao-modulo="${modulo.id}">
+      <small>AVALIAÇÃO DE REAÇÃO · ${esc(modulo.titulo)}</small>
+      <h4>Conte para nós como foi este módulo</h4>
+      <p class="reacao-escala"><strong>Escala:</strong> ${f.escala.map((e, i) => `${i + 1} – ${e}`).join(' | ')}</p>
+      ${f.secoes.map((sec, i) => `
+        <div class="reacao-secao">
+          <div class="reacao-cab"><strong>${i + 1}. ${esc(sec.titulo.toUpperCase())}</strong><span class="reacao-num">${[1, 2, 3, 4, 5].map(n => `<b>${n}</b>`).join('')}</span></div>
+          ${sec.criterios.map((c, j) => `
+            <fieldset class="reacao-linha">
+              <legend>${esc(c)}</legend>
+              <span class="reacao-opcoes">${[1, 2, 3, 4, 5].map(n => `
+                <label title="${n} – ${f.escala[n - 1]}" data-n="${n}"><input type="radio" name="r${i}-${j}" value="${n}"><span class="sr">${n} – ${f.escala[n - 1]}</span></label>`).join('')}</span>
+            </fieldset>`).join('')}
+        </div>`).join('')}
+      ${f.comentario ? `<label class="reacao-coment">Comentários e sugestões (opcional)<textarea class="campo" rows="3" maxlength="2000" name="reacao-comentario"></textarea></label>` : ''}
+      <button type="button" class="btn btn-marinho" data-enviar-reacao>Enviar avaliação de reação</button>
+    </section>`;
+}
+
+document.addEventListener('click', async (e) => {
+  const btn = e.target.closest('[data-enviar-reacao]');
+  if (!btn) return;
+  const caixa = btn.closest('[data-reacao-modulo]');
+  const notas = {};
+  let faltando = 0;
+  formReacao.secoes.forEach((sec, i) => sec.criterios.forEach((_, j) => {
+    const marcada = caixa.querySelector(`input[name="r${i}-${j}"]:checked`);
+    if (marcada) notas[`${i}-${j}`] = Number(marcada.value); else faltando += 1;
+  }));
+  if (faltando) return toast(`Avalie todos os critérios (${faltando} em branco).`, 'erro');
+  btn.disabled = true;
+  try {
+    await api(`/api/modulos/${caixa.dataset.reacaoModulo}/reacao`, {
+      method: 'POST', body: { notas, comentario: caixa.querySelector('[name="reacao-comentario"]')?.value || '' },
+    });
+    caixa.innerHTML = '<p class="reacao-ok">✅ Obrigado! Sua avaliação de reação foi registrada.</p>';
+    await carregar();
+    if (!modalProva.open) rotear();
+  } catch (err) {
+    toast(err.message, 'erro');
+    btn.disabled = false;
   }
 });
 

@@ -213,7 +213,54 @@ app.post('/api/sair', (_req, res) => {
 
 app.get('/api/me', exigirColaborador, (req, res) => {
   const { cpf, nome, cargo, filial, regional } = req.colab;
-  res.json({ colaborador: { cpf, nome, cargo, filial, regional }, modulos: progressoDoColaborador(cpf) });
+  const reacao = formularioReacao();
+  const respondidas = new Set(db.prepare('SELECT modulo_id FROM reacoes WHERE cpf = ?').all(cpf).map(r => r.modulo_id));
+  const modulos = progressoDoColaborador(cpf).map(m => ({
+    ...m,
+    // A reação é pedida depois que o colaborador faz alguma avaliação do módulo.
+    reacao: !reacao.ativa || !m.provas.some(p => p.tentativas) ? null : (respondidas.has(m.id) ? 'respondida' : 'pendente'),
+  }));
+  res.json({ colaborador: { cpf, nome, cargo, filial, regional }, modulos });
+});
+
+// ===== Avaliação de reação =====
+
+const ESCALA_REACAO = ['Muito ruim', 'Ruim', 'Regular', 'Bom', 'Excelente'];
+
+function formularioReacao() {
+  const r = db.prepare("SELECT valor FROM configuracoes WHERE chave = 'avaliacao_reacao'").get();
+  return r ? JSON.parse(r.valor) : { ativa: false, comentario: false, secoes: [] };
+}
+
+app.get('/api/reacao', exigirColaborador, (_req, res) => {
+  res.json({ ...formularioReacao(), escala: ESCALA_REACAO });
+});
+
+app.post('/api/modulos/:id/reacao', exigirColaborador, (req, res) => {
+  const moduloId = Number(req.params.id);
+  const form = formularioReacao();
+  if (!form.ativa) return res.status(400).json({ erro: 'A avaliação de reação não está ativa.' });
+  const fezAvaliacao = db.prepare(`
+    SELECT 1 FROM tentativas t JOIN provas p ON p.id = t.prova_id WHERE t.cpf = ? AND p.modulo_id = ? LIMIT 1`).get(req.colab.cpf, moduloId);
+  if (!fezAvaliacao) return res.status(403).json({ erro: 'Faça a avaliação do módulo antes de responder a avaliação de reação.' });
+  if (db.prepare('SELECT 1 FROM reacoes WHERE cpf = ? AND modulo_id = ?').get(req.colab.cpf, moduloId)) {
+    return res.status(409).json({ erro: 'Você já respondeu a avaliação de reação deste módulo. Obrigado!' });
+  }
+  const recebidas = req.body?.notas || {};
+  const notas = [];
+  for (const [i, sec] of form.secoes.entries()) {
+    for (const [j, criterio] of sec.criterios.entries()) {
+      const nota = Number(recebidas[`${i}-${j}`]);
+      if (!(Number.isInteger(nota) && nota >= 1 && nota <= 5)) {
+        return res.status(400).json({ erro: `Avalie todos os critérios (faltou: "${criterio}").` });
+      }
+      notas.push({ secao: sec.titulo, criterio, nota });
+    }
+  }
+  const comentario = form.comentario ? String(req.body?.comentario || '').trim().slice(0, 2000) : '';
+  db.prepare('INSERT INTO reacoes (cpf, modulo_id, notas, comentario) VALUES (?, ?, ?, ?)')
+    .run(req.colab.cpf, moduloId, JSON.stringify(notas), comentario || null);
+  res.json({ ok: true });
 });
 
 // Material em PDF (colaborador logado ou RH). Exibido no visualizador da plataforma, que bloqueia
@@ -646,6 +693,52 @@ app.get('/api/admin/indicadores', exigirAdmin, (req, res) => {
     },
     nota_minima: NOTA_MINIMA, resumo, por_tema: porTema, por_avaliacao: porAvaliacao,
     por_regional: agrupar('regional'), por_filial: agrupar('filial'), semanas,
+  });
+});
+
+// -- Avaliação de reação (formulário único e resultados) --
+
+app.get('/api/admin/reacao', exigirAdmin, (_req, res) => res.json(formularioReacao()));
+
+app.put('/api/admin/reacao', exigirAdmin, (req, res) => {
+  const secoes = (Array.isArray(req.body?.secoes) ? req.body.secoes : [])
+    .map(s => ({
+      titulo: String(s.titulo || '').trim(),
+      criterios: (Array.isArray(s.criterios) ? s.criterios : []).map(c => String(c).trim()).filter(Boolean),
+    }))
+    .filter(s => s.titulo || s.criterios.length);
+  if (!secoes.length || secoes.some(s => !s.titulo || !s.criterios.length)) {
+    return res.status(400).json({ erro: 'Cada seção precisa de um título e de ao menos um critério.' });
+  }
+  const form = { ativa: req.body?.ativa !== false, comentario: Boolean(req.body?.comentario), secoes };
+  db.prepare("INSERT INTO configuracoes (chave, valor) VALUES ('avaliacao_reacao', ?) ON CONFLICT(chave) DO UPDATE SET valor = excluded.valor")
+    .run(JSON.stringify(form));
+  res.json({ ok: true });
+});
+
+app.get('/api/admin/reacao/resultados', exigirAdmin, (req, res) => {
+  const moduloId = Number(req.query.modulo) || null;
+  const linhas = db.prepare(`
+    SELECT r.notas, r.comentario, r.criado_em, r.modulo_id, m.titulo AS modulo, c.nome, c.filial
+    FROM reacoes r JOIN modulos m ON m.id = r.modulo_id JOIN colaboradores c ON c.cpf = r.cpf
+    ${moduloId ? 'WHERE r.modulo_id = ?' : ''} ORDER BY r.criado_em DESC`).all(...(moduloId ? [moduloId] : []));
+  const porCriterio = new Map();
+  for (const l of linhas) {
+    for (const n of JSON.parse(l.notas)) {
+      const k = `${n.secao}\u0000${n.criterio}`;
+      if (!porCriterio.has(k)) porCriterio.set(k, { secao: n.secao, criterio: n.criterio, soma: 0, qtd: 0, dist: [0, 0, 0, 0, 0] });
+      const c = porCriterio.get(k);
+      c.soma += n.nota; c.qtd += 1; c.dist[n.nota - 1] += 1;
+    }
+  }
+  const criterios = [...porCriterio.values()].map(c => ({ secao: c.secao, criterio: c.criterio, respostas: c.qtd, media: Math.round((c.soma / c.qtd) * 100) / 100, distribuicao: c.dist }));
+  const geral = criterios.length ? Math.round((criterios.reduce((s, c) => s + c.media * c.respostas, 0) / criterios.reduce((s, c) => s + c.respostas, 0)) * 100) / 100 : null;
+  const porModulo = db.prepare(`
+    SELECT m.id, m.titulo, COUNT(r.id) AS respostas FROM modulos m LEFT JOIN reacoes r ON r.modulo_id = m.id
+    GROUP BY m.id ORDER BY m.ordem, m.id`).all();
+  res.json({
+    respostas: linhas.length, media_geral: geral, criterios, modulos: porModulo,
+    comentarios: linhas.filter(l => l.comentario).slice(0, 200).map(l => ({ texto: l.comentario, modulo: l.modulo, nome: l.nome, filial: l.filial, data: l.criado_em })),
   });
 });
 

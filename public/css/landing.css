@@ -22,16 +22,20 @@ body.landing { background: #fff; overflow-x: hidden; }
   align-content: center; min-height: calc(100vh - 66px); padding: 2.5rem clamp(16px, 9vw, 160px) 3.5rem;
   background: var(--marinho);
 }
-.hero-foto { position: absolute; top: 0; right: 0; bottom: 0; width: 80%; margin: 0; z-index: -1; }
+.hero-foto { position: absolute; top: 0; right: 0; bottom: 0; width: 76%; margin: 0; z-index: -1; }
 .hero-foto img { display: block; width: 100%; height: 100%; object-fit: cover; object-position: 100% 0; }
 .hero-foto::after {
   content: ''; position: absolute; inset: 0;
-  background: linear-gradient(90deg, rgba(14, 59, 92, 1) 0%, rgba(14, 59, 92, .85) 12%, rgba(14, 59, 92, .3) 24%, rgba(14, 59, 92, 0) 34%),
+  background: linear-gradient(90deg, rgba(14, 59, 92, 1) 0%, rgba(14, 59, 92, .92) 14%, rgba(14, 59, 92, .45) 27%, rgba(14, 59, 92, 0) 38%),
               linear-gradient(0deg, rgba(14, 59, 92, .55) 0%, rgba(14, 59, 92, 0) 30%);
 }
 .hero h1 { color: #fff; font-size: clamp(2rem, 3.4vw, 3.1rem); line-height: 1.14; font-weight: 800; margin: .9rem 0 1.1rem; letter-spacing: -.02em; }
 .hero h1 .linha { display: block; white-space: nowrap; }
 .hero h1 em { font-style: normal; color: var(--laranja); }
+.hero-jornada { max-width: 470px; margin: 0 0 1.4rem; padding-left: 1rem; border-left: 3px solid var(--laranja); }
+.hero-jornada h2 { color: #fff; font-size: 1.15rem; margin: 0 0 .5rem; }
+.hero-jornada p { font-size: .9rem; line-height: 1.55; color: #dce7f0; margin: 0 0 .45rem; }
+.hero-jornada strong { color: #fff; }
 .hero-texto > p { font-size: 1.05rem; line-height: 1.65; color: #dce7f0; max-width: 520px; margin: 0 0 1.6rem; }
 
 /* Cartão de acesso compacto: campo de CPF e botão lado a lado */

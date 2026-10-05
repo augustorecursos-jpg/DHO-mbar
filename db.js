@@ -99,6 +99,46 @@ CREATE TABLE IF NOT EXISTS certificados (
 migrarParaVariasAvaliacoes();
 aplicarNotaMinima();
 adicionarRegistroDeAcesso();
+criarAvaliacaoDeReacao();
+
+/**
+ * Avaliação de reação: um formulário único (definido pelo RH) respondido uma vez por módulo.
+ * O formulário começa com a seção "Conteúdo do módulo"; o RH pode editar e acrescentar seções.
+ */
+function criarAvaliacaoDeReacao() {
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS configuracoes (
+      chave TEXT PRIMARY KEY,
+      valor TEXT NOT NULL
+    );
+    CREATE TABLE IF NOT EXISTS reacoes (
+      id        INTEGER PRIMARY KEY AUTOINCREMENT,
+      cpf       TEXT NOT NULL REFERENCES colaboradores(cpf) ON DELETE CASCADE,
+      modulo_id INTEGER NOT NULL REFERENCES modulos(id) ON DELETE CASCADE,
+      notas     TEXT NOT NULL,      -- JSON: [{ secao, criterio, nota }]
+      comentario TEXT,
+      criado_em TEXT NOT NULL DEFAULT (datetime('now')),
+      UNIQUE (cpf, modulo_id)
+    );
+  `);
+  const padrao = {
+    ativa: true,
+    comentario: true,
+    secoes: [{
+      titulo: 'Conteúdo do módulo',
+      criterios: [
+        'Clareza do conteúdo apresentado',
+        'Qualidade das informações apresentadas',
+        'Organização e sequência lógica do conteúdo',
+        'Profundidade adequada ao tema',
+        'Relevância do conteúdo para minha atuação',
+        'Equilíbrio entre teoria e prática',
+        'Aplicabilidade do conteúdo à rotina de trabalho',
+      ],
+    }],
+  };
+  db.prepare('INSERT OR IGNORE INTO configuracoes (chave, valor) VALUES (?, ?)').run('avaliacao_reacao', JSON.stringify(padrao));
+}
 
 /** Colunas para os indicadores de acesso (bases antigas ganham as colunas zeradas). */
 function adicionarRegistroDeAcesso() {

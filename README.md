@@ -67,6 +67,9 @@ que baixa uma cópia completa do banco.
   - **Temas & Materiais**: cria os temas (itens do menu lateral), envia os PDFs e monta **quantas avaliações quiser
     por tema**, com gabarito (formulário ou colando as questões em texto, marcando a correta com `*`). Cada avaliação
     pode ser liberada após um material específico ou após todos os materiais do tema.
+  - **Avaliação de Reação**: formulário único (seções e critérios com escala de 1 a 5, campo de comentário opcional)
+    que aparece ao final da avaliação de cada módulo; cada colaborador responde uma vez por módulo. Mostra a média
+    e a distribuição das notas por critério, com filtro por módulo, e os comentários.
   - **Resultados**: progresso por colaborador com filtro por regional/filial e exportação CSV.
 
 ## Regras implementadas

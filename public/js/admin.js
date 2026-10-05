@@ -30,12 +30,12 @@ document.getElementById('sair').addEventListener('click', async () => {
 });
 
 function trocarAba(aba) {
-  if (!['indicadores', 'colaboradores', 'modulos', 'resultados'].includes(aba)) aba = 'indicadores';
+  if (!['indicadores', 'colaboradores', 'modulos', 'reacao', 'resultados'].includes(aba)) aba = 'indicadores';
   history.replaceState(null, '', `#${aba}`);
   document.querySelectorAll('[data-aba]').forEach(b => b.classList.toggle('ativo', b.dataset.aba === aba));
   document.querySelectorAll('[data-painel]').forEach(s => { s.hidden = s.dataset.painel !== aba; });
   document.getElementById('lateral').classList.remove('aberta');
-  ({ indicadores: carregarIndicadores, colaboradores: carregarColaboradores, modulos: carregarModulos, resultados: carregarResultados })[aba]();
+  ({ indicadores: carregarIndicadores, colaboradores: carregarColaboradores, modulos: carregarModulos, reacao: carregarReacao, resultados: carregarResultados })[aba]();
 }
 document.querySelectorAll('[data-aba]').forEach(b => b.addEventListener('click', () => trocarAba(b.dataset.aba)));
 document.getElementById('btn-menu').addEventListener('click', () => document.getElementById('lateral').classList.toggle('aberta'));
@@ -479,6 +479,77 @@ document.addEventListener('focusin', (e) => {
 document.addEventListener('focusout', () => { dica.hidden = true; });
 document.getElementById('ind-regional').addEventListener('change', () => { document.getElementById('ind-filial').value = ''; carregarIndicadores(); });
 document.getElementById('ind-filial').addEventListener('change', carregarIndicadores);
+
+// ---------- Avaliação de reação ----------
+let reacaoSecoes = [];
+
+async function carregarReacao() {
+  const f = await api('/api/admin/reacao');
+  reacaoSecoes = f.secoes.map(sec => ({ titulo: sec.titulo, criterios: sec.criterios.join('\n') }));
+  document.getElementById('reacao-comentario').checked = Boolean(f.comentario);
+  document.getElementById('reacao-ativa').checked = f.ativa !== false;
+  renderReacaoEditor();
+  carregarReacaoResultados();
+}
+
+function renderReacaoEditor() {
+  document.getElementById('reacao-secoes').innerHTML = reacaoSecoes.map((sec, i) => `
+    <div class="q-edit" data-sec="${i}">
+      <div class="q-cab">Seção ${i + 1} <button type="button" class="q-rem" data-rem-sec="${i}" title="Remover seção">🗑</button></div>
+      <input class="campo" data-campo="titulo" value="${esc(sec.titulo)}" placeholder="Título da seção (ex.: Conteúdo do módulo)">
+      <textarea class="campo" data-campo="criterios" rows="${Math.max(4, sec.criterios.split('\n').length + 1)}" placeholder="Um critério por linha">${esc(sec.criterios)}</textarea>
+    </div>`).join('');
+}
+
+const editorReacao = document.getElementById('reacao-secoes');
+editorReacao.addEventListener('input', (e) => {
+  const bloco = e.target.closest('[data-sec]');
+  if (bloco) reacaoSecoes[Number(bloco.dataset.sec)][e.target.dataset.campo] = e.target.value;
+});
+editorReacao.addEventListener('click', (e) => {
+  const rem = e.target.closest('[data-rem-sec]');
+  if (!rem) return;
+  if (reacaoSecoes.length === 1) return toast('O formulário precisa de ao menos uma seção.', 'erro');
+  reacaoSecoes.splice(Number(rem.dataset.remSec), 1);
+  renderReacaoEditor();
+});
+document.getElementById('reacao-add-secao').addEventListener('click', () => {
+  reacaoSecoes.push({ titulo: '', criterios: '' });
+  renderReacaoEditor();
+  editorReacao.lastElementChild.querySelector('input').focus();
+});
+document.getElementById('form-reacao').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  try {
+    await api('/api/admin/reacao', { method: 'PUT', body: {
+      ativa: document.getElementById('reacao-ativa').checked,
+      comentario: document.getElementById('reacao-comentario').checked,
+      secoes: reacaoSecoes.map(sec => ({ titulo: sec.titulo, criterios: sec.criterios.split('\n') })),
+    } });
+    toast('Formulário salvo ✅');
+  } catch (err) { toast(err.message, 'erro'); }
+});
+
+async function carregarReacaoResultados() {
+  const sel = document.getElementById('reacao-modulo');
+  const atual = sel.value;
+  const r = await api(`/api/admin/reacao/resultados?modulo=${atual}`);
+  sel.innerHTML = '<option value="">Todos os módulos</option>' + r.modulos.map(m =>
+    `<option value="${m.id}" ${String(m.id) === atual ? 'selected' : ''}>${esc(m.titulo)} (${m.respostas})</option>`).join('');
+  document.getElementById('reacao-resumo').textContent = r.respostas
+    ? `· ${r.respostas} resposta(s) · média geral ${String(r.media_geral).replace('.', ',')} de 5` : '· nenhuma resposta ainda';
+  document.getElementById('reacao-tabela').innerHTML = r.criterios.length ? `
+    <tr><th>Seção</th><th>Critério</th><th>Média (1 a 5)</th><th>1</th><th>2</th><th>3</th><th>4</th><th>5</th></tr>
+    ${r.criterios.map(c => `<tr>
+      <td>${esc(c.secao)}</td><td>${esc(c.criterio)}</td>
+      <td><span class="barra-prog"><i style="width:${(c.media / 5) * 100}%"></i></span><strong>${String(c.media).replace('.', ',')}</strong></td>
+      ${c.distribuicao.map(n => `<td>${n}</td>`).join('')}</tr>`).join('')}` : '';
+  document.getElementById('reacao-comentarios').innerHTML = r.comentarios.length ? `
+    <h3 style="margin-top:1.2rem">💬 Comentários</h3>
+    <div class="adm-aulas">${r.comentarios.map(c => `
+      <div class="adm-aula"><span>“${esc(c.texto)}”<br><small class="q-dica">${esc(c.nome)} · ${esc(c.filial || '')} · ${esc(c.modulo)}</small></span></div>`).join('')}</div>` : '';
+}
+document.getElementById('reacao-modulo').addEventListener('change', carregarReacaoResultados);
 
 // ---------- Resultados ----------
 async function carregarResultados() {

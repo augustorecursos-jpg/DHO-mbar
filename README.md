@@ -7,6 +7,8 @@ Visual baseado no template institucional da Âmbar Energia: azul-marinho `#0e3b5
 fundo claro, ondas nos cantos, padrão pontilhado e torres/placas solares em traço cinza.
 As cores ficam centralizadas em `public/css/base.css`.
 
+> O **Portal de Reembolsos** (mesmo visual, serviço independente) fica na pasta [`reembolsos/`](reembolsos/README.md).
+
 ## Como rodar
 
 Requisito: **Node.js 22.5+** (usa o SQLite nativo do Node, sem banco externo).

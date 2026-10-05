@@ -100,6 +100,40 @@ migrarParaVariasAvaliacoes();
 aplicarNotaMinima();
 adicionarRegistroDeAcesso();
 criarAvaliacaoDeReacao();
+ampliarAvaliacaoDeReacao();
+
+/**
+ * v2 da avaliação de reação: perguntas com tipo (escala, nota 0–10, escolha e texto livre).
+ * Converte o formulário existente e acrescenta, uma única vez, as perguntas de avaliação geral e de percepção.
+ */
+function ampliarAvaliacaoDeReacao() {
+  if (db.prepare("SELECT 1 FROM configuracoes WHERE chave = 'reacao_v2'").get()) return;
+  const atual = JSON.parse(db.prepare("SELECT valor FROM configuracoes WHERE chave = 'avaliacao_reacao'").get().valor);
+  const secoes = (atual.secoes || []).map(sec => ({
+    titulo: sec.titulo,
+    perguntas: sec.perguntas || (sec.criterios || []).map(texto => ({ tipo: 'escala', texto })),
+  }));
+  secoes.push({
+    titulo: 'Avaliação geral',
+    perguntas: [
+      { tipo: 'nota', texto: 'De 0 a 10, qual nota você atribui ao módulo apresentado?' },
+      { tipo: 'escolha', texto: 'O módulo atendeu às suas expectativas?', opcoes: [
+        'Superou minhas expectativas', 'Atendeu plenamente', 'Atendeu parcialmente',
+        'Ficou abaixo das expectativas', 'Não atendeu às expectativas'] },
+    ],
+  }, {
+    titulo: 'Sua percepção',
+    perguntas: [
+      { tipo: 'texto', texto: 'Qual foi o principal ponto positivo deste módulo?' },
+      { tipo: 'texto', texto: 'O que poderia ser melhorado na condução deste módulo?' },
+      { tipo: 'texto', texto: 'Houve algum conteúdo que deveria ter sido mais aprofundado? Qual?' },
+    ],
+  });
+  db.exec('BEGIN');
+  db.prepare("UPDATE configuracoes SET valor = ? WHERE chave = 'avaliacao_reacao'").run(JSON.stringify({ ativa: atual.ativa !== false, secoes }));
+  db.prepare("INSERT INTO configuracoes (chave, valor) VALUES ('reacao_v2', '1')").run();
+  db.exec('COMMIT');
+}
 
 /**
  * Avaliação de reação: um formulário único (definido pelo RH) respondido uma vez por módulo.

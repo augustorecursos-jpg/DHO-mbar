@@ -423,43 +423,18 @@ let formReacao = null;
 
 async function montarReacao(alvo, modulo) {
   formReacao ??= await api('/api/reacao');
-  const f = formReacao;
-  alvo.innerHTML = `
-    <section class="reacao" data-reacao-modulo="${modulo.id}">
-      <small>AVALIAÇÃO DE REAÇÃO · ${esc(modulo.titulo)}</small>
-      <h4>Conte para nós como foi este módulo</h4>
-      <p class="reacao-escala"><strong>Escala:</strong> ${f.escala.map((e, i) => `${i + 1} – ${e}`).join(' | ')}</p>
-      ${f.secoes.map((sec, i) => `
-        <div class="reacao-secao">
-          <div class="reacao-cab"><strong>${i + 1}. ${esc(sec.titulo.toUpperCase())}</strong><span class="reacao-num">${[1, 2, 3, 4, 5].map(n => `<b>${n}</b>`).join('')}</span></div>
-          ${sec.criterios.map((c, j) => `
-            <fieldset class="reacao-linha">
-              <legend>${esc(c)}</legend>
-              <span class="reacao-opcoes">${[1, 2, 3, 4, 5].map(n => `
-                <label title="${n} – ${f.escala[n - 1]}" data-n="${n}"><input type="radio" name="r${i}-${j}" value="${n}"><span class="sr">${n} – ${f.escala[n - 1]}</span></label>`).join('')}</span>
-            </fieldset>`).join('')}
-        </div>`).join('')}
-      ${f.comentario ? `<label class="reacao-coment">Comentários e sugestões (opcional)<textarea class="campo" rows="3" maxlength="2000" name="reacao-comentario"></textarea></label>` : ''}
-      <button type="button" class="btn btn-marinho" data-enviar-reacao>Enviar avaliação de reação</button>
-    </section>`;
+  alvo.innerHTML = htmlFormReacao(formReacao, modulo);
 }
 
 document.addEventListener('click', async (e) => {
   const btn = e.target.closest('[data-enviar-reacao]');
   if (!btn) return;
   const caixa = btn.closest('[data-reacao-modulo]');
-  const notas = {};
-  let faltando = 0;
-  formReacao.secoes.forEach((sec, i) => sec.criterios.forEach((_, j) => {
-    const marcada = caixa.querySelector(`input[name="r${i}-${j}"]:checked`);
-    if (marcada) notas[`${i}-${j}`] = Number(marcada.value); else faltando += 1;
-  }));
-  if (faltando) return toast(`Avalie todos os critérios (${faltando} em branco).`, 'erro');
+  const { respostas, faltando } = coletarReacao(caixa, formReacao);
+  if (faltando) return toast(`Responda todas as perguntas obrigatórias (${faltando} em branco). Só as de texto livre são opcionais.`, 'erro');
   btn.disabled = true;
   try {
-    await api(`/api/modulos/${caixa.dataset.reacaoModulo}/reacao`, {
-      method: 'POST', body: { notas, comentario: caixa.querySelector('[name="reacao-comentario"]')?.value || '' },
-    });
+    await api(`/api/modulos/${caixa.dataset.reacaoModulo}/reacao`, { method: 'POST', body: { respostas } });
     caixa.innerHTML = '<p class="reacao-ok">✅ Obrigado! Sua avaliação de reação foi registrada.</p>';
     await carregar();
     if (!modalProva.open) rotear();

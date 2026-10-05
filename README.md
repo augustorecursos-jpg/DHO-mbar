@@ -67,9 +67,11 @@ que baixa uma cópia completa do banco.
   - **Temas & Materiais**: cria os temas (itens do menu lateral), envia os PDFs e monta **quantas avaliações quiser
     por tema**, com gabarito (formulário ou colando as questões em texto, marcando a correta com `*`). Cada avaliação
     pode ser liberada após um material específico ou após todos os materiais do tema.
-  - **Avaliação de Reação**: formulário único (seções e critérios com escala de 1 a 5, campo de comentário opcional)
-    que aparece ao final da avaliação de cada módulo; cada colaborador responde uma vez por módulo. Mostra a média
-    e a distribuição das notas por critério, com filtro por módulo, e os comentários.
+  - **Avaliação de Reação**: formulário único com seções e perguntas de quatro tipos (escala 1 a 5, nota 0 a 10,
+    múltipla escolha e texto livre). Aparece ao final da avaliação de cada módulo, fica disponível na página do módulo
+    e pode ser respondido a qualquer momento, inclusive pelo **QR Code** de cada módulo (`/reacao.html?modulo=<id>`),
+    que pede o CPF. Cada colaborador responde uma vez por módulo. Resultados por pergunta (média e distribuição,
+    contagem das opções e respostas abertas), com filtro por módulo.
   - **Resultados**: progresso por colaborador com filtro por regional/filial e exportação CSV.
 
 ## Regras implementadas

@@ -481,12 +481,15 @@ document.getElementById('ind-regional').addEventListener('change', () => { docum
 document.getElementById('ind-filial').addEventListener('change', carregarIndicadores);
 
 // ---------- Avaliação de reação ----------
+const TIPOS_REACAO = { escala: 'Escala 1 a 5', nota: 'Nota 0 a 10', escolha: 'Múltipla escolha', texto: 'Texto livre' };
 let reacaoSecoes = [];
 
 async function carregarReacao() {
   const f = await api('/api/admin/reacao');
-  reacaoSecoes = f.secoes.map(sec => ({ titulo: sec.titulo, criterios: sec.criterios.join('\n') }));
-  document.getElementById('reacao-comentario').checked = Boolean(f.comentario);
+  reacaoSecoes = structuredClone(f.secoes).map(sec => ({
+    titulo: sec.titulo,
+    perguntas: sec.perguntas.map(p => ({ ...p, opcoes: (p.opcoes || []).join('\n') })),
+  }));
   document.getElementById('reacao-ativa').checked = f.ativa !== false;
   renderReacaoEditor();
   carregarReacaoResultados();
@@ -495,26 +498,62 @@ async function carregarReacao() {
 function renderReacaoEditor() {
   document.getElementById('reacao-secoes').innerHTML = reacaoSecoes.map((sec, i) => `
     <div class="q-edit" data-sec="${i}">
-      <div class="q-cab">Seção ${i + 1} <button type="button" class="q-rem" data-rem-sec="${i}" title="Remover seção">🗑</button></div>
+      <div class="q-cab">Seção ${i + 1}
+        <span>
+          <button type="button" class="q-rem" data-mover-sec="${i}" data-dir="-1" title="Subir seção">↑</button>
+          <button type="button" class="q-rem" data-mover-sec="${i}" data-dir="1" title="Descer seção">↓</button>
+          <button type="button" class="q-rem" data-rem-sec="${i}" title="Remover seção">🗑</button>
+        </span>
+      </div>
       <input class="campo" data-campo="titulo" value="${esc(sec.titulo)}" placeholder="Título da seção (ex.: Conteúdo do módulo)">
-      <textarea class="campo" data-campo="criterios" rows="${Math.max(4, sec.criterios.split('\n').length + 1)}" placeholder="Um critério por linha">${esc(sec.criterios)}</textarea>
+      <div class="perguntas-edit">
+        ${sec.perguntas.map((p, j) => `
+          <div class="pergunta-edit" data-perg="${j}">
+            <select class="campo" data-campo="tipo" aria-label="Tipo da pergunta">
+              ${Object.entries(TIPOS_REACAO).map(([v, r]) => `<option value="${v}" ${p.tipo === v ? 'selected' : ''}>${r}</option>`).join('')}
+            </select>
+            <input class="campo" data-campo="texto" value="${esc(p.texto)}" placeholder="Texto da pergunta">
+            <button type="button" class="q-rem" data-rem-perg="${j}" title="Remover pergunta">✕</button>
+            ${p.tipo === 'escolha' ? `<textarea class="campo opcoes" data-campo="opcoes" rows="${Math.max(3, p.opcoes.split('\n').length)}" placeholder="Uma opção por linha">${esc(p.opcoes)}</textarea>` : ''}
+          </div>`).join('')}
+      </div>
+      <div><button type="button" class="btn btn-claro btn-sm" data-add-perg>+ pergunta</button></div>
     </div>`).join('');
 }
 
 const editorReacao = document.getElementById('reacao-secoes');
 editorReacao.addEventListener('input', (e) => {
-  const bloco = e.target.closest('[data-sec]');
-  if (bloco) reacaoSecoes[Number(bloco.dataset.sec)][e.target.dataset.campo] = e.target.value;
+  const sec = e.target.closest('[data-sec]');
+  if (!sec) return;
+  const s = reacaoSecoes[Number(sec.dataset.sec)];
+  const perg = e.target.closest('[data-perg]');
+  if (perg) s.perguntas[Number(perg.dataset.perg)][e.target.dataset.campo] = e.target.value;
+  else s[e.target.dataset.campo] = e.target.value;
+});
+editorReacao.addEventListener('change', (e) => {
+  if (e.target.dataset.campo === 'tipo') renderReacaoEditor(); // mostra/oculta as opções da múltipla escolha
 });
 editorReacao.addEventListener('click', (e) => {
-  const rem = e.target.closest('[data-rem-sec]');
-  if (!rem) return;
-  if (reacaoSecoes.length === 1) return toast('O formulário precisa de ao menos uma seção.', 'erro');
-  reacaoSecoes.splice(Number(rem.dataset.remSec), 1);
+  const sec = e.target.closest('[data-sec]');
+  if (!sec) return;
+  const i = Number(sec.dataset.sec);
+  if (e.target.closest('[data-rem-sec]')) {
+    if (reacaoSecoes.length === 1) return toast('O formulário precisa de ao menos uma seção.', 'erro');
+    if (!confirm(`Remover a seção "${reacaoSecoes[i].titulo || i + 1}"?`)) return;
+    reacaoSecoes.splice(i, 1);
+  } else if (e.target.closest('[data-mover-sec]')) {
+    const j = i + Number(e.target.closest('[data-mover-sec]').dataset.dir);
+    if (j < 0 || j >= reacaoSecoes.length) return;
+    [reacaoSecoes[i], reacaoSecoes[j]] = [reacaoSecoes[j], reacaoSecoes[i]];
+  } else if (e.target.closest('[data-rem-perg]')) {
+    reacaoSecoes[i].perguntas.splice(Number(e.target.closest('[data-rem-perg]').dataset.remPerg), 1);
+  } else if (e.target.closest('[data-add-perg]')) {
+    reacaoSecoes[i].perguntas.push({ tipo: 'escala', texto: '', opcoes: '' });
+  } else return;
   renderReacaoEditor();
 });
 document.getElementById('reacao-add-secao').addEventListener('click', () => {
-  reacaoSecoes.push({ titulo: '', criterios: '' });
+  reacaoSecoes.push({ titulo: '', perguntas: [{ tipo: 'escala', texto: '', opcoes: '' }] });
   renderReacaoEditor();
   editorReacao.lastElementChild.querySelector('input').focus();
 });
@@ -523,12 +562,16 @@ document.getElementById('form-reacao').addEventListener('submit', async (e) => {
   try {
     await api('/api/admin/reacao', { method: 'PUT', body: {
       ativa: document.getElementById('reacao-ativa').checked,
-      comentario: document.getElementById('reacao-comentario').checked,
-      secoes: reacaoSecoes.map(sec => ({ titulo: sec.titulo, criterios: sec.criterios.split('\n') })),
+      secoes: reacaoSecoes.map(sec => ({
+        titulo: sec.titulo,
+        perguntas: sec.perguntas.map(p => ({ tipo: p.tipo, texto: p.texto, opcoes: p.tipo === 'escolha' ? p.opcoes.split('\n') : undefined })),
+      })),
     } });
     toast('Formulário salvo ✅');
   } catch (err) { toast(err.message, 'erro'); }
 });
+
+const num = (n, casas = 2) => String(Math.round(n * 10 ** casas) / 10 ** casas).replace('.', ',');
 
 async function carregarReacaoResultados() {
   const sel = document.getElementById('reacao-modulo');
@@ -536,20 +579,49 @@ async function carregarReacaoResultados() {
   const r = await api(`/api/admin/reacao/resultados?modulo=${atual}`);
   sel.innerHTML = '<option value="">Todos os módulos</option>' + r.modulos.map(m =>
     `<option value="${m.id}" ${String(m.id) === atual ? 'selected' : ''}>${esc(m.titulo)} (${m.respostas})</option>`).join('');
-  document.getElementById('reacao-resumo').textContent = r.respostas
-    ? `· ${r.respostas} resposta(s) · média geral ${String(r.media_geral).replace('.', ',')} de 5` : '· nenhuma resposta ainda';
-  document.getElementById('reacao-tabela').innerHTML = r.criterios.length ? `
-    <tr><th>Seção</th><th>Critério</th><th>Média (1 a 5)</th><th>1</th><th>2</th><th>3</th><th>4</th><th>5</th></tr>
-    ${r.criterios.map(c => `<tr>
-      <td>${esc(c.secao)}</td><td>${esc(c.criterio)}</td>
-      <td><span class="barra-prog"><i style="width:${(c.media / 5) * 100}%"></i></span><strong>${String(c.media).replace('.', ',')}</strong></td>
-      ${c.distribuicao.map(n => `<td>${n}</td>`).join('')}</tr>`).join('')}` : '';
-  document.getElementById('reacao-comentarios').innerHTML = r.comentarios.length ? `
-    <h3 style="margin-top:1.2rem">💬 Comentários</h3>
-    <div class="adm-aulas">${r.comentarios.map(c => `
-      <div class="adm-aula"><span>“${esc(c.texto)}”<br><small class="q-dica">${esc(c.nome)} · ${esc(c.filial || '')} · ${esc(c.modulo)}</small></span></div>`).join('')}</div>` : '';
+  document.getElementById('reacao-qrcodes').innerHTML = r.modulos.map(m => `
+    <div class="qr-item"><span>${esc(m.titulo)} <small class="q-dica">· ${m.respostas} resposta(s)</small></span>
+      <button type="button" class="btn btn-marinho btn-sm" data-qr="${m.id}">📱 QR Code</button></div>`).join('') || '<p class="q-dica">Cadastre um tema para gerar o QR Code.</p>';
+  document.getElementById('reacao-resumo').textContent = r.respostas ? `· ${r.respostas} resposta(s)` : '· nenhuma resposta ainda';
+
+  let secaoAtual = '';
+  document.getElementById('reacao-resultados').innerHTML = r.respostas ? r.perguntas.map(p => {
+    const cab = p.secao !== secaoAtual ? `<h4 class="res-secao">${esc((secaoAtual = p.secao))}</h4>` : '';
+    let corpo;
+    if (!p.respostas) corpo = '<p class="q-dica">Sem respostas.</p>';
+    else if (p.tipo === 'texto') {
+      corpo = `<div class="res-textos">${p.textos.map(t => `<p>“${esc(t.texto)}”<small>${esc(t.nome)}${t.filial ? ' · ' + esc(t.filial) : ''} · ${esc(t.modulo)}</small></p>`).join('')}</div>`;
+    } else if (p.tipo === 'escolha') {
+      corpo = p.contagem.map(c => {
+        const pct = (c.qtd / p.respostas) * 100;
+        return `<div class="res-barra"><span>${esc(c.opcao)}</span><span class="barra-prog"><i style="width:${pct}%"></i></span><b>${c.qtd} (${num(pct, 0)}%)</b></div>`;
+      }).join('');
+    } else {
+      const [min, max] = p.escala;
+      corpo = `<div class="res-media"><strong>${num(p.media)}</strong> <span>média de ${min} a ${max}</span></div>
+        <div class="res-dist">${p.distribuicao.map((q, k) => `<span title="${q} resposta(s)"><i style="height:${(q / Math.max(...p.distribuicao, 1)) * 100}%"></i><em>${min + k}</em></span>`).join('')}</div>`;
+    }
+    return `${cab}<div class="res-pergunta"><p class="res-titulo">${esc(p.pergunta)} <small>· ${TIPOS_REACAO[p.tipo] || ''} · ${p.respostas} resposta(s)</small></p>${corpo}</div>`;
+  }).join('') : '<p class="q-dica">Quando os colaboradores responderem, os resultados aparecem aqui.</p>';
 }
 document.getElementById('reacao-modulo').addEventListener('change', carregarReacaoResultados);
+
+const modalQr = document.getElementById('modal-qr');
+document.getElementById('reacao-qrcodes').addEventListener('click', async (e) => {
+  const b = e.target.closest('[data-qr]');
+  if (!b) return;
+  const q = await api(`/api/admin/reacao/qrcode/${b.dataset.qr}`);
+  document.getElementById('qr-titulo').textContent = q.titulo;
+  document.getElementById('qr-img').innerHTML = q.svg;
+  document.getElementById('qr-link').value = q.link;
+  document.getElementById('qr-baixar').href = `/api/admin/reacao/qrcode/${b.dataset.qr}?formato=png`;
+  modalQr.showModal();
+});
+document.getElementById('qr-copiar').addEventListener('click', async () => {
+  const campo = document.getElementById('qr-link');
+  try { await navigator.clipboard.writeText(campo.value); } catch { campo.select(); document.execCommand('copy'); }
+  toast('Link copiado ✅');
+});
 
 // ---------- Resultados ----------
 async function carregarResultados() {

@@ -5,6 +5,7 @@ const path = require('node:path');
 const crypto = require('node:crypto');
 const express = require('express');
 const multer = require('multer');
+const QRCode = require('qrcode');
 const { db, DATA_DIR, UPLOAD_DIR } = require('./db');
 const { gerarCertificado } = require('./certificado');
 
@@ -217,8 +218,8 @@ app.get('/api/me', exigirColaborador, (req, res) => {
   const respondidas = new Set(db.prepare('SELECT modulo_id FROM reacoes WHERE cpf = ?').all(cpf).map(r => r.modulo_id));
   const modulos = progressoDoColaborador(cpf).map(m => ({
     ...m,
-    // A reação é pedida depois que o colaborador faz alguma avaliação do módulo.
-    reacao: !reacao.ativa || !m.provas.some(p => p.tentativas) ? null : (respondidas.has(m.id) ? 'respondida' : 'pendente'),
+    // A reação pode ser respondida a qualquer momento (antes ou depois da avaliação do módulo).
+    reacao: !reacao.ativa ? null : (respondidas.has(m.id) ? 'respondida' : 'pendente'),
   }));
   res.json({ colaborador: { cpf, nome, cargo, filial, regional }, modulos });
 });
@@ -226,11 +227,27 @@ app.get('/api/me', exigirColaborador, (req, res) => {
 // ===== Avaliação de reação =====
 
 const ESCALA_REACAO = ['Muito ruim', 'Ruim', 'Regular', 'Bom', 'Excelente'];
+const TIPOS_PERGUNTA = ['escala', 'nota', 'escolha', 'texto'];
 
+/**
+ * Formulário único da avaliação de reação. Cada seção tem perguntas de quatro tipos:
+ * escala (1 a 5), nota (0 a 10), escolha (uma opção) e texto (resposta livre, opcional).
+ * Formulários antigos ({ criterios: [...] }) são lidos como perguntas de escala.
+ */
 function formularioReacao() {
   const r = db.prepare("SELECT valor FROM configuracoes WHERE chave = 'avaliacao_reacao'").get();
-  return r ? JSON.parse(r.valor) : { ativa: false, comentario: false, secoes: [] };
+  const f = r ? JSON.parse(r.valor) : { ativa: false, secoes: [] };
+  return {
+    ativa: f.ativa !== false,
+    secoes: (f.secoes || []).map(sec => ({
+      titulo: sec.titulo,
+      perguntas: sec.perguntas || (sec.criterios || []).map(texto => ({ tipo: 'escala', texto })),
+    })),
+  };
 }
+
+/** Normaliza uma resposta salva (formato antigo: { secao, criterio, nota }). */
+const respostaNormalizada = (n) => ({ secao: n.secao, pergunta: n.pergunta ?? n.criterio, tipo: n.tipo || 'escala', valor: n.valor ?? n.nota });
 
 app.get('/api/reacao', exigirColaborador, (_req, res) => {
   res.json({ ...formularioReacao(), escala: ESCALA_REACAO });
@@ -240,28 +257,37 @@ app.post('/api/modulos/:id/reacao', exigirColaborador, (req, res) => {
   const moduloId = Number(req.params.id);
   const form = formularioReacao();
   if (!form.ativa) return res.status(400).json({ erro: 'A avaliação de reação não está ativa.' });
-  const fezAvaliacao = db.prepare(`
-    SELECT 1 FROM tentativas t JOIN provas p ON p.id = t.prova_id WHERE t.cpf = ? AND p.modulo_id = ? LIMIT 1`).get(req.colab.cpf, moduloId);
-  if (!fezAvaliacao) return res.status(403).json({ erro: 'Faça a avaliação do módulo antes de responder a avaliação de reação.' });
+  if (!db.prepare('SELECT 1 FROM modulos WHERE id = ?').get(moduloId)) return res.status(404).json({ erro: 'Módulo não encontrado' });
   if (db.prepare('SELECT 1 FROM reacoes WHERE cpf = ? AND modulo_id = ?').get(req.colab.cpf, moduloId)) {
     return res.status(409).json({ erro: 'Você já respondeu a avaliação de reação deste módulo. Obrigado!' });
   }
-  const recebidas = req.body?.notas || {};
-  const notas = [];
+  const recebidas = req.body?.respostas || {};
+  const respostas = [];
   for (const [i, sec] of form.secoes.entries()) {
-    for (const [j, criterio] of sec.criterios.entries()) {
-      const nota = Number(recebidas[`${i}-${j}`]);
-      if (!(Number.isInteger(nota) && nota >= 1 && nota <= 5)) {
-        return res.status(400).json({ erro: `Avalie todos os critérios (faltou: "${criterio}").` });
+    for (const [j, p] of sec.perguntas.entries()) {
+      const bruto = recebidas[`${i}-${j}`];
+      let valor;
+      if (p.tipo === 'texto') {
+        valor = String(bruto ?? '').trim().slice(0, 3000);
+        if (!valor) continue; // perguntas abertas são opcionais
+      } else if (p.tipo === 'escolha') {
+        valor = String(bruto ?? '');
+        if (!(p.opcoes || []).includes(valor)) return res.status(400).json({ erro: `Responda: "${p.texto}".` });
+      } else {
+        valor = Number(bruto);
+        const [min, max] = p.tipo === 'nota' ? [0, 10] : [1, 5];
+        if (bruto === '' || bruto == null || !(Number.isInteger(valor) && valor >= min && valor <= max)) {
+          return res.status(400).json({ erro: `Responda: "${p.texto}".` });
+        }
       }
-      notas.push({ secao: sec.titulo, criterio, nota });
+      respostas.push({ secao: sec.titulo, pergunta: p.texto, tipo: p.tipo, valor });
     }
   }
-  const comentario = form.comentario ? String(req.body?.comentario || '').trim().slice(0, 2000) : '';
-  db.prepare('INSERT INTO reacoes (cpf, modulo_id, notas, comentario) VALUES (?, ?, ?, ?)')
-    .run(req.colab.cpf, moduloId, JSON.stringify(notas), comentario || null);
+  db.prepare('INSERT INTO reacoes (cpf, modulo_id, notas, comentario) VALUES (?, ?, ?, NULL)')
+    .run(req.colab.cpf, moduloId, JSON.stringify(respostas));
   res.json({ ok: true });
 });
+
 
 // Material em PDF (colaborador logado ou RH). Exibido no visualizador da plataforma, que bloqueia
 // impressão e captura; vai sem cache e sem nome de arquivo para download.
@@ -701,45 +727,81 @@ app.get('/api/admin/indicadores', exigirAdmin, (req, res) => {
 app.get('/api/admin/reacao', exigirAdmin, (_req, res) => res.json(formularioReacao()));
 
 app.put('/api/admin/reacao', exigirAdmin, (req, res) => {
-  const secoes = (Array.isArray(req.body?.secoes) ? req.body.secoes : [])
-    .map(s => ({
-      titulo: String(s.titulo || '').trim(),
-      criterios: (Array.isArray(s.criterios) ? s.criterios : []).map(c => String(c).trim()).filter(Boolean),
-    }))
-    .filter(s => s.titulo || s.criterios.length);
-  if (!secoes.length || secoes.some(s => !s.titulo || !s.criterios.length)) {
-    return res.status(400).json({ erro: 'Cada seção precisa de um título e de ao menos um critério.' });
+  const secoes = [];
+  for (const [i, sec] of (Array.isArray(req.body?.secoes) ? req.body.secoes : []).entries()) {
+    const titulo = String(sec.titulo || '').trim();
+    const perguntas = [];
+    for (const p of Array.isArray(sec.perguntas) ? sec.perguntas : []) {
+      const texto = String(p.texto || '').trim();
+      if (!texto) continue;
+      const tipo = TIPOS_PERGUNTA.includes(p.tipo) ? p.tipo : 'escala';
+      const pergunta = { tipo, texto };
+      if (tipo === 'escolha') {
+        pergunta.opcoes = (Array.isArray(p.opcoes) ? p.opcoes : []).map(o => String(o).trim()).filter(Boolean);
+        if (pergunta.opcoes.length < 2) return res.status(400).json({ erro: `"${texto}": informe ao menos 2 opções de resposta.` });
+      }
+      perguntas.push(pergunta);
+    }
+    if (!titulo && !perguntas.length) continue;
+    if (!titulo || !perguntas.length) return res.status(400).json({ erro: `Seção ${i + 1}: informe o título e ao menos uma pergunta.` });
+    secoes.push({ titulo, perguntas });
   }
-  const form = { ativa: req.body?.ativa !== false, comentario: Boolean(req.body?.comentario), secoes };
+  if (!secoes.length) return res.status(400).json({ erro: 'Cadastre ao menos uma seção com perguntas.' });
   db.prepare("INSERT INTO configuracoes (chave, valor) VALUES ('avaliacao_reacao', ?) ON CONFLICT(chave) DO UPDATE SET valor = excluded.valor")
-    .run(JSON.stringify(form));
+    .run(JSON.stringify({ ativa: req.body?.ativa !== false, secoes }));
   res.json({ ok: true });
 });
 
 app.get('/api/admin/reacao/resultados', exigirAdmin, (req, res) => {
   const moduloId = Number(req.query.modulo) || null;
   const linhas = db.prepare(`
-    SELECT r.notas, r.comentario, r.criado_em, r.modulo_id, m.titulo AS modulo, c.nome, c.filial
+    SELECT r.notas, r.comentario, r.criado_em, m.titulo AS modulo, c.nome, c.filial
     FROM reacoes r JOIN modulos m ON m.id = r.modulo_id JOIN colaboradores c ON c.cpf = r.cpf
     ${moduloId ? 'WHERE r.modulo_id = ?' : ''} ORDER BY r.criado_em DESC`).all(...(moduloId ? [moduloId] : []));
-  const porCriterio = new Map();
+
+  // Agrega na ordem do formulário atual; perguntas que saíram do formulário aparecem ao final.
+  const ordem = formularioReacao().secoes.flatMap(sec => sec.perguntas.map(p => ({ secao: sec.titulo, ...p })));
+  const perguntas = new Map(ordem.map(p => [`${p.secao}\u0000${p.texto}`, { secao: p.secao, pergunta: p.texto, tipo: p.tipo, opcoes: p.opcoes, valores: [] }]));
   for (const l of linhas) {
-    for (const n of JSON.parse(l.notas)) {
-      const k = `${n.secao}\u0000${n.criterio}`;
-      if (!porCriterio.has(k)) porCriterio.set(k, { secao: n.secao, criterio: n.criterio, soma: 0, qtd: 0, dist: [0, 0, 0, 0, 0] });
-      const c = porCriterio.get(k);
-      c.soma += n.nota; c.qtd += 1; c.dist[n.nota - 1] += 1;
+    const lista = JSON.parse(l.notas).map(respostaNormalizada);
+    if (l.comentario) lista.push({ secao: 'Comentários', pergunta: 'Comentários e sugestões', tipo: 'texto', valor: l.comentario });
+    for (const r of lista) {
+      const k = `${r.secao}\u0000${r.pergunta}`;
+      if (!perguntas.has(k)) perguntas.set(k, { secao: r.secao, pergunta: r.pergunta, tipo: r.tipo, valores: [] });
+      perguntas.get(k).valores.push(r.tipo === 'texto' ? { texto: r.valor, nome: l.nome, filial: l.filial, modulo: l.modulo } : r.valor);
     }
   }
-  const criterios = [...porCriterio.values()].map(c => ({ secao: c.secao, criterio: c.criterio, respostas: c.qtd, media: Math.round((c.soma / c.qtd) * 100) / 100, distribuicao: c.dist }));
-  const geral = criterios.length ? Math.round((criterios.reduce((s, c) => s + c.media * c.respostas, 0) / criterios.reduce((s, c) => s + c.respostas, 0)) * 100) / 100 : null;
+  const media = (xs) => (xs.length ? Math.round((xs.reduce((a, b) => a + b, 0) / xs.length) * 100) / 100 : null);
+  const resultado = [...perguntas.values()].map(p => {
+    const base = { secao: p.secao, pergunta: p.pergunta, tipo: p.tipo, respostas: p.valores.length };
+    if (p.tipo === 'texto') return { ...base, textos: p.valores.slice(0, 300) };
+    if (p.tipo === 'escolha') {
+      const opcoes = [...new Set([...(p.opcoes || []), ...p.valores])];
+      return { ...base, contagem: opcoes.map(o => ({ opcao: o, qtd: p.valores.filter(v => v === o).length })) };
+    }
+    const faixa = p.tipo === 'nota' ? [0, 10] : [1, 5];
+    const dist = Array.from({ length: faixa[1] - faixa[0] + 1 }, (_, k) => p.valores.filter(v => v === faixa[0] + k).length);
+    return { ...base, media: media(p.valores), escala: faixa, distribuicao: dist };
+  });
   const porModulo = db.prepare(`
     SELECT m.id, m.titulo, COUNT(r.id) AS respostas FROM modulos m LEFT JOIN reacoes r ON r.modulo_id = m.id
     GROUP BY m.id ORDER BY m.ordem, m.id`).all();
-  res.json({
-    respostas: linhas.length, media_geral: geral, criterios, modulos: porModulo,
-    comentarios: linhas.filter(l => l.comentario).slice(0, 200).map(l => ({ texto: l.comentario, modulo: l.modulo, nome: l.nome, filial: l.filial, data: l.criado_em })),
-  });
+  res.json({ respostas: linhas.length, perguntas: resultado, modulos: porModulo });
+});
+
+// QR Code que leva o colaborador direto à avaliação de reação do módulo.
+app.get('/api/admin/reacao/qrcode/:modulo', exigirAdmin, async (req, res, next) => {
+  const m = db.prepare('SELECT id, titulo FROM modulos WHERE id = ?').get(Number(req.params.modulo));
+  if (!m) return res.status(404).json({ erro: 'Módulo não encontrado' });
+  const link = `${req.protocol}://${req.get('host')}/reacao.html?modulo=${m.id}`;
+  try {
+    const opcoes = { margin: 2, width: 600, color: { dark: '#0e3b5c', light: '#ffffff' } };
+    if (req.query.formato === 'png') {
+      res.setHeader('Content-Disposition', `attachment; filename="qrcode-reacao-${m.id}.png"`);
+      return res.type('image/png').send(await QRCode.toBuffer(link, opcoes));
+    }
+    res.json({ link, titulo: m.titulo, svg: await QRCode.toString(link, { ...opcoes, type: 'svg' }) });
+  } catch (e) { next(e); }
 });
 
 // -- Backup do banco (colaboradores, temas, avaliações, notas e certificados) --

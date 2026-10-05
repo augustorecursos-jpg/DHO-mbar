@@ -275,6 +275,18 @@ body.app { display: flex; min-height: 100vh; }
 .reacao-opcoes label { cursor: pointer; display: grid; place-items: center; width: 30px; height: 30px; }
 .reacao-opcoes input { width: 18px; height: 18px; accent-color: var(--marinho); cursor: pointer; margin: 0; }
 .sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+.reacao-bloco { display: grid; gap: .5rem; margin: 0; padding: .7rem 0; border: 0; border-bottom: 1px solid var(--fundo-2); }
+.reacao-bloco legend, .reacao-texto > span { padding: 0; margin-bottom: .45rem; font-size: .9rem; font-weight: 700; color: var(--marinho); }
+.reacao-texto small { font-weight: 400; color: var(--texto-suave); }
+.reacao-nota { display: grid; grid-template-columns: repeat(11, minmax(0, 1fr)); gap: .3rem; max-width: 560px; }
+.reacao-nota label { position: relative; cursor: pointer; }
+.reacao-nota input { position: absolute; opacity: 0; inset: 0; cursor: pointer; }
+.reacao-nota span { display: grid; place-items: center; height: 38px; border-radius: 8px; border: 1px solid var(--linha); background: #fff; font-weight: 700; color: var(--marinho); transition: background .15s, border-color .15s; }
+.reacao-nota input:checked + span { background: var(--marinho); border-color: var(--marinho); color: #fff; }
+.reacao-nota input:focus-visible + span { outline: 2px solid var(--laranja); outline-offset: 1px; }
+.reacao-escolha { display: grid; gap: .35rem; }
+.reacao-escolha label { display: flex; gap: .55rem; align-items: center; font-size: .9rem; cursor: pointer; }
+.reacao-escolha input { width: 17px; height: 17px; accent-color: var(--marinho); margin: 0; }
 .reacao-coment { display: grid; gap: .35rem; font-weight: 700; font-size: .85rem; color: var(--marinho); }
 .reacao .btn { justify-self: start; }
 .reacao-ok { margin: 0; font-weight: 700; color: var(--verde); }
@@ -282,6 +294,7 @@ body.app { display: flex; min-height: 100vh; }
   .reacao-linha { flex-direction: column; align-items: flex-start; gap: .3rem; }
   .reacao-cab .reacao-num { display: none; }
   .reacao-opcoes { grid-template-columns: repeat(5, 34px); }
+  .reacao-nota { grid-template-columns: repeat(6, minmax(0, 1fr)); }
   .reacao-opcoes label { height: auto; gap: .1rem; }
   .reacao-opcoes label::after { content: attr(data-n); font-size: .72rem; font-weight: 700; color: var(--texto-suave); }
 }

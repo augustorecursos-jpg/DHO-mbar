@@ -1,0 +1,103 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Avaliação de Reação · Âmbar Energia</title>
+  <link rel="icon" href="img/favicon.svg" type="image/svg+xml">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@500;600;700;800&family=Nunito+Sans:wght@400;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/base.css">
+  <link rel="stylesheet" href="css/app.css">
+  <style>
+    body { background: var(--fundo); }
+    .reacao-topo { background: var(--marinho); color: #fff; padding: 1rem clamp(16px, 4vw, 40px); display: flex; align-items: center; gap: 1rem; }
+    .reacao-topo small { display: block; font-family: var(--fonte-titulo); font-size: .66rem; letter-spacing: .14em; color: var(--laranja-claro); font-weight: 700; }
+    .reacao-topo strong { font-family: var(--fonte-titulo); font-size: 1.05rem; }
+    .reacao-pagina { max-width: 780px; margin: 1.6rem auto 3rem; padding: 0 16px; display: grid; gap: 1rem; }
+    .reacao-pagina .reacao { margin-top: 0; }
+    .cpf-caixa { display: grid; gap: .7rem; }
+    .cpf-linha { display: flex; gap: .6rem; flex-wrap: wrap; }
+    .cpf-linha .campo { flex: 1; min-width: 200px; }
+    .aviso-erro { color: var(--vermelho); font-weight: 700; margin: 0; }
+  </style>
+</head>
+<body>
+  <header class="reacao-topo">
+    <span class="logo claro"><b>Âmbar</b><small>ENERGIA</small></span>
+    <div><small>TRILHA DE DESENVOLVIMENTO · DHO</small><strong id="titulo-modulo">Avaliação de reação</strong></div>
+  </header>
+  <main class="reacao-pagina" id="conteudo"><p class="carregando">Carregando…</p></main>
+
+  <script src="js/comum.js"></script>
+  <script src="js/reacao-form.js"></script>
+  <script>
+    const conteudo = document.getElementById('conteudo');
+    const moduloId = Number(new URLSearchParams(location.search).get('modulo'));
+    let modulo, form;
+
+    function pedirCpf(msg = '') {
+      conteudo.innerHTML = `
+        <form class="cartao cpf-caixa" id="form-cpf" novalidate>
+          <h3>Identifique-se para responder</h3>
+          <p class="q-dica">Informe seu CPF. Cada colaborador responde uma vez por módulo.</p>
+          <div class="cpf-linha">
+            <input class="campo" id="cpf" inputmode="numeric" maxlength="14" placeholder="000.000.000-00" autocomplete="off">
+            <button class="btn btn-laranja" type="submit">Continuar →</button>
+          </div>
+          ${msg ? `<p class="aviso-erro">${esc(msg)}</p>` : ''}
+        </form>`;
+      mascaraCpf(document.getElementById('cpf'));
+      document.getElementById('form-cpf').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const cpf = document.getElementById('cpf').value.replace(/\D/g, '');
+        if (cpf.length !== 11) return pedirCpf('Digite os 11 números do seu CPF.');
+        try {
+          await api('/api/entrar', { method: 'POST', body: { cpf } });
+          mostrarFormulario();
+        } catch (err) {
+          pedirCpf(err.status === 403 ? 'Acesso negado. Procure o time de DHO.' : err.message);
+        }
+      });
+    }
+
+    async function mostrarFormulario() {
+      let me;
+      try { me = await api('/api/me'); } catch (err) { if (err.status === 401) return pedirCpf(); throw err; }
+      const m = me.modulos.find(x => x.id === moduloId);
+      if (!m) { conteudo.innerHTML = '<p class="cartao">Módulo não encontrado.</p>'; return; }
+      if (m.reacao === 'respondida') {
+        conteudo.innerHTML = `<div class="cartao"><p class="reacao-ok">✅ Você já respondeu a avaliação de reação deste módulo. Obrigado, ${esc(me.colaborador.nome.split(' ')[0])}!</p>
+          <p><a class="btn btn-claro btn-sm" href="trilha.html#/modulo/${m.id}">Ir para minha trilha</a></p></div>`;
+        return;
+      }
+      if (!m.reacao) { conteudo.innerHTML = '<p class="cartao">A avaliação de reação não está disponível no momento.</p>'; return; }
+      form = await api('/api/reacao');
+      conteudo.innerHTML = `<p class="q-dica">Olá, <strong>${esc(me.colaborador.nome.split(' ')[0])}</strong>! Sua opinião nos ajuda a melhorar a trilha.</p>` + htmlFormReacao(form, m);
+    }
+
+    document.addEventListener('click', async (e) => {
+      const btn = e.target.closest('[data-enviar-reacao]');
+      if (!btn) return;
+      const { respostas, faltando } = coletarReacao(btn.closest('.reacao'), form);
+      if (faltando) return toast(`Responda todas as perguntas obrigatórias (${faltando} em branco). Só as de texto livre são opcionais.`, 'erro');
+      btn.disabled = true;
+      try {
+        await api(`/api/modulos/${moduloId}/reacao`, { method: 'POST', body: { respostas } });
+        conteudo.innerHTML = `<div class="cartao"><p class="reacao-ok">✅ Obrigado! Sua avaliação de reação foi registrada.</p>
+          <p><a class="btn btn-claro btn-sm" href="trilha.html">Ir para minha trilha</a></p></div>`;
+        window.scrollTo(0, 0);
+      } catch (err) { toast(err.message, 'erro'); btn.disabled = false; }
+    });
+
+    (async () => {
+      const r = await api('/api/publico/resumo');
+      modulo = r.modulos.find(m => m.id === moduloId);
+      if (!modulo) { conteudo.innerHTML = '<p class="cartao">Link inválido: módulo não encontrado. Procure o time de DHO.</p>'; return; }
+      document.getElementById('titulo-modulo').textContent = `Avaliação de reação · ${modulo.titulo}`;
+      mostrarFormulario().catch(err => { conteudo.innerHTML = `<p class="cartao">${esc(err.message)}</p>`; });
+    })();
+  </script>
+</body>
+</html>

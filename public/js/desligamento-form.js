@@ -19,25 +19,13 @@ const CAMPOS_ID = [
   ['data_desligamento', 'Desligamento', 'date'],
 ];
 
-// Escalas ordenadas (melhor → pior) desenhadas como régua.
-const ESCALAS = [['Excelente', 'Bom', 'Regular', 'Ruim'], ['Sempre', 'Muitas vezes', 'Poucas vezes', 'Nunca'],
-  ['Ótimo', 'Bom', 'Regular', 'Ruim', 'Péssimo'], ['Muito satisfeito', 'Satisfeito', 'Insatisfeito', 'Muito insatisfeito']];
-// Cores da régua: tons de azul para as respostas positivas, laranja para as negativas (cinza no meio, se houver).
-const PALETAS = { 2: ['#0e3b5c', '#d95d18'], 3: ['#0e3b5c', '#8a98a3', '#d95d18'], 4: ['#0e3b5c', '#3f7aa5', '#f39a4a', '#d95d18'], 5: ['#0e3b5c', '#3f7aa5', '#8a98a3', '#f39a4a', '#d95d18'] };
-const corEscala = (k, n) => (PALETAS[n] || PALETAS[4])[Math.min(k, (PALETAS[n] || PALETAS[4]).length - 1)];
-const naoSeAplica = (o) => /^(n\/?a|não se aplica)$/i.test(o.trim());
-const ehEscala = (ops) => ESCALAS.some(e => e.length === ops.length && e.every((v, i) => v.toLowerCase() === ops[i].toLowerCase()));
 
 // ---------- montagem ----------
+/** Opções com bolinha (escolha única) ou caixinha (várias respostas); curtas ficam lado a lado. */
 function htmlOpcoes(p, nome, tipo, opcoes) {
-  const regua = tipo === 'radio' && ehEscala(p.opcoes) && !p.outro;
-  const binaria = tipo === 'radio' && opcoes.length <= 3 && opcoes.every(o => o.length <= 12);
-  const classe = regua ? 'cv-regua' : binaria ? 'cv-par' : 'cv-lista';
-  return `<div class="${classe}" style="--n:${opcoes.length}">${opcoes.map((o, k) => `
-    <label class="cv-op" style="--cor:${regua ? corEscala(k, opcoes.length) : 'var(--marinho)'}">
-      <input type="${tipo}" name="${nome}" value="${esc(o)}">
-      <span>${esc(o)}</span><i class="cv-marca" aria-hidden="true"></i>
-    </label>`).join('')}</div>`;
+  const emLinha = opcoes.length <= 5 && opcoes.every(o => o.length <= 16);
+  return `<div class="cv-opcoes ${emLinha ? 'em-linha' : ''}">${opcoes.map(o => `
+    <label class="cv-op"><input type="${tipo}" name="${nome}" value="${esc(o)}"><span>${esc(o)}</span></label>`).join('')}</div>`;
 }
 
 function htmlPergunta(p) {
@@ -47,14 +35,13 @@ function htmlPergunta(p) {
   if (p.tipo === 'unica') corpo = htmlOpcoes(p, nome, 'radio', opcoes);
   else if (p.tipo === 'multipla') corpo = `<p class="cv-dica">Escolha quantas quiser</p>${htmlOpcoes(p, nome, 'checkbox', opcoes)}`;
   else if (p.tipo === 'grade') {
-    const escala = p.opcoes.filter(o => !naoSeAplica(o));
     corpo = `
-      <div class="cv-grade" style="--n:${p.opcoes.length}; --e:${escala.length}">
+      <div class="cv-grade" style="--n:${p.opcoes.length}">
         <div class="cv-grade-cab"><span></span>${p.opcoes.map(o => `<span>${esc(o)}</span>`).join('')}</div>
         ${p.itens.map((item, k) => `
           <div class="cv-grade-linha">
             <span class="cv-grade-item">${esc(item)}</span>
-            ${p.opcoes.map(o => `<label class="cv-ponto ${naoSeAplica(o) ? 'na' : ''}" style="--cor:${naoSeAplica(o) ? '#8a98a3' : corEscala(escala.indexOf(o), escala.length)}" title="${esc(o)}">
+            ${p.opcoes.map(o => `<label class="cv-ponto" title="${esc(o)}">
               <input type="radio" name="${nome}-${k}" value="${esc(o)}"><i></i><em>${esc(o)}</em></label>`).join('')}
           </div>`).join('')}
       </div>`;

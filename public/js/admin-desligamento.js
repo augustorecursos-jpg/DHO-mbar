@@ -240,7 +240,7 @@ function dslPctOpcao(lista, id, opcao) {
   return com.length ? { pct: (com.filter(r => dslResp(r, id).valor === opcao).length / com.length) * 100, n: com.length } : null;
 }
 const dslRotuloCurto = (t) => {
-  const s = t.replace(/^qual (o )?seu grau de satisfa[cç][aã]o\s*(em rela[cç][aã]o|referente|com)?\s*(a|à|às|as|ao|aos|à sua|a sua)?\s*/i, '').replace(/\?$/, '');
+  const s = t.replace(/^qual (o )?seu grau de satisfa[cç][aã]o\s*(em rela[cç][aã]o|referente|com)?\s*(à sua|a sua|às|aos|as|ao|à|a)?\s+/i, '').replace(/\?$/, '');
   return s.charAt(0).toUpperCase() + s.slice(1);
 };
 

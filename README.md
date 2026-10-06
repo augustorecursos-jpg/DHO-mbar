@@ -58,6 +58,8 @@ que baixa uma cópia completa do banco.
 - **`/trilha.html`** – painel do colaborador: menu lateral com os temas da trilha (cada tema reúne seus PDFs), progresso geral, materiais estudados, avaliações pendentes
   e certificados. Dentro do tema: materiais em PDF (marcar como concluído), avaliação liberada após
   todos os materiais, e download do certificado quando aprovado.
+- **`/desligamento.html`** – entrevista de desligamento (link geral ou `?c=<código>` do convite individual). Não exige CPF,
+  pois quem está saindo pode já ter sido removido da base; funciona no celular.
 - **`/admin.html`** – área do RH (senha):
   - **Indicadores**: colaboradores ativos, acessos, conclusão da trilha, certificados, nota média e aprovação;
     conclusão por tema e por regional, certificados por semana, desempenho por avaliação e tabela por filial,
@@ -74,6 +76,19 @@ que baixa uma cópia completa do banco.
     que pede o CPF. Cada colaborador responde uma vez por módulo. Resultados por pergunta (média e distribuição,
     contagem das opções e respostas abertas), com filtro por módulo.
   - **Resultados**: progresso por colaborador com filtro por regional/filial e exportação CSV.
+  - **Entrevista de Desligamento** (versão digital do formulário PRESI-RH-0002), em quatro abas:
+    - *Enviar*: **link geral** (o colaborador preenche os próprios dados) e **convites individuais** com link único já
+      identificado (nome, matrícula, cargo, área, gestor, datas). Cada link pode ser enviado por **WhatsApp**
+      (abre a conversa com a mensagem pronta), **e-mail**, link copiado ou **QR Code** (PNG para imprimir). A lista
+      mostra quem respondeu, quem recusou e quem ainda está pendente.
+    - *Indicadores*: entrevistas, taxa de retorno, recusas, % que voltaria, satisfação, tempo médio de casa, alertas
+      (ex.: pedido de contato com o Compliance), motivos de saída, satisfação por fator, benefícios, o que mudaria,
+      entrevistas por mês e por área; filtros por período, área e gestor; resultados detalhados por pergunta.
+    - *Respostas*: cada entrevista completa, com impressão/PDF, e **exportação em Excel** com as abas *Respostas*
+      (uma linha por entrevista), *Base_indicadores* (formato longo para tabela dinâmica/Power BI), *Resumo* e *Convites*.
+    - *Formulário*: editor de seções e perguntas (escolha única, múltipla seleção, grade de itens × escala, texto,
+      data), com obrigatoriedade, justificativa, opção "Outros", alerta por resposta, textos de abertura e mensagem
+      do convite (`{nome}` e `{link}`). O botão *Restaurar modelo original* recarrega o formulário do PDF.
 
 ## Regras implementadas
 

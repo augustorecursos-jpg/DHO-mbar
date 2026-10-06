@@ -30,12 +30,12 @@ document.getElementById('sair').addEventListener('click', async () => {
 });
 
 function trocarAba(aba) {
-  if (!['indicadores', 'colaboradores', 'modulos', 'reacao', 'resultados'].includes(aba)) aba = 'indicadores';
+  if (!['indicadores', 'colaboradores', 'modulos', 'reacao', 'resultados', 'desligamento'].includes(aba)) aba = 'indicadores';
   history.replaceState(null, '', `#${aba}`);
   document.querySelectorAll('[data-aba]').forEach(b => b.classList.toggle('ativo', b.dataset.aba === aba));
   document.querySelectorAll('[data-painel]').forEach(s => { s.hidden = s.dataset.painel !== aba; });
   document.getElementById('lateral').classList.remove('aberta');
-  ({ indicadores: carregarIndicadores, colaboradores: carregarColaboradores, modulos: carregarModulos, reacao: carregarReacao, resultados: carregarResultados })[aba]();
+  ({ indicadores: carregarIndicadores, colaboradores: carregarColaboradores, modulos: carregarModulos, reacao: carregarReacao, resultados: carregarResultados, desligamento: carregarDesligamento })[aba]();
 }
 document.querySelectorAll('[data-aba]').forEach(b => b.addEventListener('click', () => trocarAba(b.dataset.aba)));
 document.getElementById('btn-menu').addEventListener('click', () => document.getElementById('lateral').classList.toggle('aberta'));
@@ -611,6 +611,8 @@ document.getElementById('reacao-qrcodes').addEventListener('click', async (e) =>
   const b = e.target.closest('[data-qr]');
   if (!b) return;
   const q = await api(`/api/admin/reacao/qrcode/${b.dataset.qr}`);
+  document.getElementById('qr-rotulo').textContent = 'QR CODE · AVALIAÇÃO DE REAÇÃO';
+  document.getElementById('qr-dica').textContent = 'Ao ler o QR Code, o colaborador informa o CPF e responde a avaliação de reação deste módulo.';
   document.getElementById('qr-titulo').textContent = q.titulo;
   document.getElementById('qr-img').innerHTML = q.svg;
   document.getElementById('qr-link').value = q.link;

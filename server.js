@@ -804,6 +804,10 @@ app.get('/api/admin/reacao/qrcode/:modulo', exigirAdmin, async (req, res, next) 
   } catch (e) { next(e); }
 });
 
+// -- Entrevista de desligamento (formulário, convites, respostas e QR Code) --
+
+require('./desligamento').registrar(app, { exigirAdmin, limitadorDeFalhas });
+
 // -- Backup do banco (colaboradores, temas, avaliações, notas e certificados) --
 
 app.get('/api/admin/backup', exigirAdmin, (_req, res) => {

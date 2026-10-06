@@ -35,6 +35,8 @@
     <button class="lateral-item" data-aba="modulos"><span class="ic">📚</span>Temas & Materiais</button>
     <button class="lateral-item" data-aba="reacao"><span class="ic">💬</span>Avaliação de Reação</button>
     <button class="lateral-item" data-aba="resultados"><span class="ic">📊</span>Resultados</button>
+    <p class="lateral-grupo">GESTÃO DE PESSOAS</p>
+    <button class="lateral-item" data-aba="desligamento"><span class="ic">🚪</span>Entrevista de Desligamento</button>
     <div class="lateral-rodape"><button class="lateral-item" id="sair"><span class="ic">⎋</span>Sair</button></div>
   </aside>
 
@@ -169,13 +171,149 @@
           <div class="tabela-wrap"><table class="tabela" id="tabela-resultados"></table></div>
         </div>
       </section>
+      <!-- Entrevista de desligamento -->
+      <section data-painel="desligamento" hidden>
+        <div class="ind-cab">
+          <h1 class="titulo-pagina">Entrevista de <em>desligamento</em></h1>
+          <div class="sub-abas" role="tablist">
+            <button type="button" class="ativo" data-sub="enviar">📤 Enviar</button>
+            <button type="button" data-sub="indicadores">📈 Indicadores</button>
+            <button type="button" data-sub="respostas">🗂 Respostas</button>
+            <button type="button" data-sub="formulario">✏️ Formulário</button>
+          </div>
+        </div>
+
+        <div data-sub-painel="enviar">
+          <div class="cartao">
+            <h3>🔗 Link geral <small>· o colaborador preenche os próprios dados (bom para cartazes, QR Code impresso ou envio em grupo)</small></h3>
+            <div class="linha-form compartilhar">
+              <input class="campo" id="dsl-link-geral" readonly aria-label="Link geral da entrevista">
+              <button type="button" class="btn btn-claro btn-sm" data-copiar-geral>📋 Copiar</button>
+              <a class="btn btn-whats btn-sm" id="dsl-whats-geral" target="_blank" rel="noopener">WhatsApp</a>
+              <a class="btn btn-claro btn-sm" id="dsl-email-geral">✉️ E-mail</a>
+              <button type="button" class="btn btn-marinho btn-sm" data-qr-dsl="">📱 QR Code</button>
+              <a class="btn btn-claro btn-sm" href="desligamento.html?previa=1" target="_blank" rel="noopener">👁 Pré-visualizar</a>
+            </div>
+          </div>
+
+          <form class="cartao" id="dsl-form-convite" style="margin-top:1.4rem">
+            <h3>✉️ Convite individual <small>· gera um link único, já com os dados do colaborador; cada link aceita uma resposta</small></h3>
+            <div class="dsl-campos">
+              <label class="largo">Nome completo *<input class="campo" name="nome" required maxlength="200"></label>
+              <label>Matrícula<input class="campo" name="matricula" maxlength="60"></label>
+              <label>Cargo<input class="campo" name="cargo" maxlength="200" list="dsl-lista-cargos"></label>
+              <label>Área / Diretoria<input class="campo" name="area" maxlength="200" list="dsl-lista-areas"></label>
+              <label>Gestor imediato<input class="campo" name="gestor" maxlength="200" list="dsl-lista-gestores"></label>
+              <label>Data de admissão<input class="campo" name="data_admissao" type="date"></label>
+              <label>Data de desligamento<input class="campo" name="data_desligamento" type="date"></label>
+              <label>WhatsApp (com DDD)<input class="campo" name="telefone" inputmode="tel" placeholder="(65) 99999-0000" maxlength="40"></label>
+              <label>E-mail pessoal<input class="campo" name="email" type="email" maxlength="200"></label>
+              <label>Responsável RH pela entrevista<input class="campo" name="responsavel_rh" maxlength="200"></label>
+            </div>
+            <datalist id="dsl-lista-cargos"></datalist><datalist id="dsl-lista-areas"></datalist><datalist id="dsl-lista-gestores"></datalist>
+            <div class="linha-form"><button class="btn btn-laranja" type="submit">Gerar link individual</button></div>
+            <div id="dsl-convite-novo"></div>
+          </form>
+
+          <div class="cartao" style="margin-top:1.4rem">
+            <div class="cab-tabela">
+              <h3>📬 Convites enviados <small id="dsl-qtd-convites"></small></h3>
+              <div class="filtros">
+                <select class="campo" id="dsl-filtro-status" aria-label="Situação">
+                  <option value="">Todas as situações</option><option value="pendente">Aguardando resposta</option>
+                  <option value="respondido">Respondidas</option><option value="recusou">Recusou</option>
+                </select>
+                <input class="campo" id="dsl-busca-convites" placeholder="Buscar nome, área, cargo…" aria-label="Buscar convites">
+              </div>
+            </div>
+            <div class="tabela-wrap"><table class="tabela" id="dsl-convites"></table></div>
+          </div>
+        </div>
+
+        <div data-sub-painel="indicadores" hidden>
+          <div class="cab-tabela">
+            <div class="filtros" style="margin-left:0">
+              <label class="filtro-data">Desligamento de <input class="campo" type="date" id="dsl-de"></label>
+              <label class="filtro-data">até <input class="campo" type="date" id="dsl-ate"></label>
+              <select class="campo" id="dsl-f-area" aria-label="Área"><option value="">Todas as áreas</option></select>
+              <select class="campo" id="dsl-f-gestor" aria-label="Gestor"><option value="">Todos os gestores</option></select>
+            </div>
+            <button type="button" class="btn btn-laranja btn-sm" data-exportar-dsl style="margin-left:auto">⬇ Exportar Excel</button>
+          </div>
+          <div class="kpis" id="dsl-kpis"></div>
+          <div class="ind-grade">
+            <section class="cartao"><h3>Motivos de saída <small>· % das entrevistas que citaram o motivo</small></h3><div class="grafico-barras" id="dsl-g-motivos"></div></section>
+            <section class="cartao"><h3>Satisfação por fator <small>· % de respostas positivas (Excelente/Bom · Sempre/Muitas vezes)</small></h3><div class="grafico-barras" id="dsl-g-fatores"></div></section>
+          </div>
+          <div class="ind-grade" style="margin-top:1.4rem">
+            <section class="cartao"><h3>Benefícios <small>· % Excelente/Bom entre quem avaliou (N/A não conta)</small></h3><div class="grafico-barras" id="dsl-g-beneficios"></div></section>
+            <section class="cartao"><h3>O que mudaria na empresa <small>· % das entrevistas</small></h3><div class="grafico-barras" id="dsl-g-mudaria"></div></section>
+          </div>
+          <div class="ind-grade ind-grade-regional" style="margin-top:1.4rem">
+            <section class="cartao"><h3>Entrevistas por mês <small>· pela data de desligamento, últimos 12 meses</small></h3><div class="grafico-colunas" id="dsl-g-meses"></div></section>
+            <section class="cartao"><h3>Por área / diretoria</h3><div class="tabela-wrap"><table class="tabela" id="dsl-t-areas"></table></div></section>
+          </div>
+          <section class="cartao" style="margin-top:1.4rem">
+            <h3>Resultados por pergunta <small id="dsl-res-resumo"></small></h3>
+            <div class="reacao-resultados" id="dsl-resultados"></div>
+          </section>
+        </div>
+
+        <div data-sub-painel="respostas" hidden>
+          <div class="cartao">
+            <div class="cab-tabela">
+              <h3>🗂 Entrevistas recebidas <small id="dsl-qtd-respostas"></small></h3>
+              <div class="filtros">
+                <input class="campo" id="dsl-busca-respostas" placeholder="Buscar nome, área, gestor…" aria-label="Buscar respostas">
+                <button type="button" class="btn btn-laranja btn-sm" data-exportar-dsl>⬇ Exportar Excel</button>
+              </div>
+            </div>
+            <div class="tabela-wrap"><table class="tabela" id="dsl-respostas"></table></div>
+          </div>
+        </div>
+
+        <form data-sub-painel="formulario" id="dsl-form-editor" hidden>
+          <div class="cartao">
+            <h3>⚙️ Configurações gerais</h3>
+            <div class="dsl-campos">
+              <label class="largo">Título do formulário<input class="campo" id="dsl-titulo" maxlength="120"></label>
+              <label class="largo">Texto de abertura (confidencialidade)<textarea class="campo" id="dsl-introducao" rows="2" maxlength="2000"></textarea></label>
+              <label class="largo">Assunto do e-mail<input class="campo" id="dsl-assunto" maxlength="200"></label>
+              <label class="largo">Mensagem do convite (WhatsApp e e-mail) <small>· use {nome} e {link}</small><textarea class="campo" id="dsl-mensagem" rows="4" maxlength="2000"></textarea></label>
+            </div>
+            <label class="check" style="margin-top:.8rem"><input type="checkbox" id="dsl-ativa"> Formulário recebendo respostas</label>
+          </div>
+          <div class="cartao" style="margin-top:1.4rem">
+            <h3>📝 Perguntas <small>· Escolha única · Múltipla seleção · Grade (vários itens na mesma escala) · Texto curto/longo · Data</small></h3>
+            <p class="q-dica">Editar o texto de uma pergunta não perde as respostas já recebidas: os indicadores acompanham a pergunta.
+              Marque <strong>Alerta</strong> para destacar uma resposta (ex.: quem quer falar com o Compliance).</p>
+            <div id="dsl-secoes" class="reacao-editor"></div>
+            <div class="linha-form"><button type="button" class="btn btn-claro btn-sm" id="dsl-add-secao">➕ Adicionar seção</button></div>
+          </div>
+          <div class="barra-salvar">
+            <button type="button" class="btn btn-claro btn-sm" id="dsl-restaurar">↺ Restaurar modelo original</button>
+            <a class="btn btn-claro btn-sm" href="desligamento.html?previa=1" target="_blank" rel="noopener">👁 Pré-visualizar (versão salva)</a>
+            <button class="btn btn-laranja" type="submit">Salvar formulário</button>
+          </div>
+        </form>
+      </section>
     </main>
   </div>
 
-  <!-- QR Code da avaliação de reação -->
+  <!-- Entrevista de desligamento: resposta completa -->
+  <dialog class="modal modal-prova" id="modal-dsl">
+    <header>
+      <div><small>ENTREVISTA DE DESLIGAMENTO</small><h3 id="dsl-modal-titulo">Colaborador</h3></div>
+      <button type="button" class="btn btn-claro btn-sm" id="dsl-imprimir">🖨 Imprimir / PDF</button>
+      <button type="button" class="btn btn-claro btn-sm" data-fechar aria-label="Fechar">✕</button>
+    </header>
+    <div class="prova-corpo dsl-detalhe" id="dsl-modal-corpo"></div>
+  </dialog>
+
+  <!-- QR Code (avaliação de reação e entrevista de desligamento) -->
   <dialog class="modal qr-modal" id="modal-qr">
     <header>
-      <div><small>QR CODE · AVALIAÇÃO DE REAÇÃO</small><h3 id="qr-titulo">Módulo</h3></div>
+      <div><small id="qr-rotulo">QR CODE · AVALIAÇÃO DE REAÇÃO</small><h3 id="qr-titulo">Módulo</h3></div>
       <button type="button" class="btn btn-claro btn-sm" data-fechar aria-label="Fechar">✕</button>
     </header>
     <div class="qr-corpo">
@@ -185,7 +323,7 @@
         <button type="button" class="btn btn-claro btn-sm" id="qr-copiar">📋 Copiar link</button>
         <a class="btn btn-laranja btn-sm" id="qr-baixar" download>⬇ Baixar QR Code (PNG)</a>
       </div>
-      <p class="q-dica">Ao ler o QR Code, o colaborador informa o CPF e responde a avaliação de reação deste módulo.</p>
+      <p class="q-dica" id="qr-dica">Ao ler o QR Code, o colaborador informa o CPF e responde a avaliação de reação deste módulo.</p>
     </div>
   </dialog>
 
@@ -226,6 +364,7 @@ c) Velocidade</pre>
 
   <script src="vendor/xlsx.full.min.js"></script>
   <script src="js/comum.js"></script>
+  <script src="js/admin-desligamento.js"></script>
   <script src="js/admin.js"></script>
 </body>
 </html>

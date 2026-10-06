@@ -50,6 +50,15 @@ body.landing { background: #fff; overflow-x: hidden; }
 .cartao-acesso-corpo .campo { font-size: 1.05rem; letter-spacing: .04em; padding: .85rem 1rem; }
 .cartao-acesso-corpo .btn { padding: .9rem 1.1rem; font-size: 1rem; white-space: nowrap; }
 .cartao-acesso-corpo small { color: var(--texto-suave); font-size: .8rem; }
+.guia-acesso {
+  display: flex; align-items: center; gap: .7rem; padding: .8rem 1.5rem; text-decoration: none;
+  background: var(--laranja-suave); border-top: 1px solid #f6dccb; color: var(--marinho); font-size: .92rem;
+}
+.guia-acesso strong { color: var(--laranja); }
+.guia-acesso .guia-ic { font-size: 1.15rem; }
+.guia-acesso .guia-seta { margin-left: auto; font-weight: 800; color: var(--laranja); transition: transform .15s; }
+.guia-acesso:hover .guia-seta { transform: translateX(4px); }
+.faq a { color: var(--laranja); font-weight: 700; }
 .acesso-msg { min-height: 1.3em; margin: 0; font-weight: 700; font-size: .92rem; }
 .acesso-msg.erro { color: var(--vermelho); background: #fdecea; border-radius: 8px; padding: .6rem .8rem; }
 .acesso-msg.ok { color: var(--verde); }

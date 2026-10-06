@@ -53,7 +53,8 @@ que baixa uma cópia completa do banco.
 ## Páginas
 
 - **`/`** – home pública. O colaborador digita o CPF e clica em **Acessar Trilha**.
-  CPF fora da base → *“Acesso negado. Procure o time de DHO.”*
+  CPF fora da base → *“Acesso negado. Procure o time de DHO.”* O link **“Primeira vez aqui? Veja o guia de acesso”**
+  abre o e-book `public/guia/guia-de-acesso.pdf` (também no menu lateral do painel, em **Guia de acesso**).
 - **`/trilha.html`** – painel do colaborador: menu lateral com os temas da trilha (cada tema reúne seus PDFs), progresso geral, materiais estudados, avaliações pendentes
   e certificados. Dentro do tema: materiais em PDF (marcar como concluído), avaliação liberada após
   todos os materiais, e download do certificado quando aprovado.
@@ -86,6 +87,17 @@ que baixa uma cópia completa do banco.
 - Materiais exibidos exatamente como o PDF enviado, desenhados pelo pdf.js dentro da plataforma (sem a barra
   do leitor do navegador). O visualizador bloqueia impressão, menu de contexto, arrastar, Ctrl+P/S/C e borra o
   conteúdo ao perder o foco ou ao pressionar Print Screen.
+
+## Guia de acesso (e-book)
+
+O PDF do guia é gerado com prints reais da plataforma, a partir de um banco temporário com conteúdo fictício
+(o banco de produção não é usado). Depois de mudar telas, gere de novo com:
+
+```bash
+node scripts/guia/gerar-guia.js   # requer o Playwright instalado globalmente
+```
+
+O texto e a diagramação ficam em `scripts/guia/conteudo-guia.js`; os prints e marcações, em `scripts/guia/capturar.js`.
 
 ## Estrutura
 

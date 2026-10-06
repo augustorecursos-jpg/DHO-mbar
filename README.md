@@ -59,7 +59,8 @@ que baixa uma cópia completa do banco.
   e certificados. Dentro do tema: materiais em PDF (marcar como concluído), avaliação liberada após
   todos os materiais, e download do certificado quando aprovado.
 - **`/desligamento.html`** – entrevista de desligamento (link geral ou `?c=<código>` do convite individual). Não exige CPF,
-  pois quem está saindo pode já ter sido removido da base; funciona no celular.
+  pois quem está saindo pode já ter sido removido da base. Visual próprio, diferente das outras telas: abertura, dados pessoais,
+  uma seção por etapa (com mapa das seções e anel de progresso na lateral), revisão das obrigatórias e envio; funciona no celular.
 - **`/admin.html`** – área do RH (senha):
   - **Indicadores**: colaboradores ativos, acessos, conclusão da trilha, certificados, nota média e aprovação;
     conclusão por tema e por regional, certificados por semana, desempenho por avaliação e tabela por filial,

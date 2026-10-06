@@ -2,23 +2,51 @@
 <html lang="pt-BR">
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <title>Entrevista de Desligamento · Âmbar Energia</title>
   <meta name="robots" content="noindex">
+  <meta name="theme-color" content="#0a2c45">
   <link rel="icon" href="img/favicon.svg" type="image/svg+xml">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@500;600;700;800&family=Nunito+Sans:wght@400;600;700;800&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700;800&family=Nunito+Sans:wght@400;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="css/base.css">
   <link rel="stylesheet" href="css/desligamento.css">
 </head>
-<body class="dsl">
-  <header class="dsl-topo">
+<body class="cv">
+  <!-- Painel lateral: onde a pessoa está na conversa -->
+  <aside class="cv-lado" aria-label="Andamento da entrevista">
+    <div class="cv-sol" aria-hidden="true"><i></i><i></i><i></i><i></i></div>
     <span class="logo claro"><b>Âmbar</b><small>ENERGIA</small></span>
-    <div><small>RECURSOS HUMANOS · DHO</small><strong id="dsl-titulo-topo">Entrevista de Desligamento</strong></div>
-  </header>
-  <div class="dsl-progresso" aria-hidden="true"><i id="dsl-barra"></i></div>
-  <main class="dsl-pagina" id="conteudo"><p class="dsl-cartao">Carregando…</p></main>
+    <div class="cv-lado-meio">
+      <small class="cv-kicker" id="cv-kicker">ENTREVISTA DE DESLIGAMENTO</small>
+      <h2 id="cv-secao">Boas-vindas</h2>
+      <div class="cv-anel" aria-hidden="true">
+        <svg viewBox="0 0 120 120"><circle cx="60" cy="60" r="52" class="trilho"/><circle cx="60" cy="60" r="52" class="valor" id="cv-anel-valor"/></svg>
+        <span><strong id="cv-anel-num">0%</strong><small>concluído</small></span>
+      </div>
+      <ol class="cv-mapa" id="cv-mapa"></ol>
+    </div>
+    <p class="cv-frase" aria-hidden="true">Todo ciclo que se encerra<br>ilumina o <em>próximo.</em></p>
+    <p class="cv-sigilo">🔒 Confidencial · uso exclusivo do RH</p>
+  </aside>
+
+  <main class="cv-palco">
+    <header class="cv-topo">
+      <span class="logo"><b>Âmbar</b><small>ENERGIA</small></span>
+      <span class="cv-topo-sec" id="cv-topo-sec"></span>
+      <span class="cv-topo-num" id="cv-topo-num"></span>
+    </header>
+    <div class="cv-linha" aria-hidden="true"><i id="cv-linha"></i></div>
+    <p class="cv-previa" id="cv-previa" hidden>👁 Pré-visualização · nada será enviado</p>
+
+    <form id="cv-form" class="cv-etapas" novalidate><p class="cv-carregando">Carregando…</p></form>
+
+    <nav class="cv-nav" id="cv-nav" hidden>
+      <button type="button" class="cv-voltar" id="cv-voltar" aria-label="Voltar">←</button>
+      <button type="button" class="cv-ok" id="cv-avancar">Continuar <span aria-hidden="true">→</span></button>
+    </nav>
+  </main>
 
   <script src="js/comum.js"></script>
   <script src="js/desligamento-form.js"></script>

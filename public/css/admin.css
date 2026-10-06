@@ -216,3 +216,31 @@
   .dsl-perg { grid-template-columns: 1fr auto; }
   .dsl-perg select[data-campo=tipo] { grid-column: 1 / -1; }
 }
+/* Identidade própria do módulo de desligamento: faixa escura com o "sol" da Âmbar, cartões retos e números grandes */
+[data-painel="desligamento"] { --pad: clamp(16px, 3vw, 36px); }
+[data-painel="desligamento"] > .ind-cab {
+  position: relative; overflow: hidden; align-items: flex-end; margin: calc(-1 * var(--pad)) calc(-1 * var(--pad)) 1.8rem;
+  padding: 2.6rem var(--pad) 1.4rem; background: linear-gradient(160deg, #0e3b5c 0%, #0a2c45 60%, #071f31 100%);
+}
+[data-painel="desligamento"] > .ind-cab::before {
+  content: ''; position: absolute; right: -150px; bottom: -230px; width: 380px; height: 380px; border-radius: 50%; pointer-events: none;
+  background: radial-gradient(circle, #f7b267 0 22%, #ec6b24 30%, transparent 31%), radial-gradient(circle, transparent 44%, rgba(243, 154, 74, .35) 44.3%, transparent 45%),
+    radial-gradient(circle, transparent 60%, rgba(243, 154, 74, .22) 60.3%, transparent 61%);
+}
+[data-painel="desligamento"] > .ind-cab .titulo-pagina { position: relative; color: #fff; font-weight: 300; font-size: clamp(1.6rem, 3vw, 2.3rem); }
+[data-painel="desligamento"] > .ind-cab .titulo-pagina em { font-weight: 700; }
+[data-painel="desligamento"] .sub-abas { position: relative; background: #0d3550; border-color: rgba(255, 255, 255, .14); border-radius: 8px; }
+[data-painel="desligamento"] .sub-abas button { color: rgba(255, 255, 255, .7); border-radius: 6px; }
+[data-painel="desligamento"] .sub-abas button:hover { color: #fff; }
+[data-painel="desligamento"] .sub-abas button.ativo { background: var(--laranja); color: #fff; }
+[data-painel="desligamento"] .cartao { border-radius: 6px; border-color: rgba(14, 59, 92, .14); box-shadow: none; }
+[data-painel="desligamento"] .cartao h3 { font-size: .78rem; letter-spacing: .14em; text-transform: uppercase; color: var(--marinho); }
+[data-painel="desligamento"] .cartao h3 small { text-transform: none; letter-spacing: 0; }
+[data-painel="desligamento"] .kpi { border-radius: 4px; border: 0; border-top: 3px solid var(--marinho); box-shadow: 0 1px 0 rgba(14, 59, 92, .08); }
+[data-painel="desligamento"] .kpi .ic { display: none; }
+[data-painel="desligamento"] .kpi strong { font-size: 2.2rem; font-weight: 700; }
+[data-painel="desligamento"] .kpi-alerta { border-top-color: var(--laranja); background: #fff; }
+[data-painel="desligamento"] .kpi-alerta strong { color: var(--laranja); }
+[data-painel="desligamento"] .btn { border-radius: 6px; }
+[data-painel="desligamento"] .campo { border-radius: 6px; }
+@media (max-width: 700px) { [data-painel="desligamento"] > .ind-cab::before { opacity: .5; } }

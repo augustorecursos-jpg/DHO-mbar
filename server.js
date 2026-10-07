@@ -39,6 +39,28 @@ function normalizarCpf(valor) {
   return digitos.padStart(11, '0');
 }
 
+/**
+ * CI (colaboradores da Bolívia): só o número, sem a sigla do departamento ("1108503 SC") nem o complemento
+ * ("1108503-1A"). Fica na mesma coluna de identificação do CPF, como "CI" + número, para nunca se confundir com um CPF.
+ */
+function normalizarCi(valor) {
+  const numero = String(valor ?? '').match(/\d+/)?.[0].replace(/^0+/, '');
+  if (!numero || numero.length < 4 || numero.length > 10) return null;
+  return `CI${numero}`;
+}
+
+/** Documento digitado no login: 11 dígitos é CPF; menos que isso, tenta CI e depois CPF sem os zeros à esquerda. */
+function buscarColaborador(documento) {
+  const digitos = String(documento ?? '').replace(/\D/g, '');
+  const chaves = digitos.length === 11 ? [normalizarCpf(digitos)] : [normalizarCi(documento), normalizarCpf(digitos)];
+  const buscar = db.prepare('SELECT * FROM colaboradores WHERE cpf = ? AND ativo = 1');
+  for (const chave of chaves.filter(Boolean)) {
+    const colab = buscar.get(chave);
+    if (colab) return colab;
+  }
+  return null;
+}
+
 function assinar(payload) {
   const corpo = Buffer.from(JSON.stringify(payload)).toString('base64url');
   const sig = crypto.createHmac('sha256', SESSION_SECRET).update(corpo).digest('base64url');
@@ -196,12 +218,12 @@ app.get('/api/publico/resumo', (_req, res) => {
 
 app.post('/api/entrar', (req, res) => {
   if (limiteCpf.bloqueado(req)) return res.status(429).json({ erro: MSG_LIMITE });
-  const cpf = normalizarCpf(req.body?.cpf);
-  const colab = cpf && db.prepare('SELECT * FROM colaboradores WHERE cpf = ? AND ativo = 1').get(cpf);
+  const colab = buscarColaborador(req.body?.cpf);
   if (!colab) {
     limiteCpf.registrar(req);
     return res.status(403).json({ erro: 'Acesso negado. Procure o time de DHO.' });
   }
+  const cpf = colab.cpf;
   db.prepare("UPDATE colaboradores SET acessos = acessos + 1, ultimo_acesso = datetime('now') WHERE cpf = ?").run(cpf);
   definirSessao(res, 'sess_colab', { cpf }, 12);
   res.json({ ok: true, nome: colab.nome });
@@ -426,9 +448,10 @@ app.post('/api/admin/colaboradores/importar', exigirAdmin, (req, res) => {
   const invalidas = [];
   const validos = [];
   linhas.forEach((l, i) => {
-    const cpf = normalizarCpf(l.cpf);
+    // Quem tem CPF entra pelo CPF; colaboradores da Bolívia, pela coluna CI.
+    const cpf = String(l.cpf ?? '').trim() ? normalizarCpf(l.cpf) : normalizarCi(l.ci);
     const nome = String(l.nome || '').trim();
-    if (!cpf || !nome) invalidas.push({ linha: i + 2, cpf: l.cpf, motivo: !cpf ? 'CPF inválido' : 'Nome vazio' });
+    if (!cpf || !nome) invalidas.push({ linha: i + 2, cpf: l.cpf || l.ci, motivo: !cpf ? 'CPF ou CI inválido' : 'Nome vazio' });
     else validos.push({ cpf, nome, cargo: String(l.cargo || '').trim(), filial: String(l.filial || '').trim(), regional: String(l.regional || '').trim() });
   });
 

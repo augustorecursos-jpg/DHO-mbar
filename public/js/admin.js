@@ -44,7 +44,7 @@ document.addEventListener('click', (e) => { if (e.target.closest('[data-fechar]'
 // ---------- Colaboradores ----------
 const semAcento = (s) => String(s ?? '').normalize('NFD').replace(/[̀-ͯ]/g, '').trim().toLowerCase();
 
-/** Lê .xlsx/.xls/.csv no navegador e devolve linhas {cpf, nome, cargo, filial, regional}. */
+/** Lê .xlsx/.xls/.csv no navegador e devolve linhas {cpf, nome, cargo, filial, regional, ci}. */
 async function lerPlanilha(arquivo) {
   const buffer = await arquivo.arrayBuffer();
   const wb = XLSX.read(buffer, { type: 'array', raw: false, codepage: 65001 });
@@ -52,11 +52,14 @@ async function lerPlanilha(arquivo) {
   const matriz = XLSX.utils.sheet_to_json(aba, { header: 1, defval: '', raw: false });
   if (!matriz.length) return [];
 
-  const campos = ['cpf', 'nome', 'cargo', 'filial', 'regional'];
-  const cab = matriz[0].map(semAcento);
-  const temCabecalho = cab.some(c => campos.includes(c));
-  // Com cabeçalho, localiza cada coluna pelo nome; sem cabeçalho, usa a ordem CPF, NOME, CARGO, FILIAL, REGIONAL.
-  const indice = Object.fromEntries(campos.map((c, i) => [c, temCabecalho ? cab.indexOf(c) : i]));
+  const campos = ['cpf', 'nome', 'cargo', 'filial', 'regional', 'ci'];
+  // Nomes de coluna aceitos (sem acento, espaço ou pontuação), inclusive os das planilhas da Bolívia.
+  const apelidos = { nome: ['nome', 'nombre', 'nombres', 'apellidosynombres', 'nomecompleto'], ci: ['ci', 'nroci', 'nci', 'carnet', 'carnetdeidentidad', 'cedula', 'ceduladeidentidad'] };
+  const cab = matriz[0].map(c => semAcento(c).replace(/[^a-z0-9]/g, ''));
+  const coluna = (c) => cab.findIndex(h => (apelidos[c] || [c]).includes(h));
+  const temCabecalho = campos.some(c => coluna(c) >= 0);
+  // Com cabeçalho, localiza cada coluna pelo nome; sem cabeçalho, usa a ordem CPF, NOME, CARGO, FILIAL, REGIONAL, CI.
+  const indice = Object.fromEntries(campos.map((c, i) => [c, temCabecalho ? coluna(c) : i]));
   return matriz.slice(temCabecalho ? 1 : 0)
     .filter(l => l.some(v => String(v).trim()))
     .map(l => Object.fromEntries(campos.map(c => [c, indice[c] >= 0 ? String(l[indice[c]] ?? '').trim() : ''])));
@@ -76,12 +79,13 @@ document.getElementById('arquivo-colab').addEventListener('change', async (e) =>
     previa.innerHTML = `<p class="aviso">Não foi possível ler o arquivo: ${esc(err.message)}</p>`;
     return;
   }
-  const semCpf = adm.linhasImportar.filter(l => !l.cpf.replace(/\D/g, '')).length;
+  const semDocumento = adm.linhasImportar.filter(l => !(l.cpf + l.ci).replace(/\D/g, '')).length;
+  const comCi = adm.linhasImportar.filter(l => !l.cpf.replace(/\D/g, '') && l.ci.replace(/\D/g, '')).length;
   previa.innerHTML = `
-    <p><strong>${adm.linhasImportar.length}</strong> linhas encontradas${semCpf ? ` · <span class="aviso">${semCpf} sem CPF</span>` : ''}. Prévia:</p>
+    <p><strong>${adm.linhasImportar.length}</strong> linhas encontradas${comCi ? ` · ${comCi} com CI` : ''}${semDocumento ? ` · <span class="aviso">${semDocumento} sem CPF nem CI</span>` : ''}. Prévia:</p>
     <div class="tabela-wrap"><table class="tabela">
-      <tr><th>CPF</th><th>Nome</th><th>Cargo</th><th>Filial</th><th>Regional</th></tr>
-      ${adm.linhasImportar.slice(0, 5).map(l => `<tr><td>${esc(l.cpf)}</td><td>${esc(l.nome)}</td><td>${esc(l.cargo)}</td><td>${esc(l.filial)}</td><td>${esc(l.regional)}</td></tr>`).join('')}
+      <tr><th>CPF / CI</th><th>Nome</th><th>Cargo</th><th>Filial</th><th>Regional</th></tr>
+      ${adm.linhasImportar.slice(0, 5).map(l => `<tr><td>${esc(l.cpf || (l.ci ? `CI ${l.ci}` : ''))}</td><td>${esc(l.nome)}</td><td>${esc(l.cargo)}</td><td>${esc(l.filial)}</td><td>${esc(l.regional)}</td></tr>`).join('')}
     </table></div>`;
   btn.disabled = !adm.linhasImportar.length;
 });
@@ -116,7 +120,7 @@ function renderColaboradores() {
   const ativos = adm.colaboradores.filter(c => c.ativo).length;
   document.getElementById('qtd-colab').textContent = `· ${ativos} ativos de ${adm.colaboradores.length}`;
   document.getElementById('tabela-colab').innerHTML = `
-    <tr><th>CPF</th><th>Nome</th><th>Cargo</th><th>Filial</th><th>Regional</th><th>Acesso</th></tr>
+    <tr><th>CPF / CI</th><th>Nome</th><th>Cargo</th><th>Filial</th><th>Regional</th><th>Acesso</th></tr>
     ${lista.slice(0, 500).map(c => `
       <tr class="${c.ativo ? '' : 'inativo'}">
         <td>${formatarCpf(c.cpf)}</td><td>${esc(c.nome)}</td><td>${esc(c.cargo)}</td><td>${esc(c.filial)}</td><td>${esc(c.regional)}</td>
@@ -648,7 +652,7 @@ function renderResultados() {
   const concluiram = linhas.filter(l => tp && l.certificados >= tp).length;
   document.getElementById('resumo-resultados').textContent = `· ${linhas.length} colaboradores · ${iniciaram} iniciaram · ${concluiram} concluíram a trilha`;
   document.getElementById('tabela-resultados').innerHTML = `
-    <tr><th>Nome</th><th>CPF</th><th>Cargo</th><th>Filial</th><th>Regional</th><th>Materiais</th><th>Certificados</th><th>Média avaliações</th><th>Última prova</th></tr>
+    <tr><th>Nome</th><th>CPF / CI</th><th>Cargo</th><th>Filial</th><th>Regional</th><th>Materiais</th><th>Certificados</th><th>Média avaliações</th><th>Última prova</th></tr>
     ${linhas.map(l => {
       const pct = ta ? Math.round((l.aulas_vistas / ta) * 100) : 0;
       return `<tr>
@@ -665,8 +669,8 @@ document.getElementById('filtro-filial').addEventListener('change', renderResult
 
 document.getElementById('exportar').addEventListener('click', () => {
   const { total_aulas: ta, total_provas: tp } = adm.resultados;
-  const cab = ['CPF', 'NOME', 'CARGO', 'FILIAL', 'REGIONAL', 'AULAS CONCLUIDAS', 'TOTAL AULAS', 'CERTIFICADOS', 'TOTAL PROVAS', 'MEDIA PROVAS', 'ULTIMA PROVA'];
-  const linhas = linhasFiltradas().map(l => [l.cpf, l.nome, l.cargo, l.filial, l.regional, l.aulas_vistas, ta, l.certificados, tp, l.media ?? '', l.ultima_prova ?? '']);
+  const cab = ['CPF / CI', 'NOME', 'CARGO', 'FILIAL', 'REGIONAL', 'AULAS CONCLUIDAS', 'TOTAL AULAS', 'CERTIFICADOS', 'TOTAL PROVAS', 'MEDIA PROVAS', 'ULTIMA PROVA'];
+  const linhas = linhasFiltradas().map(l => [formatarCpf(l.cpf), l.nome, l.cargo, l.filial, l.regional, l.aulas_vistas, ta, l.certificados, tp, l.media ?? '', l.ultima_prova ?? '']);
   const csv = [cab, ...linhas].map(r => r.map(v => `"${String(v).replace(/"/g, '""')}"`).join(';')).join('\r\n');
   const url = URL.createObjectURL(new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8' }));
   const a = Object.assign(document.createElement('a'), { href: url, download: `resultados-trilha-${new Date().toISOString().slice(0, 10)}.csv` });

@@ -41,9 +41,9 @@
       conteudo.innerHTML = `
         <form class="cartao cpf-caixa" id="form-cpf" novalidate>
           <h3>Identifique-se para responder</h3>
-          <p class="q-dica">Informe seu CPF. Cada colaborador responde uma vez por módulo.</p>
+          <p class="q-dica">Informe seu CPF (ou CI, para colaboradores da Bolívia). Cada colaborador responde uma vez por módulo.</p>
           <div class="cpf-linha">
-            <input class="campo" id="cpf" inputmode="numeric" maxlength="14" placeholder="000.000.000-00" autocomplete="off">
+            <input class="campo" id="cpf" inputmode="numeric" maxlength="14" placeholder="CPF ou CI" aria-label="CPF ou CI" autocomplete="off">
             <button class="btn btn-laranja" type="submit">Continuar →</button>
           </div>
           ${msg ? `<p class="aviso-erro">${esc(msg)}</p>` : ''}
@@ -51,8 +51,8 @@
       mascaraCpf(document.getElementById('cpf'));
       document.getElementById('form-cpf').addEventListener('submit', async (e) => {
         e.preventDefault();
-        const cpf = document.getElementById('cpf').value.replace(/\D/g, '');
-        if (cpf.length !== 11) return pedirCpf('Digite os 11 números do seu CPF.');
+        const cpf = document.getElementById('cpf').value.trim();
+        if (!documentoValido(cpf)) return pedirCpf('Digite o número do seu CPF ou CI.');
         try {
           await api('/api/entrar', { method: 'POST', body: { cpf } });
           mostrarFormulario();

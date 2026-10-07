@@ -93,7 +93,7 @@
       <section data-painel="colaboradores" hidden>
         <h1 class="titulo-pagina">Base de <em>colaboradores</em></h1>
         <div class="cartao">
-          <h3>📥 Importar planilha <small>· Excel (.xlsx) ou CSV com as colunas CPF, NOME, CARGO, FILIAL e REGIONAL</small></h3>
+          <h3>📥 Importar planilha <small>· Excel (.xlsx) ou CSV com as colunas CPF, NOME, CARGO, FILIAL e REGIONAL · colaboradores da Bolívia: CPF em branco e o número na coluna CI</small></h3>
           <div class="importar">
             <input type="file" id="arquivo-colab" accept=".xlsx,.xls,.csv" class="campo">
             <label class="check"><input type="radio" name="modo" value="atualizar" checked> Adicionar / atualizar</label>
@@ -106,7 +106,7 @@
         <div class="cartao" style="margin-top:1.4rem">
           <div class="cab-tabela">
             <h3>👥 Colaboradores <small id="qtd-colab"></small></h3>
-            <input class="campo busca" id="busca-colab" placeholder="Buscar por nome, CPF, filial…">
+            <input class="campo busca" id="busca-colab" placeholder="Buscar por nome, CPF, CI, filial…">
           </div>
           <div class="tabela-wrap"><table class="tabela" id="tabela-colab"></table></div>
         </div>
@@ -185,7 +185,7 @@
         <button type="button" class="btn btn-claro btn-sm" id="qr-copiar">📋 Copiar link</button>
         <a class="btn btn-laranja btn-sm" id="qr-baixar" download>⬇ Baixar QR Code (PNG)</a>
       </div>
-      <p class="q-dica">Ao ler o QR Code, o colaborador informa o CPF e responde a avaliação de reação deste módulo.</p>
+      <p class="q-dica">Ao ler o QR Code, o colaborador informa o CPF (ou CI) e responde a avaliação de reação deste módulo.</p>
     </div>
   </dialog>
 

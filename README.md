@@ -62,7 +62,8 @@ que baixa uma cópia completa do banco.
   - **Indicadores**: colaboradores ativos, acessos, conclusão da trilha, certificados, nota média e aprovação;
     conclusão por tema e por regional, certificados por semana, desempenho por avaliação e tabela por filial,
     com filtro por regional e filial.
-  - **Colaboradores**: importa `.xlsx`/`.csv` com as colunas `CPF, NOME, CARGO, FILIAL, REGIONAL`
+  - **Colaboradores**: importa `.xlsx`/`.csv` com as colunas `CPF, NOME, CARGO, FILIAL, REGIONAL` e, para a Bolívia, `CI`
+    (CPF em branco e o número do CI na coluna CI)
     (modelo em `public/exemplos/colaboradores-modelo.csv`). Modo *adicionar/atualizar* ou *substituir base*
     (quem sai da planilha perde o acesso, mas o histórico fica). Também dá para bloquear/liberar um CPF.
   - **Temas & Materiais**: cria os temas (itens do menu lateral), envia os PDFs e monta **quantas avaliações quiser
@@ -78,6 +79,9 @@ que baixa uma cópia completa do banco.
 ## Regras implementadas
 
 - CPF normalizado (aceita com ou sem pontuação e recupera zeros à esquerda que o Excel remove).
+- Colaboradores da Bolívia entram pelo número do CI (sem a sigla do departamento nem o complemento). O CI fica guardado
+  como `CI<número>` na mesma coluna do CPF, sem risco de confusão entre os dois. No login, 11 dígitos é CPF; menos que
+  isso, a plataforma procura como CI e depois como CPF sem os zeros à esquerda.
 - O gabarito nunca vai para o navegador do colaborador; a correção é feita no servidor.
 - Aprovação: nota ≥ 70% (regra fixa, definida em `db.js`). Pode refazer; vale a melhor nota.
   Cada avaliação aprovada gera o seu próprio certificado.

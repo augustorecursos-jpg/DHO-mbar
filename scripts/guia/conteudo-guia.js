@@ -73,7 +73,7 @@ function montarGuia(mapa, { fontes, imagens }) {
           Você estuda no seu ritmo, pelo computador ou pelo celular, e acompanha o seu progresso a cada etapa.</p>
       </div>
       <div class="jornada">
-        <div><span>🔑</span><strong>Entre</strong><small>com o seu CPF</small></div>
+        <div><span>🔑</span><strong>Entre</strong><small>com o seu CPF ou CI</small></div>
         <div><span>📘</span><strong>Estude</strong><small>os materiais do tema</small></div>
         <div><span>📝</span><strong>Avalie</strong><small>seu aprendizado</small></div>
         <div><span>🎓</span><strong>Certifique-se</strong><small>com 70% ou mais</small></div>
@@ -96,7 +96,7 @@ function montarGuia(mapa, { fontes, imagens }) {
         <div class="caixa-info">
           <h3 class="subtitulo">Antes de começar</h3>
           <ul class="checklist">
-            <li><b>Seu CPF</b> — é ele que libera o acesso. Não há senha.</li>
+            <li><b>Seu CPF</b> — é ele que libera o acesso. Não há senha. Colaboradores da Bolívia usam o número do <b>CI</b>.</li>
             <li><b>Internet</b> — Wi-Fi ou dados móveis.</li>
             <li><b>Navegador atualizado</b> — Chrome, Edge, Safari ou Firefox.</li>
             <li><b>Computador, tablet ou celular</b> — a plataforma se adapta à tela.</li>
@@ -117,7 +117,7 @@ function montarGuia(mapa, { fontes, imagens }) {
       <div class="endereco"><span>🌐</span><div><small>ENDEREÇO DA PLATAFORMA</small><strong>${ENDERECO}</strong></div></div>
       ${print('home', { classe: 'home' })}
       ${legenda([
-        [1, 'Digite o seu <strong>CPF</strong>, com ou sem pontos e traço.'],
+        [1, 'Digite o seu <strong>CPF</strong>, com ou sem pontos e traço. Colaboradores da Bolívia digitam só o número do <strong>CI</strong>, sem a sigla do departamento.'],
         [2, 'Clique em <strong>Acessar Trilha</strong>. Pronto, você já está no seu painel.'],
         [3, '<strong>Primeira vez aqui?</strong> Por este link você abre este guia sempre que precisar.'],
       ])}
@@ -125,7 +125,7 @@ function montarGuia(mapa, { fontes, imagens }) {
         ${print('negado', { moldura: 'nenhuma', classe: 'mini' })}
         <div>
           <h4>Apareceu “Acesso negado”?</h4>
-          <p>Confira se o CPF foi digitado corretamente. Se a mensagem continuar, o seu CPF ainda não está na base de colaboradores da trilha:
+          <p>Confira se o CPF (ou CI) foi digitado corretamente. Se a mensagem continuar, o seu documento ainda não está na base de colaboradores da trilha:
             <strong>procure o time de DHO</strong> para verificar o seu cadastro.</p>
         </div>
       </div>`, { passo: '01', titulo: 'Acesse a plataforma' }),
@@ -265,7 +265,7 @@ function montarGuia(mapa, { fontes, imagens }) {
           <h3 class="subtitulo">Recebeu um QR Code?</h3>
           <ol class="passos-qr">
             <li>Aponte a câmera do celular para o QR Code e toque no link.</li>
-            <li>Informe o seu <strong>CPF</strong> <b class="num-inline">1</b> e toque em <strong>Continuar</strong>.</li>
+            <li>Informe o seu <strong>CPF ou CI</strong> <b class="num-inline">1</b> e toque em <strong>Continuar</strong>.</li>
             <li>Responda as perguntas e toque em <strong>Enviar</strong>. Pronto!</li>
           </ol>
         </div>
@@ -282,10 +282,10 @@ function montarGuia(mapa, { fontes, imagens }) {
             O seu progresso fica salvo: comece no computador e continue no celular, ou ao contrário.</p>
           <h3 class="subtitulo">Dúvidas frequentes</h3>
           <dl class="faq">
-            <dt>Preciso de senha?</dt><dd>Não. O acesso é feito somente com o CPF.</dd>
+            <dt>Preciso de senha?</dt><dd>Não. O acesso é feito somente com o CPF ou, para colaboradores da Bolívia, com o número do CI.</dd>
             <dt>Marquei um material como concluído sem querer. E agora?</dt><dd>Sem problema: você pode abrir e rever o material quando quiser, pelo botão “Rever”.</dd>
             <dt>A avaliação não libera. O que faço?</dt><dd>Confira a mensagem abaixo do cadeado: ela indica o material que ainda precisa ser concluído.</dd>
-            <dt>Parei no meio. Perco o que já fiz?</dt><dd>Não. O seu progresso fica salvo; é só entrar de novo com o CPF e clicar em “Continuar trilha”.</dd>
+            <dt>Parei no meio. Perco o que já fiz?</dt><dd>Não. O seu progresso fica salvo; é só entrar de novo com o CPF (ou CI) e clicar em “Continuar trilha”.</dd>
             <dt>Quantas vezes posso fazer a avaliação?</dt><dd>Quantas quiser. Vale sempre a sua melhor nota.</dd>
             <dt>Posso baixar ou imprimir os materiais?</dt><dd>Não. Os materiais ficam disponíveis somente dentro da plataforma.</dd>
             <dt>Perdi o certificado. Como recupero?</dt><dd>Entre na trilha e baixe de novo em “Meus certificados”.</dd>

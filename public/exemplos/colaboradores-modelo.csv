@@ -1,3 +1,4 @@
-CPF;NOME;CARGO;FILIAL;REGIONAL
-123.456.789-09;Maria Souza;Coordenadora de Operações;Cuiabá;Centro-Oeste
-987.654.321-00;João Pereira;Supervisor de Manutenção;Campo Grande;Centro-Oeste
+CPF;NOME;CARGO;FILIAL;REGIONAL;CI
+123.456.789-09;Maria Souza;Coordenadora de Operações;Cuiabá;Centro-Oeste;
+987.654.321-00;João Pereira;Supervisor de Manutenção;Campo Grande;Centro-Oeste;
+;Carlos Rojas;Supervisor de Mantenimiento;Santa Cruz;Bolívia;7654321

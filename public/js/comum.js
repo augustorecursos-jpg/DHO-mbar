@@ -16,17 +16,22 @@ async function api(url, opcoes = {}) {
   return dados;
 }
 
+/** Campo "CPF ou CI": com 11 números aplica a máscara do CPF; com menos, deixa o CI como foi digitado. */
 function mascaraCpf(input) {
   input.addEventListener('input', () => {
-    const d = input.value.replace(/\D/g, '').slice(0, 11);
-    input.value = d
-      .replace(/^(\d{3})(\d)/, '$1.$2')
-      .replace(/^(\d{3})\.(\d{3})(\d)/, '$1.$2.$3')
-      .replace(/\.(\d{3})(\d{1,2})$/, '.$1-$2');
+    const d = input.value.replace(/\D/g, '');
+    if (d.length === 11 && !/[a-z]/i.test(input.value)) input.value = formatarCpf(d);
   });
 }
 
+/** Mesma regra do servidor: 4 a 11 números (CPF ou CI). */
+function documentoValido(valor) {
+  const d = String(valor).replace(/\D/g, '');
+  return d.length >= 4 && d.length <= 11;
+}
+
 function formatarCpf(cpf) {
+  if (String(cpf).startsWith('CI')) return `CI ${String(cpf).slice(2)}`;
   return String(cpf).replace(/^(\d{3})(\d{3})(\d{3})(\d{2})$/, '$1.$2.$3-$4');
 }
 

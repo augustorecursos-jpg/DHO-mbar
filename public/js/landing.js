@@ -1,4 +1,4 @@
-// Home pública: acesso por CPF, botão "Ligar" e resumo dos módulos.
+// Home pública: acesso por CPF (ou CI, para a Bolívia), botão "Ligar" e resumo dos módulos.
 const form = document.getElementById('acesso');
 const campoCpf = document.getElementById('cpf');
 const msg = document.getElementById('acesso-msg');
@@ -8,9 +8,9 @@ form.addEventListener('submit', async (e) => {
   e.preventDefault();
   msg.className = 'acesso-msg';
   msg.textContent = '';
-  const cpf = campoCpf.value.replace(/\D/g, '');
-  if (cpf.length !== 11) {
-    msg.textContent = 'Digite os 11 números do seu CPF.';
+  const cpf = campoCpf.value.trim();
+  if (!documentoValido(cpf)) {
+    msg.textContent = 'Digite o número do seu CPF ou CI.';
     msg.classList.add('erro');
     return;
   }

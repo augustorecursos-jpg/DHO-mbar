@@ -287,6 +287,24 @@ body.placing .seat.occ{cursor:alias}
 .toast button{background:transparent;border:0;color:var(--laranja-claro);font-weight:800;cursor:pointer;padding:0}
 .placing-bar{position:fixed;top:12px;left:50%;transform:translateX(-50%);background:var(--laranja);color:#fff;padding:8px 8px 8px 16px;border-radius:99px;font-weight:700;font-size:13px;z-index:150;box-shadow:0 10px 26px -10px rgba(236,107,36,.9);display:flex;gap:12px;align-items:center;max-width:calc(100vw - 32px)}
 .placing-bar button{border:0;background:rgba(255,255,255,.22);color:#fff;border-radius:99px;padding:5px 12px;font-weight:800;cursor:pointer}
+/* ---------- Modo edição ---------- */
+.edit-bar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:9px clamp(16px,2.4vw,30px);background:var(--laranja-suave);border-bottom:1px solid #f6d3bd}
+.edit-bar .lbl{font-family:var(--f-tit);font-weight:700;color:#b54d12;font-size:12.5px;display:flex;gap:6px;align-items:center}
+.edit-hint{font-size:12px;color:#8a5a3b}
+.edit-add{margin-left:auto;display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+#btnEdit.on{background:var(--laranja);border-color:var(--laranja);color:#fff}
+.ov{position:absolute;border:2px dashed rgba(236,107,36,.35);border-radius:14px;cursor:grab;z-index:30;transition:border-color .12s,background .12s;touch-action:none}
+.ov:hover{border-color:var(--laranja);background:rgba(236,107,36,.07)}
+.ov.dragging{cursor:grabbing;border-color:var(--laranja);background:rgba(236,107,36,.12)}
+.ov-tag{position:absolute;top:-12px;left:10px;background:var(--laranja);color:#fff;font-family:var(--f-tit);font-size:10px;font-weight:700;padding:2px 9px;border-radius:99px;opacity:0;white-space:nowrap;letter-spacing:.03em;pointer-events:none}
+.ov:hover .ov-tag,.ov.dragging .ov-tag{opacity:1}
+body.editing .plan-canvas{outline-color:var(--laranja);background-image:radial-gradient(rgba(236,107,36,.28) 1.1px,transparent 1.2px);background-size:10px 10px}
+.moving{transition:none!important}
+.seg-head,.seg-row{display:grid;grid-template-columns:1fr 150px 74px 30px;gap:6px;align-items:center}
+.seg-head{font-size:11px;font-weight:700;color:var(--muted);margin-bottom:4px}
+.seg-row{margin-bottom:6px}
+.seg-total{font-size:12.5px;color:var(--muted);margin:6px 0 12px}
+.seg-total b{color:var(--marinho)}
 #printArea{display:none}
 .only-mobile{display:none!important}
 
@@ -365,6 +383,7 @@ body.placing .seat.occ{cursor:alias}
       <div class="results" id="results"></div>
     </div>
     <div class="tools">
+      <button class="btn" id="btnEdit" title="Incluir, excluir e mover mesas"><span data-icon="layout"></span><span class="hide-sm">Editar planta</span></button>
       <button class="icon-btn" id="btnUndo" title="Desfazer (Ctrl+Z)" data-icon="undo"></button>
       <div class="menu">
         <button class="btn" data-menu="mImport"><span data-icon="upload"></span><span class="hide-sm">Importar</span></button>
@@ -396,6 +415,26 @@ body.placing .seat.occ{cursor:alias}
     </div>
   </header>
   <nav class="floor-tabs" id="floorTabs"></nav>
+  <div class="edit-bar" id="editBar" hidden>
+    <span class="lbl"><span data-icon="layout"></span>Editando a planta</span>
+    <span class="edit-hint hide-sm">Arraste para mover · clique em um item para editar ou excluir</span>
+    <span class="edit-add">
+      <button class="btn sm" data-add="table"><span data-icon="plus"></span>Mesa</button>
+      <button class="btn sm" data-add="bench"><span data-icon="plus"></span>Bancada</button>
+      <button class="btn sm" data-add="director"><span data-icon="plus"></span>Sala de diretor</button>
+      <div class="menu"><button class="btn sm" data-menu="mAddMore"><span data-icon="plus"></span>Outros</button>
+        <div class="menu-pop" id="mAddMore">
+          <button data-add="door"><span data-icon="door"></span>Porta ou banheiro</button>
+          <button data-add="room"><span data-icon="layout"></span>Sala (área tracejada)</button>
+          <button data-add="stair"><span data-icon="grid"></span>Escada</button>
+          <button data-add="note"><span data-icon="edit"></span>Texto</button>
+          <hr>
+          <button data-add="restore" class="danger"><span data-icon="reset"></span>Restaurar planta original deste andar</button>
+        </div>
+      </div>
+      <button class="btn sm primary" id="btnEditDone"><span data-icon="check"></span>Concluir</button>
+    </span>
+  </div>
   <div class="stage" id="stage"><div class="sizer" id="sizer"><div class="plan" id="plan"></div></div></div>
   <div class="bottombar">
     <div class="legend" id="legend"></div>
@@ -467,9 +506,9 @@ const DEFAULT_AREAS = {
 function matrizItems() {
   const X0 = 30, CW = 250, GAP = 40, colX = i => X0 + i * (CW + GAP);
   const items = [];
-  [0, 1, 2].forEach(i => items.push({ type: 'director', id: 'd' + (i + 1), n: i + 1, x: colX(i), y: 30, w: CW, h: 146, facing: 'top' }));
-  for (let c = 1; c <= 5; c++) items.push({ type: 'bench', id: 'c' + c, n: c, x: colX(c - 1), y: 216, w: CW, pairs: 7, skip: c === 4 ? ['p4-l'] : [] });
-  [0, 1, 2, 3, 4].forEach(i => items.push({ type: 'director', id: 'd' + (i + 4), n: i + 4, x: colX(i), y: 640, w: CW, h: 146, facing: 'bottom' }));
+  [0, 1, 2].forEach(i => items.push({ type: 'director', id: 'd' + (i + 1), n: i + 1, seatId: `mz-d${i + 1}`, x: colX(i), y: 30, w: CW, h: 146, facing: 'top' }));
+  for (let c = 1; c <= 5; c++) items.push({ type: 'bench', id: 'c' + c, n: c, seatPrefix: `mz-c${c}`, x: colX(c - 1), y: 216, w: CW, pairs: 7, skip: c === 4 ? ['p4-l'] : [] });
+  [0, 1, 2, 3, 4].forEach(i => items.push({ type: 'director', id: 'd' + (i + 4), n: i + 4, seatId: `mz-d${i + 4}`, x: colX(i), y: 640, w: CW, h: 146, facing: 'bottom' }));
   items.push({ type: 'caption', text: 'Proposta de layout · Holding Âmbar' });
   return items;
 }
@@ -509,8 +548,8 @@ const SITES = [
     { id: 'b6-andar2b', name: '2º Andar · Parte 2', W: 1028, H: 400, items: [
       { type: 'door', x: 722, y: 30, label: 'Banheiro', icon: 'wc' },
       { type: 'door', x: 858, y: 30, label: 'Banheiro', icon: 'wc' },
-      { type: 'wall', x: 0, y: 92, w: 1028, h: 3, dashed: true },
-      { type: 'note', x: 0, y: 116, w: 1028, text: 'Mesas na mesma reta do Financeiro' },
+      { type: 'wall', x: 0, y: 92, full: true, h: 3, dashed: true },
+      { type: 'note', x: 0, y: 116, full: true, text: 'Mesas na mesma reta do Financeiro' },
       { type: 'table', id: 'opcom', x: 40, y: 172, cols: 6, segments: [{ area: 'operacoes', label: 'Operações', cols: 1 }, { area: 'comercializadora', label: 'Comercializadora', cols: 5 }] },
       { type: 'table', id: 'com', x: 634, y: 172, cols: 4, segments: [{ area: 'comercializadora', label: 'Comercializadora' }] },
       { type: 'caption', text: 'Bloco 6 · 2º Andar · Parte 2' },
@@ -571,6 +610,9 @@ const ICONS = {
   door: '<path d="M4 21h16"/><path d="M6 21V4a1 1 0 0 1 1-1h10a1 1 0 0 1 1 1v17"/><circle cx="14.5" cy="12" r=".8"/>',
   wc: '<circle cx="7" cy="5" r="2"/><circle cx="17" cy="5" r="2"/><path d="M5 22v-7H4l1-6h4l1 6H9v7"/><path d="M15 22V9h4v13"/>',
   move: '<polyline points="5 9 2 12 5 15"/><polyline points="9 5 12 2 15 5"/><polyline points="15 19 12 22 9 19"/><polyline points="19 9 22 12 19 15"/><line x1="2" y1="12" x2="22" y2="12"/><line x1="12" y1="2" x2="12" y2="22"/>',
+  layout: '<rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="12" y1="9" x2="12" y2="21"/>',
+  copy: '<rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>',
+  check: '<polyline points="20 6 9 17 4 12"/>',
   arrow: '<line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/>',
 };
 const icon = n => `<svg class="i" viewBox="0 0 24 24" aria-hidden="true">${ICONS[n] || ''}</svg>`;
@@ -617,31 +659,68 @@ function segAreaAt(it, i) {
   for (const sg of it.segments) { c += sg.cols ?? it.cols; if (i < c) return sg.area; }
   return it.segments[it.segments.length - 1].area;
 }
+const ITEM_NAMES = { table: 'Mesa', bench: 'Bancada', director: 'Sala de diretor', door: 'Porta', room: 'Sala', stair: 'Escada', note: 'Texto', wall: 'Linha', entrance: 'Entrada' };
+const tableSides = it => it.sides || 'tb';
+const tableTopY = it => it.y + (tableSides(it).includes('t') ? SH + G : 0);
+// Caixa ocupada por um item (usada para o tamanho da planta, a edição e a busca de espaço livre)
+function bbox(it, f) {
+  switch (it.type) {
+    case 'table': { const sd = tableSides(it); return { x: it.x, y: it.y, w: tw(it.cols), h: (sd.includes('t') ? SH + G : 0) + TH + (sd.includes('b') ? G + SH : 0) }; }
+    case 'bench': return { x: it.x, y: it.y, w: it.w, h: it.pairs * (SH + BENCH_GAP) - BENCH_GAP };
+    case 'director': case 'room': case 'stair': return { x: it.x, y: it.y, w: it.w, h: it.h };
+    case 'door': return { x: it.x, y: it.y, w: 46 + String(it.label || '').length * 8.4, h: 30 };
+    case 'note': return { x: it.x, y: it.y - 4, w: it.full ? f.W : (it.w || 300), h: 24 };
+    case 'wall': return { x: it.x, y: it.y - 6, w: it.full ? f.W : it.w, h: Math.max(12, it.h || 3) };
+    case 'entrance': return { x: f.W - 100, y: it.y, w: 100, h: it.len };
+    default: return null;
+  }
+}
+const SIZE_FREE = ['entrance', 'wall', 'note', 'caption'];
 function computeSeats(floor) {
   const out = [];
   for (const it of floor.items) {
     if (it.type === 'table') {
-      for (const side of (it.sides || 'tb')) {
-        const y = side === 't' ? it.y : it.y + SH + G + TH + G;
+      const sd = tableSides(it), ty = tableTopY(it);
+      for (const side of sd) {
+        const y = side === 't' ? it.y : ty + TH + G;
         for (let i = 0; i < it.cols; i++) out.push({ id: `${floor.id}-${it.id}-${side}${i}`, x: it.x + i * PITCH, y, item: it, side, i, area: segAreaAt(it, i) });
       }
     } else if (it.type === 'bench') {
+      const sd = it.sides || 'lr';
       for (let p = 1; p <= it.pairs; p++) {
         const y = it.y + (p - 1) * (SH + BENCH_GAP);
         for (const lr of ['l', 'r']) {
-          if (it.skip.includes(`p${p}-${lr}`)) continue;
-          out.push({ id: `mz-c${it.n}-p${p}-${lr}`, x: lr === 'l' ? it.x : it.x + it.w - SW, y, item: it, p, lr });
+          if ((it.skip || []).includes(`p${p}-${lr}`) || !sd.includes(lr)) continue;
+          out.push({ id: `${it.seatPrefix || floor.id + '-' + it.id}-p${p}-${lr}`, x: lr === 'l' ? it.x : it.x + it.w - SW, y, item: it, p, lr });
         }
       }
     } else if (it.type === 'director') {
-      out.push({ id: `mz-d${it.n}`, x: it.x + (it.w - SW) / 2, y: it.facing === 'top' ? it.y + 12 : it.y + 88, item: it, director: true });
+      out.push({ id: it.seatId || `${floor.id}-${it.id}`, x: it.x + (it.w - SW) / 2, y: it.facing === 'top' ? it.y + 12 : it.y + 88, item: it, director: true });
     }
   }
   return out;
 }
-function indexLayout() {
+const DEFAULT_LAYOUT = {};
+function buildDefaults() {
   for (const site of SITES) for (const floor of site.floors) {
     floor.site = site; FLOORS[floor.id] = floor;
+    floor.baseW = floor.W; floor.baseH = floor.H;
+    floor.items.forEach((it, k) => { if (!it.id) it.id = it.type + k; });
+    DEFAULT_LAYOUT[floor.id] = clone(floor.items);
+  }
+}
+// Recalcula plantas e lugares a partir do layout salvo
+function reindex(layout) {
+  for (const k of Object.keys(SEATS)) delete SEATS[k];
+  for (const floor of Object.values(FLOORS)) {
+    floor.items = layout[floor.id];
+    let W = floor.baseW, H = floor.baseH;
+    for (const it of floor.items) {
+      if (SIZE_FREE.includes(it.type)) continue;
+      const b = bbox(it, floor); if (!b) continue;
+      W = Math.max(W, b.x + b.w + 40); H = Math.max(H, b.y + b.h + 40);
+    }
+    floor.W = Math.ceil(W); floor.H = Math.ceil(H);
     floor.seats = computeSeats(floor);
     floor.seats.forEach(s => { s.floor = floor; SEATS[s.id] = s; });
   }
@@ -651,7 +730,7 @@ function itemLabel(floor, it) {
   if (it.type === 'table') return it.segments.map((s, k) => getLabel(`${floor.id}:${it.id}:${k}`, s.label)).join(' / ');
   if (it.type === 'director') return getLabel(`${floor.id}:${it.id}`, `Diretor ${it.n}`);
   if (it.type === 'bench') return `Bancada ${it.n}`;
-  return '';
+  return ITEM_NAMES[it.type] || '';
 }
 function seatLabel(s) {
   const it = s.item;
@@ -665,12 +744,12 @@ const seatWhere = s => `${s.floor.site.name} · ${s.floor.name}`;
    ESTADO (salvo no navegador)
    ===================================================================== */
 let state;
-const ui = { site: 'b6', floor: 'b6-terreo', zoom: 'fit', z: 1, focusArea: null, search: '', placing: null, poolSearch: '', poolArea: 'ALL', lastArea: null };
+const ui = { site: 'b6', floor: 'b6-terreo', zoom: 'fit', z: 1, editing: false, focusArea: null, search: '', placing: null, poolSearch: '', poolArea: 'ALL', lastArea: null };
 const undoStack = [];
 let saveOk = true, lastSaved = null;
 
 function seedState() {
-  const s = { version: 1, areas: clone(DEFAULT_AREAS), people: {}, assign: {}, reserve: {}, labels: {}, lastBackup: null };
+  const s = { version: 2, areas: clone(DEFAULT_AREAS), people: {}, assign: {}, reserve: {}, labels: {}, layout: clone(DEFAULT_LAYOUT), lastBackup: null };
   for (const [fid, tables] of Object.entries(SEED_B6)) for (const [tid, sides] of Object.entries(tables)) for (const side of ['t', 'b']) {
     (sides[side] || []).forEach((v, i) => {
       if (!v) return;
@@ -681,13 +760,19 @@ function seedState() {
       s.assign[seat] = id;
     });
   }
-  return s;
+  return migrate(s);
 }
 function migrate(s) {
   s.areas = s.areas || {}; s.people = s.people || {}; s.assign = s.assign || {}; s.reserve = s.reserve || {}; s.labels = s.labels || {};
   if (!s.areas['sem-area']) s.areas['sem-area'] = clone(DEFAULT_AREAS['sem-area']);
   if (!Object.keys(s.areas).length) s.areas = clone(DEFAULT_AREAS);
   for (const p of Object.values(s.people)) if (!s.areas[p.area]) p.area = 'sem-area';
+  s.layout = s.layout || {};
+  for (const fid of Object.keys(FLOORS)) {
+    if (!Array.isArray(s.layout[fid])) s.layout[fid] = clone(DEFAULT_LAYOUT[fid]);
+    s.layout[fid].forEach((it, k) => { if (!it.id) it.id = it.type + k; });
+  }
+  reindex(s.layout);
   for (const [seat, pid] of Object.entries(s.assign)) if (!SEATS[seat] || !s.people[pid]) delete s.assign[seat];
   for (const seat of Object.keys(s.reserve)) if (!SEATS[seat]) delete s.reserve[seat];
   return s;
@@ -773,6 +858,7 @@ function createPerson({ name, role, area: a }, seatId) {
 }
 function startPlacing(pid) {
   const p = state.people[pid]; if (!p) return;
+  if (ui.editing) setEditing(false);
   ui.placing = pid; document.body.classList.add('placing');
   $('#placingText').textContent = seatOf(pid)
     ? `Clique no novo lugar de ${p.name} (pode trocar de andar ou de sede). Se estiver ocupado, os dois trocam.`
@@ -795,12 +881,12 @@ const RENDER = {
     const b = el('div', 'abs entrance'); pos(b, f.W - 6, it.y, 10, it.len); c.append(b);
     const l = el('div', 'abs entrance-lbl', esc(it.label) + icon('arrow')); pos(l, f.W - 92, it.y + it.len / 2 - 9); c.append(l);
   },
-  wall(c, it) { const d = el('div', 'abs wall-line' + (it.dashed ? ' dashed' : '')); pos(d, it.x, it.y, it.w, it.h); c.append(d); },
-  note(c, it) { const d = el('div', 'abs note', esc(it.text)); pos(d, it.x, it.y, it.w); c.append(d); },
+  wall(c, it, f) { const d = el('div', 'abs wall-line' + (it.dashed ? ' dashed' : '')); pos(d, it.x, it.y, it.full ? f.W : it.w, it.h || 3); c.append(d); },
+  note(c, it, f) { const d = el('div', 'abs note', esc(it.text)); pos(d, it.x, it.y, it.full ? f.W : (it.w || 300)); c.append(d); },
   room(c, it) { const d = el('div', 'abs room', `<div class="room-label">${esc(it.label)}</div>`); pos(d, it.x, it.y, it.w, it.h); c.append(d); },
   caption(c, it) { const d = el('div', 'abs caption', esc(it.text)); d.style.right = '16px'; d.style.bottom = '10px'; c.append(d); },
   table(c, it, f, inter) {
-    const t = el('div', 'abs tbl'); pos(t, it.x, it.y + SH + G, tw(it.cols), TH);
+    const t = el('div', 'abs tbl'); pos(t, it.x, tableTopY(it), tw(it.cols), TH);
     it.segments.forEach((sg, k) => {
       const a = area(sg.area), key = `${f.id}:${it.id}:${k}`;
       const s = el('div', 'seg' + (inter ? ' editable' : ''), esc(getLabel(key, sg.label)));
@@ -813,7 +899,7 @@ const RENDER = {
   },
   bench(c, it) {
     for (let p = 1; p <= it.pairs; p++) {
-      const ghost = it.skip.includes(`p${p}-l`) || it.skip.includes(`p${p}-r`);
+      const ghost = (it.skip || []).includes(`p${p}-l`) || (it.skip || []).includes(`p${p}-r`);
       const d = el('div', 'abs desk' + (ghost ? ' ghost' : ''), ghost ? '' : `${it.n}-${p}`);
       pos(d, it.x + SW + G, it.y + (p - 1) * (SH + BENCH_GAP), it.w - 2 * (SW + G), SH); c.append(d);
     }
@@ -849,8 +935,21 @@ function seatEl(s, inter) {
 }
 function buildPlan(floor, inter) {
   const c = el('div', 'plan-canvas'); c.style.width = floor.W + 'px'; c.style.height = floor.H + 'px';
-  for (const it of floor.items) RENDER[it.type]?.(c, it, floor, inter);
-  for (const s of floor.seats) c.append(seatEl(s, inter));
+  for (const it of floor.items) {
+    const n0 = c.children.length;
+    RENDER[it.type]?.(c, it, floor, inter);
+    for (let k = n0; k < c.children.length; k++) c.children[k].dataset.owner = it.id;
+  }
+  for (const s of floor.seats) { const e = seatEl(s, inter); e.dataset.owner = s.item.id; c.append(e); }
+  if (inter && ui.editing) {
+    for (const it of floor.items) {
+      const b = bbox(it, floor); if (!b) continue;
+      const o = el('div', 'ov', `<span class="ov-tag">${it.type === 'bench' ? esc(itemLabel(floor, it)) : esc(ITEM_NAMES[it.type] || 'Item') + (it.type === 'table' || it.type === 'director' ? ' · ' + esc(itemLabel(floor, it)) : '')}</span>`);
+      pos(o, b.x - 6, b.y - 6, b.w + 12, b.h + 12); o.dataset.item = it.id; o.dataset.owner = it.id;
+      o.title = 'Arraste para mover · clique para editar ou excluir';
+      c.append(o);
+    }
+  }
   return c;
 }
 
@@ -1212,6 +1311,7 @@ function openHelp() {
       <kbd>Arrastar</kbd><span>Lista → lugar para alocar · lugar → lugar para mover ou trocar · lugar → lista para desocupar</span>
       <kbd>Clique</kbd><span>Em um lugar: ver, editar, mover, desocupar ou reservar · no nome de uma mesa ou sala: renomear</span>
       <kbd>Legenda</kbd><span>Clique em uma área para destacá-la na planta</span>
+      <kbd>Editar planta</kbd><span>Incluir mesas, bancadas, salas e portas · arrastar para mover · clicar para mudar lugares, setores ou excluir · Esc ou Concluir para sair</span>
     </div>
     <p class="muted-txt" style="margin-top:14px">Os dados ficam salvos <b>neste navegador, neste computador</b>. Limpar os dados de navegação apaga o mapa. Por isso, faça um backup (.json) de vez em quando, em Exportar → Backup completo. Para levar o mapa para outro computador, restaure esse backup lá.</p>
     <p class="muted-txt">A planilha de importação aceita as colunas <b>Nome</b>, <b>Cargo</b>, <b>Área/Setor/Líder</b> e, se houver, <b>Código do lugar</b>. A planilha exportada por esta ferramenta pode ser editada e importada de volta.</p>` });
@@ -1380,6 +1480,236 @@ function importLegacy(arr) {   // JSON da versão anterior da Matriz (lista de c
 }
 
 /* =====================================================================
+   EDIÇÃO DA PLANTA (incluir, excluir, mover e configurar mesas)
+   ===================================================================== */
+const newItemId = () => 'i' + Date.now().toString(36) + Math.random().toString(36).slice(2, 5);
+const findItem = id => curFloor().items.find(it => it.id === id);
+function setEditing(on) {
+  ui.editing = on; stopPlacing();
+  document.body.classList.toggle('editing', on);
+  $('#editBar').hidden = !on; $('#btnEdit').classList.toggle('on', on);
+  hideTip(); renderPlan();
+}
+// Aplica uma mudança no layout: recalcula lugares e devolve à lista quem perdeu o lugar
+function layoutChanged(msg) {
+  reindex(state.layout);
+  let freed = 0;
+  for (const [seat] of Object.entries(state.assign)) if (!SEATS[seat]) { delete state.assign[seat]; freed++; }
+  for (const seat of Object.keys(state.reserve)) if (!SEATS[seat]) delete state.reserve[seat];
+  commit(msg + (freed ? ` · ${freed} ${freed > 1 ? 'pessoas voltaram' : 'pessoa voltou'} para a lista` : ''));
+}
+function peopleOnItem(f, it) { return f.seats.filter(s => s.item === it && state.assign[s.id]).length; }
+function findFreeSpot(f, w, h) {
+  const boxes = f.items.filter(it => !SIZE_FREE.includes(it.type)).map(it => bbox(it, f)).filter(Boolean);
+  const free = (x, y) => boxes.every(b => x + w + 30 <= b.x || x >= b.x + b.w + 30 || y + h + 30 <= b.y || y >= b.y + b.h + 30);
+  for (let y = 40; y + h <= f.H - 40; y += 20) for (let x = 40; x + w <= f.W - 40; x += 20) if (free(x, y)) return { x, y };
+  const bottom = boxes.reduce((m, b) => Math.max(m, b.y + b.h), 0);
+  return { x: 40, y: bottom + 60 };
+}
+function defaultAreaFor(f) {
+  if (ui.lastArea && state.areas[ui.lastArea]) return ui.lastArea;
+  return Object.keys(state.areas).find(k => state.areas[k].group === f.site.id) || 'sem-area';
+}
+function addItem(type) {
+  const f = curFloor();
+  if (type === 'restore') return restoreFloorLayout();
+  const id = newItemId();
+  const nextN = t => f.items.filter(it => it.type === t).reduce((m, it) => Math.max(m, it.n || 0), 0) + 1;
+  if (type === 'table') return tableDialog({ type: 'table', id, cols: 3, sides: 'tb', segments: [{ area: defaultAreaFor(f), label: 'Nova mesa', cols: 3 }] }, true);
+  const draft = {
+    bench: { type: 'bench', id, n: nextN('bench'), w: 250, pairs: 4, skip: [], sides: 'lr' },
+    director: { type: 'director', id, n: nextN('director'), w: 250, h: 146, facing: 'top' },
+    door: { type: 'door', id, label: 'Porta', icon: 'door' },
+    room: { type: 'room', id, w: 240, h: 200, label: 'Sala' },
+    stair: { type: 'stair', id, w: 230, h: 120 },
+    note: { type: 'note', id, w: 300, text: 'Texto' },
+  }[type];
+  if (!draft) return;
+  const b = bbox(draft, f); Object.assign(draft, findFreeSpot(f, b.w, b.h));
+  snapshot(); f.items.push(draft);
+  layoutChanged(`${ITEM_NAMES[type]} incluída — arraste para posicionar`);
+  if (['door', 'room', 'note'].includes(type)) itemDialog(draft, true);
+}
+async function deleteItem(it) {
+  const f = curFloor(), n = peopleOnItem(f, it);
+  const what = `${ITEM_NAMES[it.type] || 'Item'}${['table', 'bench', 'director'].includes(it.type) ? ' “' + itemLabel(f, it) + '”' : ''}`;
+  if (!await confirmDialog('Excluir da planta', `Excluir ${what}?${n ? ` ${n} ${n > 1 ? 'pessoas sentadas nela voltarão' : 'pessoa sentada nela voltará'} para a lista de não alocados.` : ''} (É possível desfazer.)`, 'Excluir', true)) return;
+  snapshot();
+  f.items = state.layout[f.id] = f.items.filter(x => x !== it);
+  for (const k of Object.keys(state.labels)) if (k.startsWith(`${f.id}:${it.id}`)) delete state.labels[k];
+  layoutChanged(`${ITEM_NAMES[it.type] || 'Item'} excluída`);
+}
+function duplicateItem(it) {
+  const f = curFloor(), c = clone(it);
+  c.id = newItemId(); delete c.seatId; delete c.seatPrefix;
+  if (c.n) c.n = f.items.filter(x => x.type === it.type).reduce((m, x) => Math.max(m, x.n || 0), 0) + 1;
+  if (it.type === 'table') c.segments.forEach((sg, k) => { sg.label = getLabel(`${f.id}:${it.id}:${k}`, sg.label); });
+  const b = bbox(c, f); Object.assign(c, findFreeSpot(f, b.w, b.h));
+  snapshot(); f.items.push(c);
+  layoutChanged(`${ITEM_NAMES[it.type]} duplicada — arraste para posicionar`);
+}
+async function restoreFloorLayout() {
+  const f = curFloor();
+  if (!await confirmDialog('Restaurar planta original', `A planta de “${f.name}” voltará ao desenho original. Quem estiver em mesas que deixarem de existir volta para a lista. (É possível desfazer.)`, 'Restaurar', true)) return;
+  snapshot(); state.layout[f.id] = clone(DEFAULT_LAYOUT[f.id]);
+  layoutChanged('Planta original restaurada');
+}
+
+function tableDialog(it, isNew) {
+  const f = curFloor();
+  let segs = it.segments.map((sg, k) => ({ label: isNew ? sg.label : getLabel(`${f.id}:${it.id}:${k}`, sg.label), area: sg.area, cols: sg.cols ?? it.cols }));
+  const wrap = el('div');
+  const draw = () => {
+    const sides = $('#tSides', wrap)?.value || tableSides(it);
+    const total = segs.reduce((a, sg) => a + (+sg.cols || 0), 0);
+    wrap.innerHTML = `<div class="seg-head"><span>Nome do setor na mesa</span><span>Área / líder</span><span>Lugares por fileira</span><span></span></div>
+      ${segs.map((sg, k) => `<div class="seg-row" data-k="${k}">
+        <input class="input" data-f="label" value="${esc(sg.label)}" ${k === 0 ? 'autofocus' : ''}>
+        <select class="input" data-f="area">${areaOptions(sg.area, f.site.id)}</select>
+        <input class="input" data-f="cols" type="number" min="1" max="20" value="${sg.cols}">
+        ${segs.length > 1 ? `<button class="icon-btn sm" data-rm="${k}" title="Remover setor">${icon('x')}</button>` : '<span></span>'}
+      </div>`).join('')}
+      <button class="btn sm" id="tAddSeg">${icon('plus')}Dividir a mesa com outro setor</button>
+      <label class="field" style="margin-top:14px"><span>Onde ficam os lugares</span>
+        <select class="input" id="tSides">
+          <option value="tb" ${sides === 'tb' ? 'selected' : ''}>Dos dois lados (fileira de cima e de baixo)</option>
+          <option value="t" ${sides === 't' ? 'selected' : ''}>Só na fileira de cima</option>
+          <option value="b" ${sides === 'b' ? 'selected' : ''}>Só na fileira de baixo</option>
+        </select></label>
+      <div class="seg-total">Total: <b>${total * sides.length}</b> lugares (${total} por fileira)</div>`;
+  };
+  wrap.addEventListener('input', e => {
+    const row = e.target.closest('.seg-row');
+    if (row) { segs[+row.dataset.k][e.target.dataset.f] = e.target.dataset.f === 'cols' ? Math.max(1, Math.min(20, parseInt(e.target.value) || 1)) : e.target.value; }
+    if (e.target.dataset.f === 'cols' || e.target.id === 'tSides') {
+      const total = segs.reduce((a, sg) => a + (+sg.cols || 0), 0), sides = $('#tSides', wrap).value;
+      $('.seg-total', wrap).innerHTML = `Total: <b>${total * sides.length}</b> lugares (${total} por fileira)`;
+    }
+  });
+  wrap.addEventListener('click', e => {
+    if (e.target.closest('#tAddSeg')) { segs.push({ label: 'Novo setor', area: defaultAreaFor(f), cols: 2 }); draw(); return; }
+    const rm = e.target.closest('[data-rm]'); if (rm) { segs.splice(+rm.dataset.rm, 1); draw(); }
+  });
+  draw();
+  const actions = [];
+  if (!isNew) {
+    actions.push({ label: 'Excluir', kind: 'danger ghost', icon: 'trash', left: true, onClick: () => { closeDialog(); deleteItem(it); } });
+    actions.push({ label: 'Duplicar', icon: 'copy', onClick: () => { closeDialog(); duplicateItem(it); } });
+  }
+  actions.push({ label: 'Cancelar', onClick: closeDialog });
+  actions.push({ label: isNew ? 'Incluir mesa' : 'Salvar', kind: 'primary', onClick: () => {
+    const clean = segs.map(sg => ({ label: String(sg.label).trim() || 'Mesa', area: state.areas[sg.area] ? sg.area : 'sem-area', cols: Math.max(1, Math.min(20, +sg.cols || 1)) }));
+    const cols = clean.reduce((a, sg) => a + sg.cols, 0);
+    if (cols > 30) return toast('Máximo de 30 lugares por fileira');
+    closeDialog(); snapshot();
+    for (const k of Object.keys(state.labels)) if (k.startsWith(`${f.id}:${it.id}:`)) delete state.labels[k];
+    it.segments = clean; it.cols = cols; it.sides = $('#tSides', wrap).value;
+    if (isNew) { const b = bbox(it, f); Object.assign(it, findFreeSpot(f, b.w, b.h)); f.items.push(it); ui.lastArea = clean[0].area; }
+    layoutChanged(isNew ? 'Mesa incluída — arraste para posicionar' : 'Mesa atualizada');
+  } });
+  openDialog({ title: isNew ? 'Nova mesa' : 'Editar mesa', subtitle: `${f.site.name} · ${f.name}`, body: wrap, actions, wide: true });
+}
+
+function itemDialog(it, isNew) {
+  if (it.type === 'table') return tableDialog(it, false);
+  const f = curFloor();
+  const nameKey = `${f.id}:${it.id}`;
+  const SPECS = {
+    bench: [
+      { k: 'n', label: 'Número da bancada', type: 'number', min: 1, max: 99 },
+      { k: 'pairs', label: 'Quantidade de mesas', type: 'number', min: 1, max: 20 },
+      { k: 'sides', label: 'Lugares', type: 'select', opts: [['lr', 'Dos dois lados'], ['l', 'Só do lado esquerdo'], ['r', 'Só do lado direito']], def: 'lr' },
+    ],
+    director: [
+      { k: '_label', label: 'Nome na sala', type: 'text' },
+      { k: 'facing', label: 'Cadeira do diretor', type: 'select', opts: [['top', 'Em cima (encostada na parede de cima)'], ['bottom', 'Embaixo (encostada na parede de baixo)']] },
+    ],
+    door: [
+      { k: 'label', label: 'Texto', type: 'text' },
+      { k: 'icon', label: 'Ícone', type: 'select', opts: [['door', 'Porta'], ['wc', 'Banheiro']] },
+    ],
+    room: [
+      { k: 'label', label: 'Nome da sala', type: 'text' },
+      { k: 'w', label: 'Largura', type: 'number', min: 80, max: 2000 },
+      { k: 'h', label: 'Altura', type: 'number', min: 60, max: 2000 },
+    ],
+    stair: [
+      { k: 'w', label: 'Largura', type: 'number', min: 60, max: 800 },
+      { k: 'h', label: 'Altura', type: 'number', min: 40, max: 800 },
+    ],
+    note: [{ k: 'text', label: 'Texto', type: 'text' }],
+    entrance: [
+      { k: 'label', label: 'Texto', type: 'text' },
+      { k: 'len', label: 'Tamanho da porta', type: 'number', min: 40, max: 600 },
+    ],
+    wall: [{ k: 'dashed', label: 'Estilo', type: 'select', opts: [['1', 'Tracejada'], ['', 'Contínua']] }],
+  }[it.type] || [];
+  const val = sp => sp.k === '_label' ? getLabel(nameKey, `Diretor ${it.n}`) : sp.k === 'dashed' ? (it.dashed ? '1' : '') : (it[sp.k] ?? sp.def ?? '');
+  const body = SPECS.map((sp, i) => `<label class="field"><span>${sp.label}</span>${sp.type === 'select'
+      ? `<select class="input" data-k="${sp.k}">${sp.opts.map(([v, t]) => `<option value="${v}" ${String(val(sp)) === v ? 'selected' : ''}>${t}</option>`).join('')}</select>`
+      : `<input class="input" data-k="${sp.k}" type="${sp.type}" ${sp.min != null ? `min="${sp.min}" max="${sp.max}"` : ''} value="${esc(val(sp))}" ${i === 0 ? 'autofocus' : ''}>`}</label>`).join('')
+    + (it.type === 'bench' ? '<p class="muted-txt">Cada mesa da bancada tem um lugar de cada lado. Diminuir a quantidade devolve à lista quem estava nas mesas removidas.</p>' : '');
+  const actions = [{ label: 'Excluir', kind: 'danger ghost', icon: 'trash', left: true, onClick: () => { closeDialog(); deleteItem(it); } }];
+  if (['bench', 'director', 'room', 'door'].includes(it.type)) actions.push({ label: 'Duplicar', icon: 'copy', onClick: () => { closeDialog(); duplicateItem(it); } });
+  actions.push({ label: isNew ? 'Ok' : 'Cancelar', onClick: closeDialog });
+  actions.push({ label: 'Salvar', kind: 'primary', onClick: b => {
+    snapshot();
+    for (const sp of SPECS) {
+      const v = $(`[data-k="${sp.k}"]`, b).value;
+      if (sp.k === '_label') { const t = v.trim(); if (t && t !== `Diretor ${it.n}`) state.labels[nameKey] = t; else delete state.labels[nameKey]; }
+      else if (sp.k === 'dashed') it.dashed = !!v;
+      else if (sp.type === 'number') it[sp.k] = Math.max(sp.min, Math.min(sp.max, parseInt(v) || sp.min));
+      else it[sp.k] = v.trim ? v.trim() : v;
+    }
+    closeDialog(); layoutChanged(`${ITEM_NAMES[it.type]} atualizada`);
+  } });
+  openDialog({ title: `${isNew ? 'Nova' : 'Editar'} ${(ITEM_NAMES[it.type] || 'item').toLowerCase()}`, subtitle: `${f.site.name} · ${f.name}`, body, actions });
+}
+
+// Arrastar itens no modo edição (com encaixe numa grade de 10 px)
+let itemDrag = null;
+function bindEditDrag() {
+  const plan = $('#plan');
+  plan.addEventListener('pointerdown', e => {
+    const o = e.target.closest('.ov'); if (!o || !ui.editing || e.button !== 0) return;
+    const it = findItem(o.dataset.item); if (!it) return;
+    e.preventDefault(); o.setPointerCapture(e.pointerId);
+    const els = $$(`#plan [data-owner="${it.id}"]`); els.forEach(x => x.classList.add('moving'));
+    itemDrag = { it, o, els, x0: e.clientX, y0: e.clientY, dx: 0, dy: 0, moved: false };
+    o.classList.add('dragging');
+  });
+  plan.addEventListener('pointermove', e => {
+    if (!itemDrag) return;
+    const d = itemDrag, z = ui.z || 1;
+    let dx = (e.clientX - d.x0) / z, dy = (e.clientY - d.y0) / z;
+    if (!d.moved && Math.hypot(dx, dy) < 4) return;
+    d.moved = true;
+    if (d.it.type === 'entrance') dx = 0;
+    const bx = d.it.type === 'entrance' ? 0 : d.it.x;
+    dx = Math.max(-bx, Math.round((bx + dx) / 10) * 10 - bx);
+    dy = Math.max(-d.it.y, Math.round((d.it.y + dy) / 10) * 10 - d.it.y);
+    d.dx = dx; d.dy = dy;
+    d.els.forEach(x => { x.style.transform = `translate(${dx}px, ${dy}px)`; });
+  });
+  const end = () => {
+    if (!itemDrag) return;
+    const d = itemDrag; itemDrag = null;
+    d.o.classList.remove('dragging');
+    if (!d.moved) { d.els.forEach(x => x.classList.remove('moving')); return itemDialog(d.it, false); }
+    if (!d.dx && !d.dy) { d.els.forEach(x => { x.style.transform = ''; x.classList.remove('moving'); }); return; }
+    snapshot();
+    if (d.it.type !== 'entrance') d.it.x += d.dx;
+    d.it.y += d.dy;
+    layoutChanged(`${ITEM_NAMES[d.it.type] || 'Item'} movida`);
+  };
+  plan.addEventListener('pointerup', end);
+  plan.addEventListener('pointercancel', end);
+  $('#btnEdit').onclick = () => setEditing(!ui.editing);
+  $('#btnEditDone').onclick = () => setEditing(false);
+  $('#editBar').addEventListener('click', e => { const b = e.target.closest('[data-add]'); if (b) { $$('.menu-pop.open').forEach(m => m.classList.remove('open')); addItem(b.dataset.add); } });
+}
+
+/* =====================================================================
    IMPRESSÃO
    ===================================================================== */
 function buildPrint(floorIds) {
@@ -1533,6 +1863,7 @@ function bindEvents() {
 
   // Outros
   $('#btnUndo').onclick = undo;
+  bindEditDrag();
   $('#placingCancel').onclick = stopPlacing;
   $('#btnSidebar').onclick = () => $('#sidebar').classList.toggle('open');
   $('#dlgClose').onclick = closeDialog;
@@ -1546,6 +1877,7 @@ function bindEvents() {
     if (e.key === 'Escape') {
       if (!$('#modal').hidden) return closeDialog();
       if (ui.placing) return stopPlacing();
+      if (ui.editing) return setEditing(false);
       $$('.menu-pop.open').forEach(m => m.classList.remove('open'));
       if (document.activeElement === search || ui.search) { search.value = ''; ui.search = ''; renderResults(); applyHighlights(); search.blur(); $('#searchKbd').hidden = false; }
       if (ui.focusArea) { ui.focusArea = null; renderLegend(); applyHighlights(); }
@@ -1559,7 +1891,7 @@ function bindEvents() {
 /* =====================================================================
    INÍCIO
    ===================================================================== */
-indexLayout();
+buildDefaults();
 state = loadState();
 loadUI();
 hydrateIcons();

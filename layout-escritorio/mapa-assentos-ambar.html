@@ -145,7 +145,8 @@ svg.i{width:17px;height:17px;stroke:currentColor;fill:none;stroke-width:2;stroke
 .titles .eyebrow{font-family:var(--f-tit);font-size:.64rem;text-transform:uppercase;letter-spacing:.14em;color:var(--laranja);font-weight:700}
 .titles h2{margin:2px 0 0;font-size:1.3rem;letter-spacing:-.01em;white-space:nowrap;color:var(--marinho)}
 .titles h2 small{font-family:var(--f-txt);font-size:13px;color:var(--muted);font-weight:600}
-.search{position:relative;margin-left:auto;width:min(330px,36vw)}
+.search{position:relative;margin-left:auto;width:min(300px,26vw)}
+@media (max-width:1700px){.hide-md{display:none!important}}
 .search .input{padding-left:36px;height:38px;background:var(--surface-2)}
 .search .s-ico{position:absolute;left:12px;top:11px;color:var(--faint);display:flex;pointer-events:none}
 .search .s-ico svg.i{width:16px;height:16px}
@@ -305,6 +306,14 @@ body.editing .plan-canvas{outline-color:var(--laranja);background-image:radial-g
 .seg-row{margin-bottom:6px}
 .seg-total{font-size:12.5px;color:var(--muted);margin:6px 0 12px}
 .seg-total b{color:var(--marinho)}
+body.viewer .edit-only{display:none!important}
+body.viewer .person{cursor:default}
+body.viewer .person:hover{transform:none}
+.pub-dot{display:none;width:8px;height:8px;border-radius:50%;background:#fff;box-shadow:0 0 0 2px rgba(255,255,255,.35);margin-left:2px}
+#btnPublish:not(.pending){background:var(--surface);color:var(--marinho);border-color:var(--border);box-shadow:none}
+#btnPublish.pending .pub-dot{display:inline-block;animation:pulse 1.6s infinite}
+@keyframes pulse{50%{opacity:.35}}
+.kv b{color:var(--marinho);font-size:12.5px}
 #printArea{display:none}
 .only-mobile{display:none!important}
 
@@ -354,7 +363,7 @@ body.editing .plan-canvas{outline-color:var(--laranja);background-image:radial-g
   <section class="card grow">
     <div class="card-head">
       <h3>Não alocados <span class="count" id="poolCount">0</span></h3>
-      <button class="icon-btn sm" id="btnAddPerson" title="Adicionar pessoa" data-icon="plus"></button>
+      <button class="icon-btn sm edit-only" id="btnAddPerson" title="Adicionar pessoa" data-icon="plus"></button>
     </div>
     <form class="add-form" id="addForm" hidden autocomplete="off">
       <input class="input" id="addName" placeholder="Nome do colaborador" required>
@@ -367,7 +376,7 @@ body.editing .plan-canvas{outline-color:var(--laranja);background-image:radial-g
       <select class="input" id="poolArea"></select>
     </div>
     <div class="pool-list" id="poolList"></div>
-    <p class="hint">Arraste a pessoa até um lugar, ou clique nela e depois no lugar. Arraste alguém da planta para cá para desocupar.</p>
+    <p class="hint edit-only">Arraste a pessoa até um lugar, ou clique nela e depois no lugar. Arraste alguém da planta para cá para desocupar.</p>
   </section>
   <footer class="side-foot"><span id="saveStatus"></span><span id="backupInfo"></span></footer>
 </aside>
@@ -383,20 +392,21 @@ body.editing .plan-canvas{outline-color:var(--laranja);background-image:radial-g
       <div class="results" id="results"></div>
     </div>
     <div class="tools">
-      <button class="btn" id="btnEdit" title="Incluir, excluir e mover mesas"><span data-icon="layout"></span><span class="hide-sm">Editar planta</span></button>
-      <button class="icon-btn" id="btnUndo" title="Desfazer (Ctrl+Z)" data-icon="undo"></button>
-      <div class="menu">
-        <button class="btn" data-menu="mImport"><span data-icon="upload"></span><span class="hide-sm">Importar</span></button>
+      <button class="btn primary edit-only" id="btnPublish"><span data-icon="cloud"></span><span class="hide-sm">Publicar</span><i class="pub-dot"></i></button>
+      <button class="btn edit-only" id="btnEdit" title="Incluir, excluir e mover mesas"><span data-icon="layout"></span><span class="hide-sm">Editar planta</span></button>
+      <button class="icon-btn edit-only" id="btnUndo" title="Desfazer (Ctrl+Z)" data-icon="undo"></button>
+      <div class="menu edit-only">
+        <button class="btn" data-menu="mImport" title="Importar"><span data-icon="upload"></span><span class="hide-sm hide-md">Importar</span></button>
         <div class="menu-pop" id="mImport">
           <button data-act="importExcel"><span data-icon="sheet"></span><span>Planilha Excel / CSV<small>Nome, Cargo, Área (e Código do lugar, se houver)</small></span></button>
           <button data-act="importJson"><span data-icon="archive"></span><span>Backup ou layout antigo (.json)<small>Também aceita o JSON exportado da versão anterior da Matriz</small></span></button>
         </div>
       </div>
       <div class="menu">
-        <button class="btn navy" data-menu="mExport"><span data-icon="download"></span><span class="hide-sm">Exportar</span></button>
+        <button class="btn navy" data-menu="mExport" title="Exportar e imprimir"><span data-icon="download"></span><span class="hide-sm hide-md">Exportar</span></button>
         <div class="menu-pop" id="mExport">
           <button data-act="exportExcel"><span data-icon="sheet"></span><span>Planilha Excel<small>Todos os lugares, não alocados e resumo</small></span></button>
-          <button data-act="exportBackup"><span data-icon="archive"></span><span>Backup completo (.json)<small>Guarde para restaurar depois</small></span></button>
+          <button data-act="exportBackup" class="edit-only"><span data-icon="archive"></span><span>Backup completo (.json)<small>Guarde para restaurar depois</small></span></button>
           <hr>
           <button data-act="printFloor"><span data-icon="printer"></span><span>Imprimir este andar<small>A4 paisagem, com legenda</small></span></button>
           <button data-act="printSite"><span data-icon="printer"></span><span>Imprimir todos os andares da sede</span></button>
@@ -405,11 +415,12 @@ body.editing .plan-canvas{outline-color:var(--laranja);background-image:radial-g
       <div class="menu">
         <button class="icon-btn" data-menu="mMore" title="Mais opções" data-icon="more"></button>
         <div class="menu-pop" id="mMore">
-          <button data-act="areas"><span data-icon="tag"></span>Áreas e cores…</button>
+          <button data-act="pubSettings" class="edit-only"><span data-icon="cloud"></span>Configurar publicação</button>
+          <button data-act="areas" class="edit-only"><span data-icon="tag"></span>Áreas e cores…</button>
           <button data-act="help"><span data-icon="help"></span>Atalhos e dicas</button>
-          <hr>
-          <button data-act="clearFloor"><span data-icon="eraser"></span>Esvaziar este andar</button>
-          <button data-act="reset" class="danger"><span data-icon="reset"></span>Restaurar dados iniciais</button>
+          <hr class="edit-only">
+          <button data-act="clearFloor" class="edit-only"><span data-icon="eraser"></span>Esvaziar este andar</button>
+          <button data-act="reset" class="danger edit-only"><span data-icon="reset"></span>Restaurar dados iniciais</button>
         </div>
       </div>
     </div>
@@ -468,7 +479,12 @@ body.editing .plan-canvas{outline-color:var(--laranja);background-image:radial-g
    CONFIGURAÇÃO
    ===================================================================== */
 const STORAGE_KEY = 'mapaAssentosAmbar.v1';
-const SW = 84, SH = 46, G = 6, TH = 64, PITCH = SW + G, BENCH_GAP = 10;
+// Publicação: o arquivo dados/mapa.json do repositório é a versão que todos veem no site
+const PUB_DEFAULT = { owner: 'augustorecursos-jpg', repo: 'Layout_-mbar', branch: 'main', path: 'dados/mapa.json' };
+const IS_FILE = location.protocol === 'file:';
+let MODE = 'editor', publishedAt = null;
+const canEdit = () => MODE === 'editor';
+const SW = 84, SH = 46, G = 6, TH = 40, PITCH = SW + G, BENCH_GAP = 10;
 const tw = n => n * SW + (n - 1) * G;
 
 // Áreas: setores do Bloco 6 e líderes da Matriz. Cores e nomes podem ser alterados em "Áreas e cores".
@@ -609,6 +625,7 @@ const ICONS = {
   eraser: '<path d="M20 20H7L3 16a2 2 0 0 1 0-2.8L13.2 3a2 2 0 0 1 2.8 0L21 8a2 2 0 0 1 0 2.8L12 20"/><line x1="7" y1="10" x2="14" y2="17"/>',
   door: '<path d="M4 21h16"/><path d="M6 21V4a1 1 0 0 1 1-1h10a1 1 0 0 1 1 1v17"/><circle cx="14.5" cy="12" r=".8"/>',
   wc: '<circle cx="7" cy="5" r="2"/><circle cx="17" cy="5" r="2"/><path d="M5 22v-7H4l1-6h4l1 6H9v7"/><path d="M15 22V9h4v13"/>',
+  cloud: '<path d="M18 10h-1.3A8 8 0 1 0 9 20h9a5 5 0 0 0 0-10z"/><polyline points="12 12 12 17"/><polyline points="9.5 14.5 12 12 14.5 14.5"/>',
   move: '<polyline points="5 9 2 12 5 15"/><polyline points="9 5 12 2 15 5"/><polyline points="15 19 12 22 9 19"/><polyline points="19 9 22 12 19 15"/><line x1="2" y1="12" x2="22" y2="12"/><line x1="12" y1="2" x2="12" y2="22"/>',
   layout: '<rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="12" y1="9" x2="12" y2="21"/>',
   copy: '<rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>',
@@ -777,14 +794,29 @@ function migrate(s) {
   for (const seat of Object.keys(s.reserve)) if (!SEATS[seat]) delete s.reserve[seat];
   return s;
 }
-function loadState() {
+function readLocal() {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
-    if (raw) { const s = JSON.parse(raw); if (s && s.people && s.assign) return migrate(s); }
+    if (raw) { const s = JSON.parse(raw); if (s && s.people && s.assign) return s; }
   } catch (e) { /* armazenamento indisponível */ }
-  return seedState();
+  return null;
+}
+function lsGet(k) { try { return localStorage.getItem(STORAGE_KEY + k); } catch (e) { return null; } }
+function lsSet(k, v) { try { if (v == null) localStorage.removeItem(STORAGE_KEY + k); else localStorage.setItem(STORAGE_KEY + k, v); } catch (e) {} }
+const pubCfg = () => { try { return { ...PUB_DEFAULT, ...JSON.parse(lsGet('.pub') || '{}') }; } catch (e) { return { ...PUB_DEFAULT }; } };
+const isDirty = () => lsGet('.dirty') === '1';
+function setDirty(v) { lsSet('.dirty', v ? '1' : null); renderPublish(); }
+async function fetchPublished() {
+  if (IS_FILE) return null;
+  try {
+    const r = await fetch('dados/mapa.json?v=' + Date.now(), { cache: 'no-store' });
+    if (!r.ok) return null;
+    const d = await r.json();
+    return d && d.state && d.state.people ? d : null;
+  } catch (e) { return null; }
 }
 function save() {
+  if (!canEdit()) { renderSaveStatus(); return; }
   state.updatedAt = Date.now();
   try { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); saveOk = true; lastSaved = new Date(); }
   catch (e) { saveOk = false; }
@@ -804,9 +836,9 @@ function snapshot() { undoStack.push(JSON.stringify(state)); if (undoStack.lengt
 function undo() {
   if (!undoStack.length) return toast('Nada para desfazer');
   state = migrate(JSON.parse(undoStack.pop()));
-  save(); render(); toast('Alteração desfeita');
+  save(); setDirty(true); render(); toast('Alteração desfeita');
 }
-function commit(msg) { save(); render(); if (msg) toast(msg, { label: 'Desfazer', fn: undo }); }
+function commit(msg) { if (!canEdit()) return render(); save(); setDirty(true); render(); if (msg) toast(msg, { label: 'Desfazer', fn: undo }); }
 
 const area = k => state.areas[k] || state.areas['sem-area'];
 const curFloor = () => FLOORS[ui.floor];
@@ -885,17 +917,9 @@ const RENDER = {
   note(c, it, f) { const d = el('div', 'abs note', esc(it.text)); pos(d, it.x, it.y, it.full ? f.W : (it.w || 300)); c.append(d); },
   room(c, it) { const d = el('div', 'abs room', `<div class="room-label">${esc(it.label)}</div>`); pos(d, it.x, it.y, it.w, it.h); c.append(d); },
   caption(c, it) { const d = el('div', 'abs caption', esc(it.text)); d.style.right = '16px'; d.style.bottom = '10px'; c.append(d); },
-  table(c, it, f, inter) {
-    const t = el('div', 'abs tbl'); pos(t, it.x, tableTopY(it), tw(it.cols), TH);
-    it.segments.forEach((sg, k) => {
-      const a = area(sg.area), key = `${f.id}:${it.id}:${k}`;
-      const s = el('div', 'seg' + (inter ? ' editable' : ''), esc(getLabel(key, sg.label)));
-      s.style.flex = String(sg.cols ?? it.cols);
-      s.style.setProperty('--c', a.color); s.style.setProperty('--on', onColor(a.color));
-      if (inter) { s.dataset.label = key; s.dataset.def = sg.label; s.title = 'Clique para renomear'; }
-      t.append(s);
-    });
-    c.append(t);
+  table(c, it) {   // uma mesa por coluna, sem nome (igual à Matriz); o nome fica nos dados, na dica e na exportação
+    const ty = tableTopY(it);
+    for (let i = 0; i < it.cols; i++) { const d = el('div', 'abs desk'); pos(d, it.x + i * PITCH, ty, SW, TH); c.append(d); }
   },
   bench(c, it) {
     for (let p = 1; p <= it.pairs; p++) {
@@ -923,7 +947,7 @@ function seatEl(s, inter) {
     const a = area(p.area), tag = tagOf(p);
     d.classList.add('occ'); d.style.setProperty('--c', a.color);
     d.innerHTML = `<span class="nm">${esc(p.name)}</span>${tag ? `<span class="tag ${tag === 'SUB' ? 'sub' : ''}">${tag}</span>` : ''}`;
-    if (inter) d.draggable = true;
+    if (inter && canEdit()) d.draggable = true;
   } else {
     const r = state.reserve[s.id];
     d.classList.add('empty');
@@ -1043,13 +1067,13 @@ function renderPool() {
   const sel = $('#poolArea'); sel.innerHTML = areaOptions(ui.poolArea, ui.site, true); sel.value = ui.poolArea;
   const box = $('#poolList');
   if (!list.length) {
-    box.innerHTML = `<div class="empty-state">Todos estão alocados. 🎉<br>Adicione pessoas pelo <b>＋</b> ou importe uma planilha.<br><button class="btn sm" data-act="importExcel">${icon('upload')}Importar planilha</button></div>`;
+    box.innerHTML = canEdit() ? `<div class="empty-state">Todos estão alocados. 🎉<br>Adicione pessoas pelo <b>＋</b> ou importe uma planilha.<br><button class="btn sm" data-act="importExcel">${icon('upload')}Importar planilha</button></div>` : '<div class="empty-state">Todos estão alocados.</div>';
     return;
   }
   if (!shown.length) { box.innerHTML = '<div class="empty-state">Ninguém encontrado com esse filtro.</div>'; return; }
   box.innerHTML = shown.map(p => {
     const a = area(p.area), tag = tagOf(p);
-    return `<div class="person ${ui.placing === p.id ? 'selected' : ''}" draggable="true" data-pid="${p.id}" style="--c:${a.color}" title="Arraste até um lugar ou clique para escolher">
+    return `<div class="person ${ui.placing === p.id ? 'selected' : ''}" draggable="${canEdit()}" data-pid="${p.id}" style="--c:${a.color}" title="Arraste até um lugar ou clique para escolher">
       <span class="dot"></span>
       <div class="who"><div class="nm">${esc(p.name)}${tag ? `<span class="mini-tag ${tag === 'SUB' ? 'sub' : ''}">${tag}</span>` : ''}</div>
       <div class="sub">${p.role ? esc(p.role) + ' · ' : ''}${esc(a.label)}</div></div>
@@ -1058,6 +1082,11 @@ function renderPool() {
   }).join('');
 }
 function renderSaveStatus() {
+  if (!canEdit()) {
+    $('#saveStatus').innerHTML = publishedAt ? `Atualizado em ${new Date(publishedAt).toLocaleDateString('pt-BR')} às ${new Date(publishedAt).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}` : 'Modo de visualização';
+    $('#backupInfo').innerHTML = '<button class="linkbtn" data-act="login">Entrar como editor</button>';
+    return;
+  }
   const t = lastSaved ? lastSaved.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }) : null;
   $('#saveStatus').innerHTML = saveOk
     ? `● Salvo automaticamente neste navegador${t ? ' às ' + t : ''}`
@@ -1065,7 +1094,13 @@ function renderSaveStatus() {
   const lb = state.lastBackup;
   const old = !lb || (Date.now() - lb) > 7 * 864e5;
   $('#backupInfo').innerHTML = (lb ? `Último backup: ${new Date(lb).toLocaleDateString('pt-BR')}` : '<span class="warn">Nenhum backup ainda</span>')
-    + (old ? ` · <button class="linkbtn" data-act="exportBackup">Fazer backup</button>` : '');
+    + (old ? ` · <button class="linkbtn" data-act="exportBackup">Fazer backup</button>` : '')
+    + (isDirty() ? '<br><span class="warn">Há alterações ainda não publicadas</span> · <button class="linkbtn" data-act="publish">Publicar</button>' : '');
+}
+function renderPublish() {
+  const b = $('#btnPublish'); if (!b) return;
+  b.classList.toggle('pending', isDirty());
+  b.title = isDirty() ? 'Há alterações não publicadas. Clique para atualizar o site.' : 'Site atualizado com a última versão';
 }
 function areaOptions(selected, prefer, withAll) {
   const order = [prefer, ...Object.keys(GROUPS).filter(g => g !== prefer)];
@@ -1246,7 +1281,22 @@ function openEmptySeatDialog(seatId) {
   $('#resDel', wrap)?.addEventListener('click', () => { closeDialog(); snapshot(); delete state.reserve[seatId]; commit('Reserva removida'); });
 }
 
+function viewSeatDialog(seatId) {
+  const s = SEATS[seatId], p = state.people[state.assign[seatId]];
+  let body;
+  if (p) {
+    const a = area(p.area);
+    body = `<div class="person-head" style="--c:${a.color};--on:${onColor(a.color)}"><div class="avatar">${esc(initials(p.name))}</div>
+      <div><div class="nm">${esc(p.name)}</div><div class="sub">${esc(p.role || 'Cargo não informado')}</div></div></div>
+      <div class="kv"><b>Área / líder</b><span>${esc(a.label)}</span><b>Local</b><span>${esc(seatWhere(s))}</span><b>Lugar</b><span>${esc(seatLabel(s))}</span></div>`;
+  } else {
+    const r = state.reserve[seatId];
+    body = `<p><b>${r ? 'Reservado para ' + esc(r) : 'Lugar livre'}</b></p><div class="kv"><b>Local</b><span>${esc(seatWhere(s))}</span><b>Lugar</b><span>${esc(seatLabel(s))}</span>${s.area ? `<b>Mesa de</b><span>${esc(area(s.area).label)}</span>` : ''}</div>`;
+  }
+  openDialog({ title: p ? 'Ocupante do lugar' : 'Lugar', body, actions: [{ label: 'Fechar', kind: 'primary', onClick: closeDialog }] });
+}
 function onSeatClick(seatId) {
+  if (!canEdit()) return viewSeatDialog(seatId);
   if (ui.placing) {
     const pid = ui.placing; stopPlacing();
     if (seatOf(pid) !== seatId) placePerson(pid, seatId);
@@ -1327,7 +1377,7 @@ function showTip(seatEl) {
     tip.innerHTML = `<b>${esc(p.name)}</b>${p.role ? `<div class="meta">${esc(p.role)}</div>` : ''}<div class="meta">${esc(seatLabel(s))}</div><div class="pill" style="--c:${a.color}"><span class="dot"></span>${esc(a.label)}</div>`;
   } else {
     const r = state.reserve[sid];
-    tip.innerHTML = `<b>${r ? 'Reservado: ' + esc(r) : 'Lugar livre'}</b><div class="meta">${esc(seatLabel(s))}</div>${s.area ? `<div class="pill" style="--c:${area(s.area).color}"><span class="dot"></span>Mesa de ${esc(area(s.area).label)}</div>` : ''}<div class="meta" style="margin-top:6px">Clique para alocar alguém</div>`;
+    tip.innerHTML = `<b>${r ? 'Reservado: ' + esc(r) : 'Lugar livre'}</b><div class="meta">${esc(seatLabel(s))}</div>${s.area ? `<div class="pill" style="--c:${area(s.area).color}"><span class="dot"></span>Mesa de ${esc(area(s.area).label)}</div>` : ''}${canEdit() ? '<div class="meta" style="margin-top:6px">Clique para alocar alguém</div>' : ''}`;
   }
   tip.hidden = false;
   const r = seatEl.getBoundingClientRect(), tr = tip.getBoundingClientRect();
@@ -1710,6 +1760,78 @@ function bindEditDrag() {
 }
 
 /* =====================================================================
+   PUBLICAÇÃO NO SITE (GitHub → Render)
+   ===================================================================== */
+function b64utf8(str) {
+  const bytes = new TextEncoder().encode(str); let bin = '';
+  for (let i = 0; i < bytes.length; i += 0x8000) bin += String.fromCharCode.apply(null, bytes.subarray(i, i + 0x8000));
+  return btoa(bin);
+}
+const ghHeaders = token => ({ Authorization: `Bearer ${token}`, Accept: 'application/vnd.github+json', 'X-GitHub-Api-Version': '2022-11-28' });
+async function testToken(cfg) {
+  const r = await fetch(`https://api.github.com/repos/${cfg.owner}/${cfg.repo}`, { headers: ghHeaders(cfg.token) });
+  if (r.status === 401) throw new Error('Token inválido ou expirado.');
+  if (r.status === 404) throw new Error('Repositório não encontrado (ou o token não tem acesso a ele).');
+  if (!r.ok) throw new Error('GitHub respondeu ' + r.status);
+  const d = await r.json();
+  if (d.permissions && !d.permissions.push) throw new Error('O token não tem permissão de escrita (Contents: Read and write).');
+  return true;
+}
+async function publish() {
+  const cfg = pubCfg();
+  if (!cfg.token) return openPublishSettings(true);
+  const btn = $('#btnPublish'); btn.disabled = true; toast('Publicando…');
+  try {
+    const url = `https://api.github.com/repos/${cfg.owner}/${cfg.repo}/contents/${cfg.path}`;
+    let sha;
+    const g = await fetch(`${url}?ref=${encodeURIComponent(cfg.branch)}`, { headers: ghHeaders(cfg.token), cache: 'no-store' });
+    if (g.ok) sha = (await g.json()).sha;
+    else if (g.status === 401) throw new Error('Token inválido ou expirado. Atualize em “Configurar publicação”.');
+    else if (g.status !== 404) throw new Error('GitHub respondeu ' + g.status);
+    const now = new Date();
+    const data = { app: 'mapa-assentos-ambar', version: 2, publishedAt: now.toISOString(), state };
+    const r = await fetch(url, { method: 'PUT', headers: ghHeaders(cfg.token), body: JSON.stringify({
+      message: `Atualiza mapa de assentos (${now.toLocaleString('pt-BR')})`, content: b64utf8(JSON.stringify(data, null, 1)), branch: cfg.branch, ...(sha ? { sha } : {}) }) });
+    if (!r.ok) { const e = await r.json().catch(() => ({})); throw new Error(e.message || ('GitHub respondeu ' + r.status)); }
+    publishedAt = now.toISOString(); setDirty(false); renderSaveStatus();
+    openDialog({ title: 'Publicado!', body: '<p>A nova versão foi enviada ao GitHub. O Render atualiza o site automaticamente em cerca de 1 a 2 minutos; depois disso, quem abrir o link já vê o mapa atualizado.</p>', actions: [{ label: 'Ok', kind: 'primary', onClick: closeDialog }] });
+  } catch (err) {
+    openDialog({ title: 'Não foi possível publicar', body: `<p>${esc(err.message)}</p><p class="muted-txt">Suas alterações continuam salvas neste navegador. Verifique a internet e o token em “Configurar publicação”.</p>`,
+      actions: [{ label: 'Configurar publicação', onClick: () => openPublishSettings(false) }, { label: 'Ok', kind: 'primary', onClick: closeDialog }] });
+  } finally { btn.disabled = false; }
+}
+function openPublishSettings(thenPublish, loginOnly) {
+  const cfg = pubCfg();
+  const body = `<p class="muted-txt">Para publicar, o mapa usa um <b>token do GitHub</b> com acesso só a este repositório. Ele fica guardado apenas neste navegador.</p>
+    <ol class="muted-txt" style="padding-left:18px;margin:6px 0 12px;line-height:1.6">
+      <li>Abra <a href="https://github.com/settings/personal-access-tokens/new" target="_blank" rel="noopener">github.com → Settings → Fine-grained tokens → Generate new token</a>.</li>
+      <li>Em <b>Repository access</b>, escolha <b>Only select repositories</b> → <b>${esc(cfg.repo)}</b>.</li>
+      <li>Em <b>Permissions → Repository permissions → Contents</b>, escolha <b>Read and write</b>.</li>
+      <li>Gere o token, copie e cole abaixo.</li>
+    </ol>
+    <label class="field"><span>Token do GitHub</span><input class="input" type="password" id="pubToken" value="${esc(cfg.token || '')}" placeholder="github_pat_…" autofocus autocomplete="off"></label>
+    <details ${loginOnly ? '' : 'open'}><summary class="muted-txt" style="cursor:pointer;margin-bottom:8px">Repositório</summary>
+      <div class="row2"><label class="field"><span>Dono</span><input class="input" id="pubOwner" value="${esc(cfg.owner)}"></label>
+      <label class="field"><span>Repositório</span><input class="input" id="pubRepo" value="${esc(cfg.repo)}"></label></div>
+      <label class="field"><span>Branch</span><input class="input" id="pubBranch" value="${esc(cfg.branch)}"></label>
+    </details>`;
+  const actions = [];
+  if (cfg.token) actions.push({ label: 'Sair do modo editor', kind: 'danger ghost', left: true, onClick: () => { lsSet('.pub', null); closeDialog(); if (!IS_FILE) location.reload(); else toast('Token removido'); } });
+  actions.push({ label: 'Cancelar', onClick: closeDialog });
+  actions.push({ label: loginOnly ? 'Entrar' : thenPublish ? 'Salvar e publicar' : 'Salvar', kind: 'primary', onClick: async b => {
+    const next = { owner: $('#pubOwner', b).value.trim(), repo: $('#pubRepo', b).value.trim(), branch: $('#pubBranch', b).value.trim() || 'main', token: $('#pubToken', b).value.trim() };
+    if (!next.token) return $('#pubToken', b).focus();
+    try { await testToken({ ...PUB_DEFAULT, ...next }); }
+    catch (err) { return toast(err.message); }
+    lsSet('.pub', JSON.stringify(next)); closeDialog();
+    if (loginOnly || MODE !== 'editor') { location.hash = ''; location.reload(); return; }
+    toast('Publicação configurada');
+    if (thenPublish) publish();
+  } });
+  openDialog({ title: loginOnly ? 'Entrar como editor' : 'Configurar publicação', subtitle: `${cfg.owner}/${cfg.repo}`, body, actions, wide: true });
+}
+
+/* =====================================================================
    IMPRESSÃO
    ===================================================================== */
 function buildPrint(floorIds) {
@@ -1740,10 +1862,14 @@ let drag = null;
 function clearDragMarks() { $$('.dragging,.drop-over').forEach(x => x.classList.remove('dragging', 'drop-over')); }
 const typing = e => /^(INPUT|TEXTAREA|SELECT)$/.test(e.target.tagName) || e.target.isContentEditable;
 
+const VIEW_ACTIONS = ['exportExcel', 'printFloor', 'printSite', 'help', 'login'];
 const ACTIONS = {
   importExcel: () => $('#fileExcel').click(),
   importJson: () => $('#fileJson').click(),
   exportExcel, exportBackup,
+  publish: () => publish(),
+  pubSettings: () => openPublishSettings(false),
+  login: () => openPublishSettings(false, true),
   printFloor: () => printFloors([ui.floor]),
   printSite: () => printFloors(curSite().floors.map(f => f.id)),
   areas: openAreasDialog,
@@ -1766,7 +1892,7 @@ function bindEvents() {
     const act = e.target.closest('[data-act]');
     $$('.menu-pop.open').forEach(m => { if (!mb || m.id !== mb.dataset.menu) m.classList.remove('open'); });
     if (mb) $('#' + mb.dataset.menu).classList.toggle('open');
-    if (act && ACTIONS[act.dataset.act] && !act.closest('.person')) ACTIONS[act.dataset.act]();
+    if (act && ACTIONS[act.dataset.act] && !act.closest('.person') && (canEdit() || VIEW_ACTIONS.includes(act.dataset.act))) ACTIONS[act.dataset.act]();
     if (!e.target.closest('.search')) $('#results').classList.remove('open');
     if (window.innerWidth <= 920 && !e.target.closest('#sidebar') && !e.target.closest('#btnSidebar') && !e.target.closest('.modal')) $('#sidebar').classList.remove('open');
   });
@@ -1778,7 +1904,7 @@ function bindEvents() {
   const plan = $('#plan');
   plan.addEventListener('click', e => {
     const lab = e.target.closest('[data-label]');
-    if (lab && !ui.placing) {
+    if (lab && !ui.placing && canEdit()) {
       const key = lab.dataset.label, def = lab.dataset.def;
       return textDialog('Renomear', getLabel(key, def), def, v => { snapshot(); if (v && v !== def) state.labels[key] = v; else delete state.labels[key]; commit('Nome atualizado'); },
         state.labels[key] ? { label: 'Voltar ao original', left: true, onClick: () => { closeDialog(); snapshot(); delete state.labels[key]; commit('Nome original restaurado'); } } : null);
@@ -1814,7 +1940,7 @@ function bindEvents() {
   pool.addEventListener('dragleave', e => { if (!pool.contains(e.relatedTarget)) pool.classList.remove('drop-over'); });
   pool.addEventListener('drop', e => { pool.classList.remove('drop-over'); if (drag && drag.kind === 'seat') { e.preventDefault(); const id = drag.id; drag = null; unassignSeat(id); } });
   pool.addEventListener('click', e => {
-    const p = e.target.closest('.person'); if (!p) return;
+    const p = e.target.closest('.person'); if (!p || !canEdit()) return;
     const act = e.target.closest('[data-act]')?.dataset.act, pid = p.dataset.pid;
     if (act === 'edit') return openPersonDialog(pid);
     if (act === 'del') return confirmDialog('Excluir pessoa', `Remover ${state.people[pid].name} do cadastro?`, 'Excluir', true).then(ok => ok && deletePerson(pid));
@@ -1863,6 +1989,7 @@ function bindEvents() {
 
   // Outros
   $('#btnUndo').onclick = undo;
+  $('#btnPublish').onclick = publish;
   bindEditDrag();
   $('#placingCancel').onclick = stopPlacing;
   $('#btnSidebar').onclick = () => $('#sidebar').classList.toggle('open');
@@ -1883,7 +2010,7 @@ function bindEvents() {
       if (ui.focusArea) { ui.focusArea = null; renderLegend(); applyHighlights(); }
       return;
     }
-    if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'z' && !typing(e) && $('#modal').hidden) { e.preventDefault(); undo(); return; }
+    if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'z' && !typing(e) && $('#modal').hidden && canEdit()) { e.preventDefault(); undo(); return; }
     if (e.key === '/' && !typing(e) && $('#modal').hidden) { e.preventDefault(); search.focus(); search.select(); }
   });
 }
@@ -1891,13 +2018,21 @@ function bindEvents() {
 /* =====================================================================
    INÍCIO
    ===================================================================== */
-buildDefaults();
-state = loadState();
-loadUI();
-hydrateIcons();
-bindEvents();
-render();
-save();
+(async function boot() {
+  buildDefaults(); loadUI(); hydrateIcons();
+  const pub = await fetchPublished();
+  publishedAt = pub?.publishedAt || null;
+  MODE = IS_FILE || pubCfg().token ? 'editor' : 'viewer';
+  document.body.classList.toggle('viewer', MODE === 'viewer');
+  const local = readLocal();
+  if (MODE === 'viewer') state = pub ? migrate(pub.state) : local ? migrate(local) : seedState();
+  else if (local && (isDirty() || !pub)) state = migrate(local);
+  else if (pub) { state = migrate(pub.state); setDirty(false); }
+  else state = seedState();
+  bindEvents(); render(); renderPublish();
+  if (canEdit()) save();
+  if (location.hash === '#editor' && !canEdit()) openPublishSettings(false, true);
+})();
 </script>
 </body>
 </html>

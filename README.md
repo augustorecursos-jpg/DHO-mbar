@@ -58,6 +58,10 @@ que baixa uma cópia completa do banco.
 - **`/trilha.html`** – painel do colaborador: menu lateral com os temas da trilha (cada tema reúne seus PDFs), progresso geral, materiais estudados, avaliações pendentes
   e certificados. Dentro do tema: materiais em PDF (marcar como concluído), avaliação liberada após
   todos os materiais, e download do certificado quando aprovado.
+- **`/talent-review.html`** – manual do processo de Talent Review (página estática, sem login): ciclo anual, avaliação de
+  desempenho e potencial, matriz 9Box interativa (azul = alto potencial e alto risco de saída, cinza = neutro,
+  laranja = nível mais baixo), curva esperada com simulador da equipe, comitê de calibração e manual do PDI
+  (passo a passo, 70·20·10, metas SMART, papéis e RACI, acompanhamento). Botão **Imprimir manual** gera o PDF completo.
 - **`/admin.html`** – área do RH (senha):
   - **Indicadores**: colaboradores ativos, acessos, conclusão da trilha, certificados, nota média e aprovação;
     conclusão por tema e por regional, certificados por semana, desempenho por avaliação e tabela por filial,

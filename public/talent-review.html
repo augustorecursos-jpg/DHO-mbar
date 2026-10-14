@@ -1,0 +1,1016 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Talent Review · Âmbar Energia</title>
+  <meta name="description" content="Manual do processo de Talent Review da Âmbar Energia: ciclo, avaliação de desempenho, matriz 9Box, curva esperada, calibração e PDI.">
+  <link rel="icon" href="img/favicon.svg" type="image/svg+xml">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@500;600;700;800&family=Nunito+Sans:wght@400;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    /* Identidade visual · Âmbar Energia (mesma paleta da plataforma: public/css/base.css) */
+    :root {
+      --marinho: #0e3b5c; --marinho-2: #164d74; --marinho-escuro: #0a2c45;
+      --azul: #2b6a96; --azul-claro: #8fb4d0; --azul-suave: #e6eff6;
+      --laranja: #ec6b24; --laranja-claro: #f39a4a; --laranja-suave: #fdf0e7; --laranja-medio: #f6b483;
+      --cinza: #aab5bf; --cinza-suave: #e9edf0;
+      --fundo: #f4f6f8; --fundo-2: #eaeef2; --linha: #dfe5eb;
+      --texto: #1d2b36; --texto-suave: #5f6f7c; --verde: #1f9d57; --vermelho: #d93a2b;
+      --raio: 14px; --sombra: 0 12px 32px -16px rgba(14, 59, 92, .28);
+      --fonte: 'Nunito Sans', system-ui, -apple-system, 'Segoe UI', sans-serif;
+      --fonte-titulo: 'Montserrat', 'Nunito Sans', system-ui, sans-serif;
+      /* Escala da matriz 9Box: azul (alto potencial) → cinza (neutro) → laranja (mais baixo) */
+      --q-voltagem: #0e3b5c; --q-expansao: #2b6a96; --q-claro: #8fb4d0; --q-neutro: #aab5bf; --q-atencao: #f6b483; --q-baixo: #ec6b24;
+    }
+    *, *::before, *::after { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body { margin: 0; font-family: var(--fonte); color: var(--texto); background: var(--fundo); -webkit-font-smoothing: antialiased; display: flex; min-height: 100vh; line-height: 1.55; }
+    h1, h2, h3, h4 { font-family: var(--fonte-titulo); margin: 0; color: var(--marinho); line-height: 1.25; }
+    p { margin: 0 0 .8rem; }
+    button { font: inherit; cursor: pointer; }
+    input { font: inherit; }
+    [hidden] { display: none !important; }
+
+    /* ---------- Lateral ---------- */
+    .lateral {
+      width: 280px; flex-shrink: 0; position: sticky; top: 0; height: 100vh; overflow-y: auto; scrollbar-width: thin;
+      background: var(--marinho); color: #dce7f0; padding: 22px 14px 140px; display: flex; flex-direction: column; z-index: 30;
+    }
+    .lateral::after {
+      content: ''; position: fixed; left: 0; bottom: 0; width: 280px; height: 120px; pointer-events: none;
+      background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 264 120' preserveAspectRatio='none'%3E%3Cpath d='M264 10C180 20 110 80 0 104V120H264Z' fill='%23164d74'/%3E%3Cpath d='M264 2C176 12 104 74 0 96' fill='none' stroke='%23ec6b24' stroke-width='2'/%3E%3C/svg%3E") bottom / 100% 100% no-repeat;
+    }
+    .logo { display: inline-flex; flex-direction: column; line-height: .95; text-decoration: none; padding: 0 10px 18px; margin-bottom: 6px; border-bottom: 1px solid rgba(255,255,255,.1); }
+    .logo b { font-family: var(--fonte-titulo); font-weight: 600; font-size: 1.7rem; color: #fff; letter-spacing: -.01em; }
+    .logo small { font-family: var(--fonte-titulo); font-weight: 700; font-size: .66rem; letter-spacing: .12em; color: var(--laranja); margin-left: 2px; }
+    .lateral-grupo { font-family: var(--fonte-titulo); font-size: .66rem; font-weight: 700; letter-spacing: .16em; color: var(--laranja-claro); margin: 1.2rem 10px .5rem; }
+    .lateral-item {
+      position: relative; display: flex; align-items: center; gap: .7rem; width: 100%; text-align: left; border: 0; background: transparent;
+      color: #dce7f0; font-weight: 600; padding: .55rem .7rem; border-radius: 10px; font-size: .9rem; line-height: 1.2; margin-bottom: 2px;
+    }
+    .lateral-item:hover { background: rgba(255,255,255,.07); color: #fff; }
+    .lateral-item.ativo { background: rgba(255,255,255,.12); color: #fff; }
+    .lateral-item.ativo::before { content: ''; position: absolute; left: -14px; top: 8px; bottom: 8px; width: 4px; border-radius: 0 4px 4px 0; background: var(--laranja); }
+    .lateral-item .ic { width: 30px; height: 30px; flex-shrink: 0; border-radius: 8px; background: rgba(255,255,255,.08); display: grid; place-items: center; font-size: .92rem; }
+
+    /* ---------- Principal ---------- */
+    .principal { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+    .barra { display: flex; align-items: center; gap: 1rem; padding: .85rem clamp(16px, 3vw, 36px); background: #fff; border-bottom: 1px solid var(--linha); position: sticky; top: 0; z-index: 10; }
+    .barra-titulo { display: flex; flex-direction: column; line-height: 1.25; min-width: 0; }
+    .barra-titulo small { font-family: var(--fonte-titulo); font-size: .64rem; letter-spacing: .14em; font-weight: 700; color: var(--laranja); }
+    .barra-titulo strong { font-family: var(--fonte-titulo); color: var(--marinho); font-size: 1.05rem; }
+    .barra-acoes { margin-left: auto; display: flex; gap: .6rem; align-items: center; }
+    .chip { display: inline-flex; align-items: center; gap: .35rem; padding: .3rem .7rem; border-radius: 999px; font-size: .76rem; font-weight: 700; background: var(--laranja-suave); color: #b54d12; white-space: nowrap; }
+    .btn { display: inline-flex; align-items: center; gap: .45rem; border: 1px solid var(--linha); border-radius: 10px; padding: .5rem .9rem; font-weight: 700; font-size: .85rem; background: #fff; color: var(--marinho); text-decoration: none; transition: border-color .15s, transform .15s; }
+    .btn:hover { border-color: var(--marinho); transform: translateY(-1px); }
+    .btn-laranja { background: var(--laranja); border-color: var(--laranja); color: #fff; }
+    .btn-laranja:hover { background: #d95d18; border-color: #d95d18; }
+    .btn-menu { display: none; background: transparent; border: 0; color: var(--marinho); font-size: 1.4rem; padding: 0; }
+
+    .conteudo { padding: clamp(16px, 3vw, 36px); max-width: 1240px; width: 100%; }
+    .painel { animation: entra .35s ease; }
+    @keyframes entra { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+    .titulo-pagina { font-size: clamp(1.35rem, 2.4vw, 1.75rem); margin-bottom: .4rem; }
+    .titulo-pagina em { font-style: normal; color: var(--laranja); }
+    .subtitulo { color: var(--texto-suave); max-width: 760px; margin-bottom: 1.6rem; }
+    .titulo-secao { font-size: 1.05rem; margin: 2rem 0 1rem; display: flex; align-items: baseline; gap: .6rem; flex-wrap: wrap; }
+    .titulo-secao small { font-family: var(--fonte); font-weight: 400; font-size: .85rem; color: var(--texto-suave); }
+
+    .cartao { background: #fff; border-radius: var(--raio); padding: 1.4rem; border: 1px solid var(--linha); box-shadow: 0 1px 2px rgba(14,59,92,.04); }
+    .cartao h3 { font-size: 1rem; margin-bottom: .6rem; display: flex; align-items: center; gap: .5rem; flex-wrap: wrap; }
+    .cartao h3 small { font-weight: 400; color: var(--texto-suave); font-size: .8rem; font-family: var(--fonte); }
+    .cartao p:last-child, .cartao ul:last-child { margin-bottom: 0; }
+    .grade-2 { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1.2rem; }
+    .grade-3 { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1.2rem; }
+    .grade-4 { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 1rem; }
+    .lista { margin: 0; padding-left: 1.1rem; display: grid; gap: .35rem; }
+    .lista li::marker { color: var(--laranja); }
+    .check { list-style: none; padding: 0; margin: 0; display: grid; gap: .45rem; }
+    .check li { position: relative; padding-left: 1.6rem; }
+    .check li::before { content: '✓'; position: absolute; left: 0; top: .05rem; width: 1.15rem; height: 1.15rem; border-radius: 50%; background: var(--azul-suave); color: var(--marinho); font-size: .7rem; font-weight: 800; display: grid; place-items: center; }
+    .check.laranja li::before { background: var(--laranja-suave); color: #b54d12; }
+    .nao li::before { content: '✕'; background: #fbe4e1; color: var(--vermelho); }
+
+    /* Destaque (hero) */
+    .hero { position: relative; overflow: hidden; display: grid; grid-template-columns: 1.4fr 1fr; gap: 2rem; align-items: center; padding: 2.2rem 2.4rem; border-radius: 18px; background: var(--marinho); color: #dce7f0; }
+    .hero::before { content: ''; position: absolute; top: 0; right: 0; width: 50%; height: 100%; background-image: radial-gradient(rgba(255,255,255,.18) 1.2px, transparent 1.3px); background-size: 14px 14px; -webkit-mask-image: linear-gradient(225deg, #000 20%, transparent 75%); mask-image: linear-gradient(225deg, #000 20%, transparent 75%); }
+    .hero::after { content: ''; position: absolute; right: 0; bottom: 0; width: 55%; height: 55%; pointer-events: none;
+      background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 420 150' preserveAspectRatio='none'%3E%3Cpath d='M420 30C320 36 250 120 100 150H420Z' fill='%23164d74'/%3E%3Cpath d='M420 18C320 24 230 110 60 150' fill='none' stroke='%23ec6b24' stroke-width='3'/%3E%3C/svg%3E") 0 0 / 100% 100% no-repeat; }
+    .hero > * { position: relative; z-index: 1; }
+    .hero small { font-family: var(--fonte-titulo); font-size: .7rem; letter-spacing: .16em; font-weight: 700; color: var(--laranja-claro); }
+    .hero h1 { color: #fff; font-size: clamp(1.6rem, 3.2vw, 2.3rem); margin: .4rem 0 .7rem; }
+    .hero h1 em { font-style: normal; color: var(--laranja-claro); }
+    .hero p { max-width: 560px; }
+    .hero-acoes { display: flex; gap: .6rem; flex-wrap: wrap; margin-top: 1.2rem; }
+    .hero .btn:not(.btn-laranja) { background: rgba(255,255,255,.08); color: #fff; border-color: rgba(255,255,255,.25); }
+    .mini9 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; width: min(240px, 100%); margin-left: auto; aspect-ratio: 1; }
+    .mini9 i { border-radius: 8px; display: block; box-shadow: inset 0 0 0 1px rgba(255,255,255,.35); }
+
+    .indicadores { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1rem; margin-top: 1.4rem; }
+    .indicador { background: #fff; border: 1px solid var(--linha); border-radius: var(--raio); padding: 1.1rem 1.2rem; display: flex; align-items: center; gap: .9rem; }
+    .indicador .ic { width: 44px; height: 44px; border-radius: 12px; display: grid; place-items: center; font-size: 1.2rem; background: var(--fundo); flex-shrink: 0; }
+    .indicador strong { display: block; font-family: var(--fonte-titulo); font-size: 1.45rem; color: var(--marinho); line-height: 1.1; }
+    .indicador span { font-size: .8rem; color: var(--texto-suave); }
+
+    .atalhos { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 1rem; }
+    .atalho { position: relative; overflow: hidden; text-align: left; display: flex; flex-direction: column; gap: .5rem; padding: 1.3rem 1.2rem 1.1rem; border-radius: 16px; background: #fff; border: 1px solid var(--linha); box-shadow: 0 6px 18px -12px rgba(14,59,92,.35); transition: border-color .2s, box-shadow .2s, transform .2s; color: var(--texto); }
+    .atalho::before { content: ''; position: absolute; inset: 0 0 auto 0; height: 4px; background: linear-gradient(90deg, var(--marinho), var(--laranja)); }
+    .atalho:hover, .atalho:focus-visible { transform: translateY(-4px); border-color: rgba(236,107,36,.6); outline: none; box-shadow: 0 0 0 1px rgba(236,107,36,.25), 0 0 26px -2px rgba(236,107,36,.38); }
+    .atalho .ic { font-size: 1.4rem; }
+    .atalho strong { font-family: var(--fonte-titulo); color: var(--marinho); }
+    .atalho span { font-size: .86rem; color: var(--texto-suave); }
+    .atalho em { font-style: normal; font-weight: 800; font-size: .82rem; color: var(--laranja); margin-top: auto; }
+
+    /* Ciclo */
+    .ciclo { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: .8rem; counter-reset: etapa; }
+    .etapa { position: relative; background: #fff; border: 1px solid var(--linha); border-radius: var(--raio); padding: 1.1rem 1rem 1rem; text-align: left; transition: border-color .2s, box-shadow .2s; color: var(--texto); }
+    .etapa:hover, .etapa.ativo { border-color: var(--laranja); box-shadow: 0 0 0 1px rgba(236,107,36,.3), 0 10px 24px -16px rgba(236,107,36,.8); }
+    .etapa .num { width: 34px; height: 34px; border-radius: 50%; display: grid; place-items: center; font-family: var(--fonte-titulo); font-weight: 800; background: var(--marinho); color: #fff; margin-bottom: .6rem; }
+    .etapa.ativo .num { background: var(--laranja); }
+    .etapa strong { display: block; font-family: var(--fonte-titulo); color: var(--marinho); font-size: .9rem; line-height: 1.25; }
+    .etapa small { display: block; color: var(--laranja); font-weight: 800; font-size: .72rem; letter-spacing: .06em; margin-top: .3rem; text-transform: uppercase; }
+    .etapa:not(:last-child)::after { content: '›'; position: absolute; right: -.68rem; top: 50%; transform: translateY(-50%); z-index: 1; width: 1.2rem; height: 1.2rem; display: grid; place-items: center; border-radius: 50%; background: var(--laranja); color: #fff; font-weight: 800; font-size: .85rem; line-height: 1; }
+    .etapa-detalhe { margin-top: 1rem; display: grid; grid-template-columns: 1.3fr 1fr 1fr; gap: 1.2rem; }
+    .etapa-detalhe h4 { font-size: .74rem; letter-spacing: .1em; text-transform: uppercase; color: var(--texto-suave); margin-bottom: .5rem; }
+
+    .linha-tempo { position: relative; display: grid; grid-template-columns: repeat(12, 1fr); gap: 0; margin-top: .4rem; }
+    .linha-tempo .mes { text-align: center; font-size: .72rem; font-weight: 700; color: var(--texto-suave); padding: .35rem 0; border-left: 1px solid var(--fundo-2); }
+    .faixas { display: grid; grid-template-columns: repeat(12, 1fr); row-gap: 6px; margin-top: .4rem; }
+    .faixa { border-radius: 6px; padding: .35rem .6rem; font-size: .76rem; font-weight: 700; color: #fff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+    /* Avaliação */
+    .escala { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: .7rem; }
+    .nivel { border-radius: 12px; padding: 1rem .9rem; border: 1px solid var(--linha); background: #fff; border-top: 5px solid var(--c); }
+    .nivel b { font-family: var(--fonte-titulo); font-size: 1.5rem; color: var(--marinho); display: block; line-height: 1; }
+    .nivel strong { display: block; color: var(--marinho); margin: .35rem 0 .3rem; font-size: .9rem; }
+    .nivel span { font-size: .8rem; color: var(--texto-suave); display: block; }
+    .tabela-wrap { overflow-x: auto; }
+    .tabela { width: 100%; border-collapse: collapse; font-size: .88rem; }
+    .tabela th { text-align: left; font-size: .72rem; letter-spacing: .08em; text-transform: uppercase; color: var(--texto-suave); padding: .65rem; border-bottom: 2px solid var(--linha); white-space: nowrap; }
+    .tabela td { padding: .65rem; border-bottom: 1px solid var(--fundo-2); vertical-align: top; }
+    .tabela td:first-child { font-weight: 700; color: var(--marinho); }
+    .peso { display: inline-block; min-width: 46px; text-align: center; padding: .15rem .5rem; border-radius: 999px; background: var(--azul-suave); color: var(--marinho); font-weight: 800; font-size: .8rem; }
+
+    /* 9Box */
+    .nove-layout { display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr); gap: 1.4rem; align-items: start; }
+    .nove-wrap { display: grid; grid-template-columns: 34px 1fr; grid-template-rows: 1fr auto auto; gap: 8px; }
+    .eixo-y { grid-row: 1; display: flex; align-items: center; justify-content: center; }
+    .eixo-y span { writing-mode: vertical-rl; transform: rotate(180deg); font-family: var(--fonte-titulo); font-weight: 800; font-size: .74rem; letter-spacing: .14em; color: var(--marinho); }
+    .eixo-y span::after { content: ' →'; color: var(--laranja); }
+    .nove { display: grid; grid-template-columns: auto repeat(3, 1fr); grid-template-rows: repeat(3, minmax(118px, 1fr)) auto; gap: 8px; }
+    .rot-l { display: flex; align-items: center; justify-content: flex-end; font-size: .72rem; font-weight: 700; color: var(--texto-suave); padding-right: 4px; writing-mode: vertical-rl; transform: rotate(180deg); justify-content: center; }
+    .rot-c { text-align: center; font-size: .72rem; font-weight: 700; color: var(--texto-suave); }
+    .eixo-x { grid-column: 2; text-align: center; font-family: var(--fonte-titulo); font-weight: 800; font-size: .74rem; letter-spacing: .14em; color: var(--marinho); }
+    .eixo-x::after { content: ' →'; color: var(--laranja); }
+    .q { position: relative; border: 0; border-radius: 14px; padding: .8rem .8rem .7rem; text-align: left; color: var(--tx, #fff); background: var(--bg); display: flex; flex-direction: column; gap: .2rem; transition: transform .18s, box-shadow .18s; overflow: hidden; }
+    .q::after { content: ''; position: absolute; inset: 0; border-radius: inherit; box-shadow: inset 0 0 0 0 transparent; transition: box-shadow .18s; }
+    .q:hover { transform: translateY(-3px); box-shadow: 0 12px 24px -14px rgba(14,59,92,.7); }
+    .q.ativo { box-shadow: 0 0 0 3px #fff, 0 0 0 6px var(--laranja); transform: none; }
+    .q .q-num { font-family: var(--fonte-titulo); font-weight: 800; font-size: .7rem; opacity: .85; letter-spacing: .08em; }
+    .q strong { font-family: var(--fonte-titulo); font-size: .92rem; line-height: 1.2; overflow-wrap: break-word; hyphens: auto; }
+    .q small { font-size: .74rem; opacity: .9; line-height: 1.3; }
+    .q .risco em { font-style: normal; }
+    .q .risco { margin-top: auto; align-self: flex-start; font-size: .66rem; font-weight: 800; letter-spacing: .04em; padding: .15rem .45rem; border-radius: 999px; background: rgba(255,255,255,.2); }
+    .q.claro .risco { background: rgba(14,59,92,.12); }
+    .detalhe { position: sticky; top: 90px; }
+    .detalhe-topo { display: flex; gap: .9rem; align-items: center; margin-bottom: 1rem; }
+    .detalhe-cor { width: 54px; height: 54px; border-radius: 14px; flex-shrink: 0; display: grid; place-items: center; font-family: var(--fonte-titulo); font-weight: 800; font-size: 1.2rem; }
+    .detalhe-topo small { font-size: .74rem; font-weight: 700; color: var(--texto-suave); letter-spacing: .06em; text-transform: uppercase; }
+    .detalhe-topo h3 { font-size: 1.2rem; margin: 0; }
+    .detalhe-tags { display: flex; flex-wrap: wrap; gap: .45rem; margin: .2rem 0 1rem; }
+    .tag { font-size: .76rem; font-weight: 700; padding: .25rem .6rem; border-radius: 999px; background: var(--fundo); color: var(--marinho); border: 1px solid var(--linha); }
+    .tag.risco-alto { background: var(--marinho); color: #fff; border-color: var(--marinho); }
+    .tag.risco-medio { background: var(--azul-suave); }
+    .detalhe h4 { font-size: .74rem; letter-spacing: .1em; text-transform: uppercase; color: var(--texto-suave); margin: 1rem 0 .45rem; }
+    .legenda { display: flex; flex-wrap: wrap; gap: .5rem 1.1rem; margin-top: 1rem; font-size: .8rem; color: var(--texto-suave); }
+    .legenda span { display: inline-flex; align-items: center; gap: .4rem; }
+    .legenda i { width: 14px; height: 14px; border-radius: 4px; display: inline-block; }
+    .gradiente { height: 10px; border-radius: 999px; background: linear-gradient(90deg, var(--q-baixo), var(--q-atencao), var(--q-neutro), var(--q-claro), var(--q-expansao), var(--q-voltagem)); margin-top: .5rem; }
+    .gradiente-rot { display: flex; justify-content: space-between; font-size: .72rem; color: var(--texto-suave); margin-top: .3rem; font-weight: 700; }
+
+    /* Curva */
+    .curva svg { width: 100%; height: auto; display: block; }
+    .curva text { font-family: var(--fonte); }
+    .sim { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.4fr); gap: 1.4rem; align-items: start; }
+    .sim-campos { display: grid; gap: .55rem; }
+    .sim-campo { display: grid; grid-template-columns: 1fr 86px; gap: .6rem; align-items: center; font-size: .88rem; }
+    .sim-campo label { display: flex; align-items: center; gap: .5rem; font-weight: 600; }
+    .sim-campo label i { width: 12px; height: 12px; border-radius: 3px; flex-shrink: 0; }
+    .sim-campo input { width: 100%; padding: .45rem .6rem; border-radius: 8px; border: 1px solid var(--linha); text-align: right; outline: none; }
+    .sim-campo input:focus { border-color: var(--marinho); box-shadow: 0 0 0 3px rgba(14,59,92,.14); }
+    .sim-total { display: flex; justify-content: space-between; border-top: 1px dashed var(--linha); padding-top: .6rem; font-weight: 800; color: var(--marinho); }
+    .barras { display: grid; gap: .7rem; }
+    .barra-l { display: grid; grid-template-columns: 112px 1fr; gap: .7rem; align-items: center; border-radius: 6px; padding: .1rem 0; outline: none; }
+    .barra-l:hover, .barra-l:focus-visible { background: var(--fundo); }
+    .barra-l > span { font-size: .8rem; font-weight: 700; color: var(--texto); }
+    .trilhos { display: grid; gap: 2px; }
+    .trilho { display: flex; align-items: center; gap: .4rem; height: 16px; border-left: 1px solid var(--linha); }
+    .trilho i { display: block; height: 14px; border-radius: 0 4px 4px 0; min-width: 2px; transition: width .4s ease; }
+    .trilho b { font-size: .74rem; font-weight: 700; color: var(--texto); white-space: nowrap; }
+    .trilho.esp i { background: var(--cinza-suave); box-shadow: inset 0 0 0 1px var(--cinza); }
+    .trilho.real i { background: var(--marinho-2); }
+    .diag { margin-top: 1rem; display: grid; gap: .5rem; }
+    .alerta { display: flex; gap: .6rem; align-items: flex-start; padding: .7rem .8rem; border-radius: 10px; font-size: .86rem; background: var(--azul-suave); }
+    .alerta.atencao { background: var(--laranja-suave); }
+    .alerta.ok { background: #e5f4ec; }
+    .dist9 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
+    .dist9 div { border-radius: 10px; padding: .7rem; color: #fff; display: flex; flex-direction: column; min-height: 78px; }
+    .dist9 div.claro { color: var(--marinho-escuro); }
+    .dist9 b { font-family: var(--fonte-titulo); font-size: 1.35rem; line-height: 1; }
+    .dist9 span { font-size: .72rem; margin-top: auto; font-weight: 700; }
+    .dica-grafico { position: fixed; z-index: 50; max-width: 260px; padding: .55rem .75rem; border-radius: 8px; background: var(--marinho-escuro); color: #fff; font-size: .8rem; line-height: 1.45; pointer-events: none; box-shadow: var(--sombra); }
+
+    /* PDI */
+    .citacao { border-left: 4px solid var(--laranja); background: #fff; padding: 1.1rem 1.3rem; border-radius: 0 var(--raio) var(--raio) 0; font-family: var(--fonte-titulo); color: var(--marinho); font-weight: 600; font-size: 1.02rem; margin-bottom: 1.4rem; }
+    .setenta { display: grid; grid-template-columns: 70fr 20fr 10fr; gap: 6px; margin: .4rem 0 1rem; }
+    .setenta div { border-radius: 12px; padding: 1rem; color: #fff; min-height: 120px; display: flex; flex-direction: column; }
+    .setenta b { font-family: var(--fonte-titulo); font-size: 2rem; line-height: 1; }
+    .setenta strong { font-family: var(--fonte-titulo); font-size: .9rem; margin: .3rem 0 .2rem; }
+    .setenta span { font-size: .78rem; opacity: .92; }
+    .passos { display: grid; gap: .9rem; counter-reset: passo; }
+    .passo { display: grid; grid-template-columns: 54px 1fr; gap: 1rem; background: #fff; border: 1px solid var(--linha); border-radius: var(--raio); padding: 1.1rem 1.2rem; }
+    .passo .n { width: 54px; height: 54px; border-radius: 14px; background: var(--marinho); color: #fff; display: grid; place-items: center; font-family: var(--fonte-titulo); font-weight: 800; font-size: 1.3rem; position: relative; }
+    .passo .n::after { content: ''; position: absolute; right: -4px; bottom: -4px; width: 14px; height: 14px; border-radius: 50%; background: var(--laranja); border: 3px solid #fff; }
+    .passo h3 { font-size: 1rem; margin-bottom: .3rem; }
+    .passo p { color: var(--texto); font-size: .92rem; }
+    .passo .exemplo { background: var(--fundo); border-radius: 10px; padding: .6rem .8rem; font-size: .84rem; color: var(--texto-suave); margin-top: .4rem; }
+    .passo .exemplo b { color: var(--marinho); }
+    .smart { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: .7rem; }
+    .smart div { background: #fff; border: 1px solid var(--linha); border-radius: 12px; padding: .9rem; }
+    .smart b { font-family: var(--fonte-titulo); font-size: 1.8rem; color: var(--laranja); line-height: 1; }
+    .smart strong { display: block; color: var(--marinho); margin: .3rem 0 .2rem; font-size: .9rem; }
+    .smart span { font-size: .8rem; color: var(--texto-suave); }
+    .modelo { width: 100%; border-collapse: separate; border-spacing: 0; font-size: .85rem; border: 1px solid var(--linha); border-radius: 12px; overflow: hidden; }
+    .modelo th { background: var(--marinho); color: #fff; text-align: left; padding: .65rem .7rem; font-size: .74rem; letter-spacing: .06em; text-transform: uppercase; }
+    .modelo td { padding: .65rem .7rem; border-top: 1px solid var(--fundo-2); background: #fff; vertical-align: top; }
+    .modelo tr:nth-child(even) td { background: #fafbfc; }
+    .status { display: inline-block; padding: .15rem .55rem; border-radius: 999px; font-size: .74rem; font-weight: 800; white-space: nowrap; }
+    .s-andamento { background: var(--azul-suave); color: var(--marinho); }
+    .s-concluido { background: #e5f4ec; color: #146c3c; }
+    .s-nao { background: var(--cinza-suave); color: var(--texto-suave); }
+    .s-atraso { background: var(--laranja-suave); color: #b54d12; }
+
+    .papeis { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1.2rem; }
+    .papel { border-top: 5px solid var(--c); }
+    .papel .ic { width: 48px; height: 48px; border-radius: 14px; display: grid; place-items: center; font-size: 1.4rem; background: var(--fundo); margin-bottom: .7rem; }
+    .papel .lema { font-style: italic; color: var(--texto-suave); font-size: .88rem; }
+    .raci td:not(:first-child) { text-align: center; }
+    .raci td:first-child { font-weight: 600; color: var(--texto); }
+    .rc { display: inline-grid; place-items: center; width: 28px; height: 28px; border-radius: 8px; font-weight: 800; font-size: .8rem; }
+    .rc.R { background: var(--marinho); color: #fff; }
+    .rc.A { background: var(--laranja); color: #fff; }
+    .rc.C { background: var(--azul-suave); color: var(--marinho); }
+    .rc.I { background: var(--cinza-suave); color: var(--texto-suave); }
+
+    .acoes9 { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1rem; }
+    .acao9 { border-left: 5px solid var(--c); }
+    .acao9 h3 { font-size: .95rem; }
+
+    .faq details { background: #fff; border: 1px solid var(--linha); border-radius: 12px; padding: .9rem 1.1rem; margin-bottom: .6rem; }
+    .faq summary { cursor: pointer; font-weight: 700; color: var(--marinho); list-style: none; display: flex; justify-content: space-between; gap: 1rem; }
+    .faq summary::after { content: '+'; color: var(--laranja); font-weight: 800; font-size: 1.2rem; line-height: 1; }
+    .faq details[open] summary::after { content: '–'; }
+    .faq details p { margin: .7rem 0 0; color: var(--texto); font-size: .92rem; }
+    .glossario { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .8rem; }
+    .glossario div { background: #fff; border: 1px solid var(--linha); border-radius: 12px; padding: .9rem 1rem; font-size: .88rem; }
+    .glossario b { color: var(--marinho); display: block; font-family: var(--fonte-titulo); margin-bottom: .2rem; }
+
+    .rodape { margin-top: 2.4rem; padding-top: 1rem; border-top: 1px solid var(--linha); font-size: .8rem; color: var(--texto-suave); display: flex; justify-content: space-between; flex-wrap: wrap; gap: .5rem; }
+    .navega { display: flex; justify-content: space-between; gap: 1rem; margin-top: 2rem; }
+
+    @media (max-width: 1150px) {
+      .ciclo { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+      .etapa:nth-child(3)::after { display: none; }
+      .nove-layout, .sim { grid-template-columns: 1fr; }
+      .detalhe { position: static; }
+      .escala, .smart { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+      .indicadores, .grade-4 { grid-template-columns: repeat(2, 1fr); }
+    }
+    @media (max-width: 860px) {
+      body { display: block; }
+      .lateral { position: fixed; left: 0; top: 0; transform: translateX(-100%); transition: transform .25s ease; box-shadow: var(--sombra); }
+      .lateral::after { display: none; }
+      body.menu-aberto .lateral { transform: none; }
+      .btn-menu { display: block; }
+      .hero { grid-template-columns: 1fr; padding: 1.6rem; }
+      .mini9 { display: none; }
+      .grade-2, .grade-3, .papeis, .acoes9, .etapa-detalhe, .glossario { grid-template-columns: 1fr; }
+      .barra-acoes .chip { display: none; }
+    }
+    @media (max-width: 560px) {
+      .ciclo, .escala, .smart, .indicadores, .grade-4 { grid-template-columns: 1fr; }
+      .etapa::after { display: none; }
+      .nove { grid-template-rows: repeat(3, minmax(104px, 1fr)) auto; gap: 5px; }
+      .q { padding: .55rem .4rem; }
+      .q small, .q .q-num { display: none; }
+      .q strong { font-size: .62rem; letter-spacing: -.01em; }
+      .q .risco { font-size: .58rem; }
+      .q .risco em { display: none; }
+      .setenta div { min-height: 140px; padding: .7rem; }
+      .setenta span { display: none; }
+      .barra-l { grid-template-columns: 84px 1fr; }
+      .barra-acoes .btn span { display: none; }
+      .linha-tempo .mes { font-size: .6rem; }
+    }
+    @media print {
+      body { display: block; background: #fff; }
+      .lateral, .barra, .navega, .btn-menu { display: none !important; }
+      .painel { display: block !important; break-after: page; animation: none; }
+      .conteudo { max-width: none; padding: 0; }
+      .detalhe { position: static; }
+    }
+  </style>
+</head>
+<body>
+
+  <aside class="lateral" id="lateral" aria-label="Seções do manual">
+    <a class="logo" href="#inicio"><b>Âmbar</b><small>ENERGIA · TALENT REVIEW</small></a>
+
+    <p class="lateral-grupo">VISÃO GERAL</p>
+    <button class="lateral-item" data-aba="inicio"><span class="ic">🏠</span>Início</button>
+    <button class="lateral-item" data-aba="ciclo"><span class="ic">🔄</span>Ciclo de Talent Review</button>
+
+    <p class="lateral-grupo">AVALIAÇÃO</p>
+    <button class="lateral-item" data-aba="desempenho"><span class="ic">📝</span>Desempenho e potencial</button>
+    <button class="lateral-item" data-aba="ninebox"><span class="ic">🧩</span>Matriz 9Box</button>
+    <button class="lateral-item" data-aba="curva"><span class="ic">📈</span>Curva esperada</button>
+    <button class="lateral-item" data-aba="calibracao"><span class="ic">⚖️</span>Comitê de calibração</button>
+
+    <p class="lateral-grupo">DESENVOLVIMENTO · PDI</p>
+    <button class="lateral-item" data-aba="pdi"><span class="ic">🎯</span>Por que o PDI importa</button>
+    <button class="lateral-item" data-aba="montar"><span class="ic">🪜</span>Como montar o PDI</button>
+    <button class="lateral-item" data-aba="papeis"><span class="ic">🤝</span>Papéis e responsabilidades</button>
+    <button class="lateral-item" data-aba="acompanhamento"><span class="ic">📅</span>Acompanhamento</button>
+
+    <p class="lateral-grupo">APOIO</p>
+    <button class="lateral-item" data-aba="faq"><span class="ic">❓</span>Dúvidas e glossário</button>
+  </aside>
+
+  <div class="principal">
+    <header class="barra">
+      <button class="btn-menu" id="btn-menu" aria-label="Abrir menu">☰</button>
+      <div class="barra-titulo">
+        <small>TALENT REVIEW · DHO</small>
+        <strong id="titulo-barra">Início</strong>
+      </div>
+      <div class="barra-acoes">
+        <span class="chip">● Ciclo anual de gente</span>
+        <button class="btn" id="btn-imprimir" title="Imprimir ou salvar o manual completo em PDF">🖨️ <span>Imprimir manual</span></button>
+      </div>
+    </header>
+
+    <main class="conteudo" id="conteudo" tabindex="-1">
+
+      <!-- ===================== INÍCIO ===================== -->
+      <section class="painel" data-painel="inicio" data-titulo="Início">
+        <div class="hero">
+          <div>
+            <small>MANUAL DO PROCESSO · DHO</small>
+            <h1>Talent Review: <em>energia</em> que move as pessoas da Âmbar</h1>
+            <p>Um guia único para gestores, colaboradores e RH sobre como avaliamos desempenho, mapeamos potencial na
+              matriz 9Box, calibramos com justiça e transformamos tudo isso em um Plano de Desenvolvimento Individual (PDI).</p>
+            <div class="hero-acoes">
+              <button class="btn btn-laranja" data-ir="ciclo">Conhecer o ciclo →</button>
+              <button class="btn" data-ir="ninebox">Ver a matriz 9Box</button>
+            </div>
+          </div>
+          <div class="mini9" aria-hidden="true">
+            <i style="background:var(--q-claro)"></i><i style="background:var(--q-expansao)"></i><i style="background:var(--q-voltagem)"></i>
+            <i style="background:var(--q-atencao)"></i><i style="background:var(--q-neutro)"></i><i style="background:var(--q-expansao)"></i>
+            <i style="background:var(--q-baixo)"></i><i style="background:var(--q-atencao)"></i><i style="background:var(--q-claro)"></i>
+          </div>
+        </div>
+
+        <div class="indicadores">
+          <div class="indicador"><div class="ic">🔄</div><div><strong>6 etapas</strong><span>em um ciclo anual</span></div></div>
+          <div class="indicador"><div class="ic">🧩</div><div><strong>9 quadrantes</strong><span>desempenho × potencial</span></div></div>
+          <div class="indicador"><div class="ic">📈</div><div><strong>60%</strong><span>na faixa central da curva</span></div></div>
+          <div class="indicador"><div class="ic">🎯</div><div><strong>70·20·10</strong><span>modelo de ações do PDI</span></div></div>
+        </div>
+
+        <h2 class="titulo-secao">O que é o Talent Review <small>· e por que fazemos</small></h2>
+        <div class="grade-3">
+          <div class="cartao"><h3>👁️ Enxergar</h3><p>Ter uma visão única, comparável e transparente do desempenho e do potencial de cada pessoa, em todas as regionais e filiais.</p></div>
+          <div class="cartao"><h3>⚖️ Decidir com justiça</h3><p>Apoiar promoções, sucessão, mérito e movimentações com critérios claros e decisões calibradas por um comitê, não pela percepção de uma só pessoa.</p></div>
+          <div class="cartao"><h3>🚀 Desenvolver</h3><p>Converter o diagnóstico em ação: cada colaborador sai do ciclo com feedback e um PDI combinado com o gestor.</p></div>
+        </div>
+
+        <h2 class="titulo-secao">Navegue pelo manual</h2>
+        <div class="atalhos">
+          <button class="atalho" data-ir="desempenho"><span class="ic">📝</span><strong>Desempenho e potencial</strong><span>Escala, critérios e pesos da avaliação.</span><em>Abrir →</em></button>
+          <button class="atalho" data-ir="ninebox"><span class="ic">🧩</span><strong>Matriz 9Box</strong><span>Os nove quadrantes, cores e risco de saída.</span><em>Abrir →</em></button>
+          <button class="atalho" data-ir="curva"><span class="ic">📈</span><strong>Curva esperada</strong><span>Distribuição de referência e simulador da equipe.</span><em>Abrir →</em></button>
+          <button class="atalho" data-ir="calibracao"><span class="ic">⚖️</span><strong>Comitê de calibração</strong><span>Como conduzir a reunião e evitar vieses.</span><em>Abrir →</em></button>
+          <button class="atalho" data-ir="montar"><span class="ic">🪜</span><strong>Como montar o PDI</strong><span>Passo a passo, metas SMART e modelo pronto.</span><em>Abrir →</em></button>
+          <button class="atalho" data-ir="papeis"><span class="ic">🤝</span><strong>Papéis</strong><span>O que cabe ao gestor, ao colaborador e ao RH.</span><em>Abrir →</em></button>
+        </div>
+      </section>
+
+      <!-- ===================== CICLO ===================== -->
+      <section class="painel" data-painel="ciclo" data-titulo="Ciclo de Talent Review" hidden>
+        <h1 class="titulo-pagina">Ciclo de <em>Talent Review</em></h1>
+        <p class="subtitulo">O processo é contínuo: cada etapa alimenta a seguinte e o PDI fecha o ciclo, virando a base das metas do próximo ano. Clique em uma etapa para ver o detalhe.</p>
+
+        <div class="ciclo" id="ciclo"></div>
+        <div class="cartao etapa-detalhe" id="etapa-detalhe"></div>
+
+        <h2 class="titulo-secao">Calendário de referência <small>· ajuste as datas ao calendário corporativo do ano</small></h2>
+        <div class="cartao">
+          <div class="linha-tempo" id="meses"></div>
+          <div class="faixas">
+            <div class="faixa" style="grid-column:1/3;background:var(--marinho)">1 · Metas</div>
+            <div class="faixa" style="grid-column:3/10;background:var(--azul)">2 · Acompanhamento contínuo e check-in semestral (jul)</div>
+            <div class="faixa" style="grid-column:10/12;background:var(--marinho-2)">3 · Avaliação</div>
+            <div class="faixa" style="grid-column:11/12;background:var(--laranja-claro)">4 · Potencial</div>
+            <div class="faixa" style="grid-column:11/13;background:var(--laranja)">5 · Calibração</div>
+            <div class="faixa" style="grid-column:12/13;background:var(--marinho)">6 · PDI</div>
+            <div class="faixa" style="grid-column:1/13;background:var(--cinza)">Acompanhamento do PDI · check-ins trimestrais (mar · jun · set · dez)</div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ===================== DESEMPENHO ===================== -->
+      <section class="painel" data-painel="desempenho" data-titulo="Desempenho e potencial" hidden>
+        <h1 class="titulo-pagina">Avaliação de <em>desempenho e potencial</em></h1>
+        <p class="subtitulo">Desempenho olha para o passado (o que a pessoa entregou e como entregou). Potencial olha para o futuro (até onde ela pode crescer). As duas leituras são independentes e se cruzam na matriz 9Box.</p>
+
+        <div class="grade-2">
+          <div class="cartao">
+            <h3>📊 Eixo X · Desempenho <small>· o que e como</small></h3>
+            <div class="tabela-wrap"><table class="tabela">
+              <thead><tr><th>Dimensão</th><th>O que avalia</th><th>Peso</th></tr></thead>
+              <tbody>
+                <tr><td>Metas e entregas</td><td>Resultados individuais e da área pactuados no início do ciclo.</td><td><span class="peso">50%</span></td></tr>
+                <tr><td>Competências</td><td>Comportamentos esperados: segurança, foco no cliente, colaboração, dono do negócio, inovação.</td><td><span class="peso">40%</span></td></tr>
+                <tr><td>Valores e segurança</td><td>Aderência à cultura e às regras de ouro de segurança (critério eliminatório).</td><td><span class="peso">10%</span></td></tr>
+              </tbody>
+            </table></div>
+          </div>
+          <div class="cartao">
+            <h3>🌱 Eixo Y · Potencial <small>· até onde pode ir</small></h3>
+            <div class="tabela-wrap"><table class="tabela">
+              <thead><tr><th>Critério</th><th>Pergunta-chave</th></tr></thead>
+              <tbody>
+                <tr><td>Agilidade de aprendizado</td><td>Aprende rápido e aplica o que aprendeu em situações novas?</td></tr>
+                <tr><td>Aspiração</td><td>Quer crescer, assumir mais responsabilidade ou complexidade?</td></tr>
+                <tr><td>Engajamento</td><td>Demonstra vínculo com a Âmbar e energia para ir além?</td></tr>
+                <tr><td>Capacidade</td><td>Tem repertório para lidar com desafios de maior escopo?</td></tr>
+              </tbody>
+            </table></div>
+          </div>
+        </div>
+
+        <h2 class="titulo-secao">Escala de desempenho <small>· 5 níveis, com descrição comportamental</small></h2>
+        <div class="escala">
+          <div class="nivel" style="--c:var(--q-baixo)"><b>1</b><strong>Insuficiente</strong><span>Não atinge as metas e as competências essenciais. Precisa de plano de recuperação.</span></div>
+          <div class="nivel" style="--c:var(--q-atencao)"><b>2</b><strong>Atende parcialmente</strong><span>Entrega parte do esperado; precisa de apoio frequente.</span></div>
+          <div class="nivel" style="--c:var(--q-neutro)"><b>3</b><strong>Atende plenamente</strong><span>Entrega o que foi combinado com qualidade. É o padrão esperado da função.</span></div>
+          <div class="nivel" style="--c:var(--q-expansao)"><b>4</b><strong>Supera</strong><span>Vai além do combinado com frequência e influencia o time.</span></div>
+          <div class="nivel" style="--c:var(--q-voltagem)"><b>5</b><strong>Excepcional</strong><span>Resultados extraordinários e referência para a organização.</span></div>
+        </div>
+
+        <h2 class="titulo-secao">Quem avalia</h2>
+        <div class="grade-3">
+          <div class="cartao"><h3>🙋 Autoavaliação</h3><p>O colaborador reflete sobre entregas, competências e aspirações de carreira. Abre a conversa — não define a nota.</p></div>
+          <div class="cartao"><h3>👔 Avaliação do gestor</h3><p>O gestor avalia com evidências (fatos, dados, exemplos) e propõe a posição preliminar na 9Box.</p></div>
+          <div class="cartao"><h3>⚖️ Calibração</h3><p>O comitê compara pessoas de mesmo nível, ajusta distorções e valida a posição final na 9Box.</p></div>
+        </div>
+        <div class="cartao" style="margin-top:1.2rem">
+          <h3>📌 Regra de ouro das evidências</h3>
+          <p>Toda nota acima ou abaixo de “Atende plenamente” precisa de, no mínimo, <b>dois exemplos concretos</b> no período avaliado (situação, ação e resultado). Sem evidência, a nota não é sustentada na calibração.</p>
+        </div>
+      </section>
+
+      <!-- ===================== 9BOX ===================== -->
+      <section class="painel" data-painel="ninebox" data-titulo="Matriz 9Box" hidden>
+        <h1 class="titulo-pagina">Matriz <em>9Box</em></h1>
+        <p class="subtitulo">Cruza desempenho (eixo horizontal) e potencial (eixo vertical). As cores seguem a paleta Âmbar: quanto mais <b>azul</b>, maior o potencial e o risco de saída — pessoas que o mercado também quer; o <b>cinza</b> é o centro neutro e o <b>laranja</b> sinaliza os níveis mais baixos, que pedem ação imediata. Clique em um quadrante.</p>
+
+        <div class="nove-layout">
+          <div class="cartao">
+            <div class="nove-wrap">
+              <div class="eixo-y"><span>POTENCIAL</span></div>
+              <div class="nove" id="nove"></div>
+              <div></div>
+              <div class="eixo-x">DESEMPENHO</div>
+            </div>
+            <div class="gradiente" aria-hidden="true"></div>
+            <div class="gradiente-rot"><span>Ação imediata</span><span>Neutro</span><span>Alto potencial · alto risco de saída</span></div>
+          </div>
+          <div class="cartao detalhe" id="detalhe" aria-live="polite"></div>
+        </div>
+
+        <h2 class="titulo-secao">Leitura por cor <small>· o que cada faixa pede da liderança</small></h2>
+        <div class="acoes9">
+          <div class="cartao acao9" style="--c:var(--q-voltagem)"><h3>🔵 Azul-marinho e azul · Reter e acelerar</h3><p>Alto potencial e alto risco de saída. Prioridade nas conversas de carreira, sucessão, projetos estratégicos e revisão de remuneração.</p></div>
+          <div class="cartao acao9" style="--c:var(--q-neutro)"><h3>⚪ Azul-claro e cinza · Desenvolver e engajar</h3><p>A base sólida da empresa. PDI focado em ampliar repertório, reconhecer a contribuição e destravar o próximo passo.</p></div>
+          <div class="cartao acao9" style="--c:var(--q-baixo)"><h3>🟠 Laranja · Agir agora</h3><p>Desempenho abaixo do esperado. Feedback claro, plano de ação com prazo curto e acompanhamento mensal pelo gestor e pelo RH.</p></div>
+        </div>
+      </section>
+
+      <!-- ===================== CURVA ===================== -->
+      <section class="painel" data-painel="curva" data-titulo="Curva esperada" hidden>
+        <h1 class="titulo-pagina">Curva <em>esperada</em></h1>
+        <p class="subtitulo">A curva esperada é uma <b>referência</b> de como as avaliações tendem a se distribuir em um grupo grande. Ela não é cota: serve para o comitê questionar desvios (todo mundo “Supera”? ninguém abaixo do esperado?) e garantir que a régua seja a mesma entre áreas.</p>
+
+        <div class="cartao curva">
+          <h3>Distribuição de referência do desempenho <small>· % das pessoas avaliadas por nível</small></h3>
+          <svg viewBox="0 0 760 270" role="img" aria-label="Curva normal com 5% Insuficiente, 15% Atende parcialmente, 60% Atende plenamente, 15% Supera e 5% Excepcional" id="sino"></svg>
+        </div>
+
+        <h2 class="titulo-secao">Simulador da equipe <small>· informe quantas pessoas ficaram em cada nível</small></h2>
+        <div class="cartao sim">
+          <div>
+            <div class="sim-campos" id="sim-campos"></div>
+            <div class="diag" id="diag"></div>
+          </div>
+          <div>
+            <h3>Esperado × equipe <small>· % por nível</small></h3>
+            <div class="legenda" style="margin:0 0 1rem">
+              <span><i style="background:var(--cinza-suave);box-shadow:inset 0 0 0 1px var(--cinza)"></i>Curva esperada</span>
+              <span><i style="background:var(--marinho-2)"></i>Sua equipe</span>
+            </div>
+            <div class="barras" id="barras"></div>
+          </div>
+        </div>
+
+        <h2 class="titulo-secao">Distribuição esperada na 9Box <small>· referência para grupos acima de 30 pessoas</small></h2>
+        <div class="grade-2">
+          <div class="cartao"><div class="dist9" id="dist9"></div></div>
+          <div class="cartao">
+            <h3>Como usar a curva</h3>
+            <ul class="check">
+              <li>Compare a distribuição de cada diretoria e regional com a referência antes do comitê.</li>
+              <li>Desvios acima de <b>10 p.p.</b> em uma faixa são pauta obrigatória de discussão.</li>
+              <li>Em equipes pequenas (menos de 10 pessoas), olhe o agrupamento por diretoria, não a equipe isolada.</li>
+              <li>Uma área pode ficar fora da curva — desde que as evidências sustentem.</li>
+            </ul>
+            <h3 style="margin-top:1.2rem">Distorções que a curva ajuda a revelar</h3>
+            <ul class="check laranja">
+              <li><b>Leniência:</b> notas concentradas em “Supera” e “Excepcional”.</li>
+              <li><b>Rigor excessivo:</b> notas concentradas abaixo do esperado.</li>
+              <li><b>Tendência central:</b> praticamente todos em “Atende plenamente”.</li>
+            </ul>
+          </div>
+        </div>
+      </section>
+
+      <!-- ===================== CALIBRAÇÃO ===================== -->
+      <section class="painel" data-painel="calibracao" data-titulo="Comitê de calibração" hidden>
+        <h1 class="titulo-pagina">Comitê de <em>calibração</em></h1>
+        <p class="subtitulo">É o coração do Talent Review: os líderes de uma mesma área discutem juntos cada posição na 9Box, com evidências, para que a mesma régua valha para todos.</p>
+
+        <div class="grade-3">
+          <div class="cartao">
+            <h3>📋 Antes</h3>
+            <ul class="check">
+              <li>Avaliações do gestor concluídas no sistema.</li>
+              <li>RH consolida a 9Box preliminar e a curva por área.</li>
+              <li>Gestores levam evidências das notas fora do centro.</li>
+              <li>Pauta com casos críticos: azul-marinho, laranja e desvios de curva.</li>
+            </ul>
+          </div>
+          <div class="cartao">
+            <h3>🗣️ Durante</h3>
+            <ul class="check">
+              <li>RH/DHO facilita; o diretor da área decide em caso de impasse.</li>
+              <li>Cada gestor apresenta sua equipe em até 3 minutos por pessoa.</li>
+              <li>Pares questionam com base em fatos, não em impressões.</li>
+              <li>Registrar a posição final e a justificativa de cada mudança.</li>
+            </ul>
+          </div>
+          <div class="cartao">
+            <h3>✅ Depois</h3>
+            <ul class="check">
+              <li>RH publica a 9Box final e o mapa de sucessão.</li>
+              <li>Gestor faz a conversa de feedback individual em até 30 dias.</li>
+              <li>PDI registrado em até 15 dias após o feedback.</li>
+              <li>Resultados são confidenciais: o colaborador conhece a própria posição.</li>
+            </ul>
+          </div>
+        </div>
+
+        <h2 class="titulo-secao">Vieses que o comitê precisa evitar</h2>
+        <div class="grade-4">
+          <div class="cartao"><h3>⏱️ Recência</h3><p>Pesar só os últimos meses. Olhe o ciclo inteiro.</p></div>
+          <div class="cartao"><h3>✨ Efeito halo</h3><p>Uma qualidade forte contamina todas as notas.</p></div>
+          <div class="cartao"><h3>🪞 Semelhança</h3><p>Avaliar melhor quem se parece com o avaliador.</p></div>
+          <div class="cartao"><h3>📣 Visibilidade</h3><p>Confundir quem aparece mais com quem entrega mais.</p></div>
+        </div>
+      </section>
+
+      <!-- ===================== PDI · IMPORTÂNCIA ===================== -->
+      <section class="painel" data-painel="pdi" data-titulo="Por que o PDI importa" hidden>
+        <h1 class="titulo-pagina">Manual do <em>PDI</em></h1>
+        <p class="subtitulo">O Plano de Desenvolvimento Individual é o acordo entre colaborador e gestor sobre o que será desenvolvido, como, com quem e até quando. É a etapa que transforma a avaliação em crescimento real.</p>
+
+        <div class="citacao">“A avaliação diz onde a pessoa está. O PDI diz para onde ela vai — e como vai chegar lá.”</div>
+
+        <div class="grade-3">
+          <div class="cartao"><h3>🙋 Para o colaborador</h3><ul class="lista"><li>Clareza sobre o que desenvolver e por quê.</li><li>Protagonismo na própria carreira.</li><li>Preparação para novos desafios e posições.</li></ul></div>
+          <div class="cartao"><h3>👔 Para o gestor</h3><ul class="lista"><li>Time mais preparado para as metas.</li><li>Conversas de feedback mais objetivas.</li><li>Sucessores formados dentro da equipe.</li></ul></div>
+          <div class="cartao"><h3>🏢 Para a Âmbar</h3><ul class="lista"><li>Retenção dos talentos de alto potencial.</li><li>Investimento em treinamento direcionado.</li><li>Pipeline de liderança para o crescimento.</li></ul></div>
+        </div>
+
+        <h2 class="titulo-secao">Modelo 70 · 20 · 10 <small>· como as pessoas realmente aprendem</small></h2>
+        <div class="cartao">
+          <div class="setenta">
+            <div style="background:var(--marinho)"><b>70%</b><strong>Experiência</strong><span>Projetos, novos desafios, job rotation, substituições, ampliar escopo no dia a dia.</span></div>
+            <div style="background:var(--azul)"><b>20%</b><strong>Relações</strong><span>Mentoria, feedback, shadowing, comunidades.</span></div>
+            <div style="background:var(--laranja)"><b>10%</b><strong>Formal</strong><span>Cursos, trilhas, certificações.</span></div>
+          </div>
+          <p style="margin:0;color:var(--texto-suave)">Um bom PDI <b>não é uma lista de cursos</b>. A maior parte das ações deve acontecer no trabalho, com apoio de pessoas. Os treinamentos da Trilha de Desenvolvimento entram nos 10%.</p>
+        </div>
+
+        <h2 class="titulo-secao">O PDI é · O PDI não é</h2>
+        <div class="grade-2">
+          <div class="cartao"><ul class="check"><li>Um acordo construído a duas mãos.</li><li>Focado em 2 a 3 objetivos prioritários.</li><li>Revisado ao longo do ano.</li><li>Ligado à posição na 9Box e às metas do negócio.</li></ul></div>
+          <div class="cartao"><ul class="check nao"><li>Um formulário preenchido só para cumprir prazo.</li><li>Uma lista de desejos sem prazo nem responsável.</li><li>Responsabilidade exclusiva do RH.</li><li>Punição ou plano disciplinar.</li></ul></div>
+        </div>
+      </section>
+
+      <!-- ===================== PDI · COMO MONTAR ===================== -->
+      <section class="painel" data-painel="montar" data-titulo="Como montar o PDI" hidden>
+        <h1 class="titulo-pagina">Como montar o <em>PDI</em> · passo a passo</h1>
+        <p class="subtitulo">Seis passos que o gestor e o colaborador percorrem juntos, logo após a conversa de feedback do Talent Review.</p>
+
+        <div class="passos">
+          <div class="passo"><div class="n">1</div><div><h3>Diagnóstico</h3><p>Reúna a avaliação de desempenho, a posição na 9Box, a autoavaliação e os feedbacks do ciclo. Identifique os pontos fortes a alavancar e as lacunas que mais impactam o resultado.</p></div></div>
+          <div class="passo"><div class="n">2</div><div><h3>Aspirações de carreira</h3><p>Pergunte ao colaborador onde ele quer estar em 1 e 3 anos. Alinhe a aspiração às oportunidades reais da Âmbar (crescimento vertical, lateral ou especialização técnica).</p></div></div>
+          <div class="passo"><div class="n">3</div><div><h3>Prioridades de desenvolvimento</h3><p>Escolha <b>no máximo 3 competências</b>: as que mais aproximam a pessoa da aspiração e das necessidades do negócio. Menos é mais.</p></div></div>
+          <div class="passo"><div class="n">4</div><div><h3>Objetivos SMART</h3><p>Transforme cada prioridade em um objetivo específico, mensurável e com prazo.</p><div class="exemplo"><b>Em vez de:</b> “melhorar a comunicação”.<br><b>Escreva:</b> “Conduzir a reunião mensal de resultados da filial com a diretoria, apresentando os indicadores sem apoio do gestor, a partir de agosto.”</div></div></div>
+          <div class="passo"><div class="n">5</div><div><h3>Ações 70·20·10</h3><p>Para cada objetivo, defina ações de experiência, relacionamento e formação — com responsável, prazo e recurso necessário.</p></div></div>
+          <div class="passo"><div class="n">6</div><div><h3>Registro e acordo</h3><p>Registre o PDI no sistema, com aceite do gestor e do colaborador, e já agende o primeiro check-in trimestral.</p></div></div>
+        </div>
+
+        <h2 class="titulo-secao">Objetivos SMART</h2>
+        <div class="smart">
+          <div><b>S</b><strong>Específico</strong><span>Diz claramente o que será desenvolvido.</span></div>
+          <div><b>M</b><strong>Mensurável</strong><span>Tem como saber se foi atingido.</span></div>
+          <div><b>A</b><strong>Atingível</strong><span>É desafiador, mas possível no período.</span></div>
+          <div><b>R</b><strong>Relevante</strong><span>Conecta-se à carreira e ao negócio.</span></div>
+          <div><b>T</b><strong>Temporal</strong><span>Tem data de início e de conclusão.</span></div>
+        </div>
+
+        <h2 class="titulo-secao">Modelo de PDI preenchido <small>· exemplo ilustrativo</small></h2>
+        <div class="tabela-wrap">
+          <table class="modelo">
+            <thead><tr><th>Competência</th><th>Objetivo SMART</th><th>Ação</th><th>Tipo</th><th>Apoio</th><th>Prazo</th><th>Status</th></tr></thead>
+            <tbody>
+              <tr><td><b>Liderança de pessoas</b></td><td>Liderar a equipe de manutenção na ausência do coordenador, com 100% das rotinas cumpridas.</td><td>Substituir o coordenador nas férias de julho</td><td>70</td><td>Coordenador</td><td>Jul</td><td><span class="status s-andamento">Em andamento</span></td></tr>
+              <tr><td></td><td></td><td>Mentoria mensal com gerente de outra regional</td><td>20</td><td>Mentor</td><td>Mar–Nov</td><td><span class="status s-andamento">Em andamento</span></td></tr>
+              <tr><td></td><td></td><td>Tema “Liderança” da Trilha de Desenvolvimento</td><td>10</td><td>DHO</td><td>Abr</td><td><span class="status s-concluido">Concluído</span></td></tr>
+              <tr><td><b>Visão de negócio</b></td><td>Apresentar 1 proposta de redução de custo da filial com ganho estimado até setembro.</td><td>Participar do comitê de orçamento</td><td>70</td><td>Gerente</td><td>Set</td><td><span class="status s-atraso">Atrasado</span></td></tr>
+              <tr><td></td><td></td><td>Shadowing com o time de Controladoria (2 dias)</td><td>20</td><td>Controladoria</td><td>Mai</td><td><span class="status s-nao">Não iniciado</span></td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <h2 class="titulo-secao">Foco do PDI por faixa da 9Box</h2>
+        <div class="acoes9">
+          <div class="cartao acao9" style="--c:var(--q-voltagem)"><h3>Azul · Acelerar</h3><ul class="lista"><li>Projetos estratégicos e de alta exposição.</li><li>Mentoria com a diretoria.</li><li>Preparação para sucessão.</li></ul></div>
+          <div class="cartao acao9" style="--c:var(--q-neutro)"><h3>Azul-claro e cinza · Ampliar</h3><ul class="lista"><li>Ampliar escopo na posição atual.</li><li>Desenvolver 1 competência-chave.</li><li>Multiplicar conhecimento técnico.</li></ul></div>
+          <div class="cartao acao9" style="--c:var(--q-baixo)"><h3>Laranja · Recuperar</h3><ul class="lista"><li>Metas de curto prazo (60 a 90 dias).</li><li>Acompanhamento mensal.</li><li>Rever adequação à função.</li></ul></div>
+        </div>
+      </section>
+
+      <!-- ===================== PAPÉIS ===================== -->
+      <section class="painel" data-painel="papeis" data-titulo="Papéis e responsabilidades" hidden>
+        <h1 class="titulo-pagina">Papéis e <em>responsabilidades</em></h1>
+        <p class="subtitulo">O desenvolvimento é responsabilidade compartilhada. O colaborador é o protagonista, o gestor é o patrocinador e o RH/DHO é o guardião do processo.</p>
+
+        <div class="papeis">
+          <div class="cartao papel" style="--c:var(--laranja)">
+            <div class="ic">🙋</div><h3>Colaborador · Protagonista</h3><p class="lema">“Minha carreira, minha responsabilidade.”</p>
+            <ul class="check laranja">
+              <li>Fazer a autoavaliação com honestidade e exemplos.</li>
+              <li>Compartilhar as aspirações de carreira.</li>
+              <li>Propor ações e construir o PDI junto com o gestor.</li>
+              <li>Executar as ações e registrar a evolução.</li>
+              <li>Pedir feedback e levar pauta aos check-ins.</li>
+            </ul>
+          </div>
+          <div class="cartao papel" style="--c:var(--marinho)">
+            <div class="ic">👔</div><h3>Gestor · Patrocinador</h3><p class="lema">“Desenvolver pessoas é parte da minha entrega.”</p>
+            <ul class="check">
+              <li>Avaliar com evidências e defender na calibração.</li>
+              <li>Dar o feedback do ciclo de forma clara e respeitosa.</li>
+              <li>Cocriar o PDI e garantir tempo e recursos para as ações.</li>
+              <li>Abrir oportunidades de experiência (os 70%).</li>
+              <li>Conduzir os check-ins trimestrais.</li>
+            </ul>
+          </div>
+          <div class="cartao papel" style="--c:var(--azul)">
+            <div class="ic">🧭</div><h3>RH / DHO · Guardião</h3><p class="lema">“Processo justo, simples e que gera ação.”</p>
+            <ul class="check">
+              <li>Comunicar calendário, critérios e ferramentas.</li>
+              <li>Capacitar gestores para avaliar e dar feedback.</li>
+              <li>Facilitar os comitês de calibração.</li>
+              <li>Oferecer o portfólio de ações (trilhas, mentorias).</li>
+              <li>Acompanhar indicadores e a qualidade dos PDIs.</li>
+            </ul>
+          </div>
+        </div>
+
+        <h2 class="titulo-secao">Matriz RACI <small>· R executa · A aprova · C é consultado · I é informado</small></h2>
+        <div class="cartao tabela-wrap">
+          <table class="tabela raci">
+            <thead><tr><th>Atividade</th><th>Colaborador</th><th>Gestor</th><th>RH/DHO</th><th>Diretoria</th></tr></thead>
+            <tbody>
+              <tr><td>Definir metas do ciclo</td><td><span class="rc C">C</span></td><td><span class="rc R">R</span></td><td><span class="rc I">I</span></td><td><span class="rc A">A</span></td></tr>
+              <tr><td>Autoavaliação</td><td><span class="rc R">R</span></td><td><span class="rc I">I</span></td><td><span class="rc I">I</span></td><td>–</td></tr>
+              <tr><td>Avaliação de desempenho e potencial</td><td><span class="rc C">C</span></td><td><span class="rc R">R</span></td><td><span class="rc C">C</span></td><td><span class="rc I">I</span></td></tr>
+              <tr><td>Comitê de calibração</td><td>–</td><td><span class="rc R">R</span></td><td><span class="rc R">R</span></td><td><span class="rc A">A</span></td></tr>
+              <tr><td>Feedback do ciclo</td><td><span class="rc C">C</span></td><td><span class="rc R">R</span></td><td><span class="rc C">C</span></td><td>–</td></tr>
+              <tr><td>Construção do PDI</td><td><span class="rc R">R</span></td><td><span class="rc A">A</span></td><td><span class="rc C">C</span></td><td>–</td></tr>
+              <tr><td>Execução das ações</td><td><span class="rc R">R</span></td><td><span class="rc C">C</span></td><td><span class="rc C">C</span></td><td>–</td></tr>
+              <tr><td>Check-ins trimestrais</td><td><span class="rc R">R</span></td><td><span class="rc A">A</span></td><td><span class="rc I">I</span></td><td>–</td></tr>
+              <tr><td>Indicadores do processo</td><td>–</td><td><span class="rc I">I</span></td><td><span class="rc R">R</span></td><td><span class="rc A">A</span></td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <h2 class="titulo-secao">Roteiro da conversa de feedback <small>· para o gestor</small></h2>
+        <div class="grade-4">
+          <div class="cartao"><h3>1 · Abrir</h3><p>Explique o objetivo: olhar o ano e combinar o próximo passo.</p></div>
+          <div class="cartao"><h3>2 · Reconhecer</h3><p>Comece pelas entregas e pontos fortes, com exemplos.</p></div>
+          <div class="cartao"><h3>3 · Desenvolver</h3><p>Aponte de 1 a 3 lacunas com fatos e impacto. Ouça a visão da pessoa.</p></div>
+          <div class="cartao"><h3>4 · Combinar</h3><p>Conecte ao PDI e marque a data para construí-lo juntos.</p></div>
+        </div>
+      </section>
+
+      <!-- ===================== ACOMPANHAMENTO ===================== -->
+      <section class="painel" data-painel="acompanhamento" data-titulo="Acompanhamento" hidden>
+        <h1 class="titulo-pagina">Acompanhamento do <em>PDI</em></h1>
+        <p class="subtitulo">Um PDI só funciona se for revisitado. Os check-ins trimestrais mantêm o plano vivo e alimentam a avaliação do próximo ciclo.</p>
+
+        <div class="grade-4">
+          <div class="cartao"><h3>Mar · Check-in 1</h3><p>As ações começaram? Algum obstáculo de agenda ou recurso?</p></div>
+          <div class="cartao"><h3>Jun · Check-in 2</h3><p>Revisar progresso e ajustar o plano junto com o check-in semestral de metas.</p></div>
+          <div class="cartao"><h3>Set · Check-in 3</h3><p>O que já mudou na prática? Quais evidências existem?</p></div>
+          <div class="cartao"><h3>Dez · Fechamento</h3><p>Balanço do ano; as conquistas entram como evidência no Talent Review.</p></div>
+        </div>
+
+        <h2 class="titulo-secao">Perguntas para o check-in</h2>
+        <div class="grade-2">
+          <div class="cartao"><h3>🙋 O colaborador leva</h3><ul class="lista"><li>O que eu fiz desde a última conversa?</li><li>O que aprendi e já estou aplicando?</li><li>Onde preciso de apoio?</li></ul></div>
+          <div class="cartao"><h3>👔 O gestor pergunta</h3><ul class="lista"><li>Que evidência mostra que você evoluiu?</li><li>O que está impedindo o avanço?</li><li>Que oportunidade posso abrir para você praticar?</li></ul></div>
+        </div>
+
+        <h2 class="titulo-secao">Indicadores do processo <small>· acompanhados pelo DHO</small></h2>
+        <div class="indicadores" style="margin-top:0">
+          <div class="indicador"><div class="ic">✅</div><div><strong>≥ 95%</strong><span>avaliações concluídas no prazo</span></div></div>
+          <div class="indicador"><div class="ic">📝</div><div><strong>100%</strong><span>PDIs registrados até 45 dias após a calibração</span></div></div>
+          <div class="indicador"><div class="ic">🔁</div><div><strong>≥ 80%</strong><span>check-ins trimestrais realizados</span></div></div>
+          <div class="indicador"><div class="ic">🎯</div><div><strong>≥ 70%</strong><span>ações do PDI concluídas no ciclo</span></div></div>
+        </div>
+        <div class="grade-2" style="margin-top:1.2rem">
+          <div class="cartao"><h3>🔵 Retenção de talentos</h3><p>Turnover voluntário dos quadrantes azuis (alto potencial) — meta abaixo do turnover geral da empresa.</p></div>
+          <div class="cartao"><h3>🪜 Mobilidade interna</h3><p>% de vagas de liderança preenchidas por sucessores mapeados no Talent Review.</p></div>
+        </div>
+      </section>
+
+      <!-- ===================== FAQ ===================== -->
+      <section class="painel" data-painel="faq" data-titulo="Dúvidas e glossário" hidden>
+        <h1 class="titulo-pagina">Dúvidas <em>frequentes</em></h1>
+        <p class="subtitulo">Respostas rápidas para as perguntas mais comuns de gestores e colaboradores.</p>
+        <div class="faq">
+          <details><summary>A curva esperada é uma cota obrigatória?</summary><p>Não. É uma referência para o comitê investigar desvios. Uma área pode ter mais pessoas em “Supera”, desde que as evidências sustentem.</p></details>
+          <details><summary>O colaborador fica sabendo da sua posição na 9Box?</summary><p>Sim, a própria posição é compartilhada na conversa de feedback. A 9Box completa da área é confidencial e restrita à liderança e ao RH.</p></details>
+          <details><summary>Quem está nos quadrantes azuis tem promoção garantida?</summary><p>Não. Indica prontidão e prioridade de investimento. Promoções dependem de vaga, orçamento e do momento do negócio.</p></details>
+          <details><summary>Estar no laranja significa desligamento?</summary><p>Não automaticamente. Significa que é preciso agir: feedback claro, plano de recuperação com prazo e acompanhamento próximo. A decisão vem depois do plano.</p></details>
+          <details><summary>Posso mudar o PDI durante o ano?</summary><p>Sim. Os check-ins existem para isso. Mudanças de função, de prioridade do negócio ou de aspiração justificam ajustes.</p></details>
+          <details><summary>Colaborador recém-contratado participa?</summary><p>Quem tem menos de 3 meses na função no fechamento do ciclo não entra na 9Box, mas já deve ter metas e um PDI de integração.</p></details>
+        </div>
+
+        <h2 class="titulo-secao">Glossário</h2>
+        <div class="glossario">
+          <div><b>Talent Review</b>Processo anual de revisão de talentos que cruza desempenho e potencial para orientar decisões de pessoas.</div>
+          <div><b>9Box</b>Matriz 3 × 3 que posiciona cada pessoa segundo desempenho (eixo X) e potencial (eixo Y).</div>
+          <div><b>Calibração</b>Reunião de líderes para alinhar critérios e validar as posições na 9Box.</div>
+          <div><b>Curva esperada</b>Distribuição de referência das avaliações em um grupo, usada para identificar distorções.</div>
+          <div><b>PDI</b>Plano de Desenvolvimento Individual: objetivos e ações de desenvolvimento acordados entre colaborador e gestor.</div>
+          <div><b>70·20·10</b>Modelo de aprendizagem: 70% experiência, 20% relações, 10% educação formal.</div>
+          <div><b>Risco de saída</b>Probabilidade de a pessoa deixar a empresa; maior nos quadrantes de alto potencial.</div>
+          <div><b>Sucessão</b>Mapeamento de quem pode assumir posições-chave e em quanto tempo.</div>
+        </div>
+      </section>
+
+      <nav class="navega" id="navega"></nav>
+      <footer class="rodape"><span>Âmbar Energia · Desenvolvimento Humano e Organizacional (DHO)</span><span>Manual de Talent Review e PDI</span></footer>
+    </main>
+  </div>
+
+  <div class="dica-grafico" id="dica" hidden></div>
+
+  <script>
+  (function () {
+    'use strict';
+    const $ = (s, el = document) => el.querySelector(s);
+    const $$ = (s, el = document) => [...el.querySelectorAll(s)];
+
+    /* ---------- Navegação ---------- */
+    const paineis = $$('[data-painel]');
+    const ordem = paineis.map(p => p.dataset.painel);
+    function abrir(aba, rolar = true) {
+      if (!ordem.includes(aba)) aba = 'inicio';
+      paineis.forEach(p => { p.hidden = p.dataset.painel !== aba; });
+      $$('.lateral-item').forEach(b => b.classList.toggle('ativo', b.dataset.aba === aba));
+      const painel = paineis.find(p => p.dataset.painel === aba);
+      $('#titulo-barra').textContent = painel.dataset.titulo;
+      document.title = painel.dataset.titulo + ' · Talent Review · Âmbar Energia';
+      const i = ordem.indexOf(aba);
+      const ant = paineis[i - 1], prox = paineis[i + 1];
+      $('#navega').innerHTML =
+        (ant ? `<button class="btn" data-ir="${ant.dataset.painel}">← ${ant.dataset.titulo}</button>` : '<span></span>') +
+        (prox ? `<button class="btn btn-laranja" data-ir="${prox.dataset.painel}">${prox.dataset.titulo} →</button>` : '');
+      document.body.classList.remove('menu-aberto');
+      if (location.hash !== '#' + aba) history.replaceState(null, '', '#' + aba);
+      if (rolar) window.scrollTo({ top: 0 });
+    }
+    document.addEventListener('click', e => {
+      const alvo = e.target.closest('[data-aba],[data-ir]');
+      if (alvo) abrir(alvo.dataset.aba || alvo.dataset.ir);
+      else if (document.body.classList.contains('menu-aberto') && !e.target.closest('.lateral,#btn-menu')) document.body.classList.remove('menu-aberto');
+    });
+    $('#btn-menu').addEventListener('click', () => document.body.classList.toggle('menu-aberto'));
+    $('#btn-imprimir').addEventListener('click', () => window.print());
+    window.addEventListener('hashchange', () => abrir(location.hash.slice(1)));
+
+    /* ---------- Ciclo ---------- */
+    const etapas = [
+      { t: 'Planejamento de metas', q: 'Jan – Fev', o: 'Desdobrar as metas da empresa em metas de área e individuais, e combinar as competências esperadas para o ano.',
+        r: ['Gestor define metas com o colaborador', 'Diretoria aprova o desdobramento', 'RH/DHO comunica o calendário'], e: ['Metas individuais registradas', 'Expectativas de competências claras'] },
+      { t: 'Acompanhamento contínuo', q: 'Mar – Set', o: 'Feedbacks frequentes e check-in semestral de metas em julho. Ninguém deve ser surpreendido na avaliação de fim de ano.',
+        r: ['Gestor dá feedback contínuo', 'Colaborador registra entregas e evidências'], e: ['Check-in semestral registrado', 'Metas ajustadas, se necessário'] },
+      { t: 'Avaliação de desempenho', q: 'Out – Nov', o: 'Autoavaliação seguida da avaliação do gestor em metas, competências e valores, na escala de 1 a 5.',
+        r: ['Colaborador faz a autoavaliação', 'Gestor avalia com evidências'], e: ['Nota de desempenho preliminar', 'Evidências das notas fora do centro'] },
+      { t: 'Avaliação de potencial', q: 'Nov', o: 'Gestor avalia agilidade de aprendizado, aspiração, engajamento e capacidade, e propõe a posição preliminar na 9Box.',
+        r: ['Gestor avalia o potencial', 'RH consolida a 9Box preliminar e a curva'], e: ['9Box preliminar por área', 'Comparação com a curva esperada'] },
+      { t: 'Comitê de calibração', q: 'Nov – Dez', o: 'Líderes discutem as posições, ajustam distorções e validam a 9Box final e o mapa de sucessão.',
+        r: ['RH/DHO facilita', 'Gestores apresentam e defendem', 'Diretoria decide impasses'], e: ['9Box final validada', 'Mapa de sucessão e riscos de saída'] },
+      { t: 'Feedback e PDI', q: 'Dez – Jan', o: 'Conversa individual de feedback com o resultado calibrado e construção do PDI para o próximo ciclo.',
+        r: ['Gestor conduz o feedback', 'Colaborador propõe o PDI', 'Ambos dão o aceite'], e: ['PDI registrado no sistema', 'Check-ins trimestrais agendados'] }
+    ];
+    const ciclo = $('#ciclo');
+    ciclo.innerHTML = etapas.map((x, i) => `<button class="etapa" data-etapa="${i}"><span class="num">${i + 1}</span><strong>${x.t}</strong><small>${x.q}</small></button>`).join('');
+    function mostrarEtapa(i) {
+      const x = etapas[i];
+      $$('.etapa').forEach((b, j) => b.classList.toggle('ativo', j === i));
+      $('#etapa-detalhe').innerHTML = `
+        <div><h4>Etapa ${i + 1} · ${x.q}</h4><h3 style="font-size:1.1rem">${x.t}</h3><p>${x.o}</p></div>
+        <div><h4>Quem faz</h4><ul class="check">${x.r.map(r => `<li>${r}</li>`).join('')}</ul></div>
+        <div><h4>Entregáveis</h4><ul class="check laranja">${x.e.map(r => `<li>${r}</li>`).join('')}</ul></div>`;
+    }
+    ciclo.addEventListener('click', e => { const b = e.target.closest('[data-etapa]'); if (b) mostrarEtapa(+b.dataset.etapa); });
+    mostrarEtapa(0);
+    $('#meses').innerHTML = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'].map(m => `<div class="mes">${m}</div>`).join('');
+
+    /* ---------- 9Box ---------- */
+    // p = potencial (3 alto), d = desempenho (3 alto)
+    const quadrantes = [
+      { p: 3, d: 3, n: 9, nome: 'Alta Voltagem', cor: 'var(--q-voltagem)', perfil: 'Alto desempenho e alto potencial. Referência hoje e pronto para desafios maiores.', risco: 'Alto', esp: 8,
+        acoes: ['Plano de sucessão para posições-chave', 'Projetos estratégicos com exposição à diretoria', 'Mentoria executiva', 'Revisão de remuneração e conversa de carreira semestral'], gestor: 'Não deixe esperar: quem está aqui é assediado pelo mercado. Converse sobre carreira antes que outra empresa o faça.' },
+      { p: 3, d: 2, n: 8, nome: 'Energia em Expansão', cor: 'var(--q-expansao)', perfil: 'Alto potencial com desempenho dentro do esperado. Ainda não mostrou tudo o que pode entregar.', risco: 'Alto', esp: 10,
+        acoes: ['Ampliar escopo e desafios na posição atual', 'Metas mais ousadas para o próximo ciclo', 'Mentoria com líder de outra área'], gestor: 'Descubra o que trava a entrega — muitas vezes é falta de desafio. Talentos subaproveitados saem.' },
+      { p: 2, d: 3, n: 7, nome: 'Usina de Resultados', cor: 'var(--q-expansao)', perfil: 'Alto desempenho com potencial moderado. Entrega acima do esperado de forma consistente.', risco: 'Médio-alto', esp: 10,
+        acoes: ['Reconhecimento visível', 'Papel de multiplicador e referência técnica', 'Desenvolver 1 competência para o próximo nível'], gestor: 'Reconheça e valorize. Pode ser sucessor no médio prazo com o desenvolvimento certo.' },
+      { p: 3, d: 1, n: 6, nome: 'Potencial a Ativar', cor: 'var(--q-claro)', claro: true, perfil: 'Alto potencial, mas desempenho abaixo do esperado. Pode estar na função errada, recém-chegado ou desmotivado.', risco: 'Médio', esp: 5,
+        acoes: ['Conversa franca para entender as barreiras', 'Revisar adequação à função ou à área', 'Metas de curto prazo com acompanhamento próximo'], gestor: 'Investigue a causa antes de rotular. Às vezes uma mudança de contexto destrava a performance.' },
+      { p: 2, d: 2, n: 5, nome: 'Fluxo Contínuo', cor: 'var(--q-neutro)', claro: true, perfil: 'Desempenho e potencial dentro do esperado. É o núcleo sólido que faz a operação girar.', risco: 'Médio', esp: 35,
+        acoes: ['Desenvolver 1 competência-chave por ciclo', 'Ampliar repertório com projetos transversais', 'Reconhecer a consistência'], gestor: 'Não confunda neutro com esquecido: este é o maior grupo e sustenta os resultados.' },
+      { p: 1, d: 3, n: 4, nome: 'Especialista de Referência', cor: 'var(--q-claro)', claro: true, perfil: 'Alto desempenho com potencial de crescimento limitado ou aspiração técnica. Domina a função.', risco: 'Médio', esp: 10,
+        acoes: ['Carreira em Y / trilha de especialista', 'Papel de instrutor interno', 'Reconhecimento técnico'], gestor: 'Valorize a especialização: nem todo talento quer ou precisa liderar pessoas.' },
+      { p: 2, d: 1, n: 3, nome: 'Em Ajuste', cor: 'var(--q-atencao)', claro: true, perfil: 'Potencial moderado e desempenho abaixo do esperado. Precisa de direcionamento claro.', risco: 'Baixo', esp: 8,
+        acoes: ['Feedback objetivo com exemplos', 'Plano de ação de 90 dias', 'Treinamento técnico direcionado'], gestor: 'Seja claro sobre o que é esperado e acompanhe de perto. Reavalie no próximo check-in.' },
+      { p: 1, d: 2, n: 2, nome: 'Entrega Estável', cor: 'var(--q-atencao)', claro: true, perfil: 'Desempenho dentro do esperado, com pouca intenção ou espaço de crescimento no momento.', risco: 'Baixo', esp: 9,
+        acoes: ['Manter o engajamento na função atual', 'Atualização técnica', 'Metas de melhoria contínua'], gestor: 'Garanta que a entrega se mantenha e verifique se há aspirações não ditas.' },
+      { p: 1, d: 1, n: 1, nome: 'Ponto de Reavaliação', cor: 'var(--q-baixo)', perfil: 'Desempenho e potencial abaixo do esperado. Situação que pede decisão.', risco: 'Baixo', esp: 5,
+        acoes: ['Plano de recuperação com prazo de 60 a 90 dias', 'Acompanhamento mensal com gestor e RH', 'Avaliar realocação ou desligamento ao fim do plano'], gestor: 'Não adie: deixar a situação como está desmotiva o time. Seja justo, claro e documentado.' }
+    ];
+    const rot = ['Baixo', 'Médio', 'Alto'];
+    const nove = $('#nove');
+    let html = '';
+    for (let p = 3; p >= 1; p--) {
+      html += `<div class="rot-l">${rot[p - 1]}</div>`;
+      for (let d = 1; d <= 3; d++) {
+        const q = quadrantes.find(x => x.p === p && x.d === d);
+        html += `<button class="q${q.claro ? ' claro' : ''}" data-q="${q.n}" style="--bg:${q.cor};${q.claro ? '--tx:var(--marinho-escuro)' : ''}" aria-label="${q.nome}">
+          <span class="q-num">BOX ${q.n}</span><strong>${q.nome}</strong><small>Desemp. ${rot[d - 1].toLowerCase()} · Pot. ${rot[p - 1].toLowerCase()}</small>
+          <span class="risco"><em>Risco de saída: </em>${q.risco}</span></button>`;
+      }
+    }
+    html += '<div></div>' + rot.map(r => `<div class="rot-c">${r}</div>`).join('');
+    nove.innerHTML = html;
+    function mostrarQ(n) {
+      const q = quadrantes.find(x => x.n === n);
+      $$('.q').forEach(b => b.classList.toggle('ativo', +b.dataset.q === n));
+      const cls = q.risco.startsWith('Alto') ? 'risco-alto' : q.risco.startsWith('Médio') ? 'risco-medio' : '';
+      $('#detalhe').innerHTML = `
+        <div class="detalhe-topo"><div class="detalhe-cor" style="background:${q.cor};color:${q.claro ? 'var(--marinho-escuro)' : '#fff'}">${q.n}</div>
+          <div><small>Desempenho ${rot[q.d - 1].toLowerCase()} · Potencial ${rot[q.p - 1].toLowerCase()}</small><h3>${q.nome}</h3></div></div>
+        <div class="detalhe-tags"><span class="tag ${cls}">Risco de saída: ${q.risco}</span><span class="tag">Curva esperada: ~${q.esp}%</span></div>
+        <p>${q.perfil}</p>
+        <h4>Ações de PDI sugeridas</h4><ul class="check">${q.acoes.map(a => `<li>${a}</li>`).join('')}</ul>
+        <h4>Recado para o gestor</h4><p style="margin:0">${q.gestor}</p>`;
+    }
+    nove.addEventListener('click', e => { const b = e.target.closest('[data-q]'); if (b) mostrarQ(+b.dataset.q); });
+    mostrarQ(9);
+
+    /* ---------- Curva esperada (sino) ---------- */
+    const niveis = [
+      { nome: 'Insuficiente', esp: 5, cor: '#ec6b24' },
+      { nome: 'Atende parcialmente', esp: 15, cor: '#f6b483' },
+      { nome: 'Atende plenamente', esp: 60, cor: '#aab5bf' },
+      { nome: 'Supera', esp: 15, cor: '#2b6a96' },
+      { nome: 'Excepcional', esp: 5, cor: '#0e3b5c' }
+    ];
+    (function desenharSino() {
+      const W = 760, H = 270, x0 = 20, x1 = 740, base = 200, topo = 24;
+      const zx = z => x0 + (z + 3) / 6 * (x1 - x0);
+      const fy = z => base - Math.exp(-z * z / 2) * (base - topo);
+      // limites em z que produzem 5 / 15 / 60 / 15 / 5
+      const cortes = [-3, -1.645, -0.842, 0.842, 1.645, 3];
+      let s = '';
+      niveis.forEach((n, i) => {
+        const a = cortes[i], b = cortes[i + 1]; let d = `M${zx(a)},${base}`;
+        for (let z = a; z <= b + 1e-9; z += 0.02) d += ` L${zx(z).toFixed(1)},${fy(z).toFixed(1)}`;
+        d += ` L${zx(b)},${fy(b)} L${zx(b)},${base} Z`;
+        s += `<path d="${d}" fill="${n.cor}" stroke="#fff" stroke-width="2"><title>${n.nome}: ${n.esp}%</title></path>`;
+      });
+      let contorno = '';
+      for (let z = -3; z <= 3.001; z += 0.02) contorno += (contorno ? ' L' : 'M') + zx(z).toFixed(1) + ',' + fy(z).toFixed(1);
+      s += `<path d="${contorno}" fill="none" stroke="#0a2c45" stroke-width="2"/>`;
+      s += `<line x1="${x0}" x2="${x1}" y1="${base}" y2="${base}" stroke="#dfe5eb"/>`;
+      niveis.forEach((n, i) => {
+        const meio = (Math.max(cortes[i], -2.6) + Math.min(cortes[i + 1], 2.6)) / 2, cx = zx(meio);
+        const escuro = i === 3;
+        if (i === 2) s += `<text x="${cx}" y="${base - 70}" text-anchor="middle" font-size="34" font-weight="800" fill="#0a2c45" font-family="Montserrat">${n.esp}%</text>`;
+        else if (i === 0 || i === 4) { const zt = i === 0 ? -2.15 : 2.15; s += `<text x="${zx(zt)}" y="${fy(zt) - 10}" text-anchor="middle" font-size="15" font-weight="800" fill="#0a2c45">${n.esp}%</text>`; }
+        else s += `<text x="${cx}" y="${base - 12}" text-anchor="middle" font-size="15" font-weight="800" fill="${escuro ? '#fff' : '#0a2c45'}">${n.esp}%</text>`;
+        s += `<text x="${cx}" y="${base + 26}" text-anchor="middle" font-size="13" font-weight="700" fill="#1d2b36">${n.nome}</text>`;
+        s += `<text x="${cx}" y="${base + 44}" text-anchor="middle" font-size="12" fill="#5f6f7c">Nível ${i + 1}</text>`;
+      });
+      $('#sino').innerHTML = s;
+    })();
+
+    /* ---------- Simulador ---------- */
+    const padrao = [2, 9, 20, 11, 4];
+    $('#sim-campos').innerHTML = niveis.map((n, i) => `
+      <div class="sim-campo"><label for="sim-${i}"><i style="background:${n.cor}"></i>${i + 1} · ${n.nome}</label>
+      <input id="sim-${i}" type="number" min="0" step="1" value="${padrao[i]}" inputmode="numeric"></div>`).join('') +
+      '<div class="sim-total"><span>Total avaliado</span><span id="sim-total">0</span></div>';
+    const dica = $('#dica');
+    function simular() {
+      const v = niveis.map((_, i) => Math.max(0, Math.floor(+$('#sim-' + i).value || 0)));
+      const total = v.reduce((a, b) => a + b, 0);
+      $('#sim-total').textContent = total + (total === 1 ? ' pessoa' : ' pessoas');
+      const pct = v.map(x => total ? x / total * 100 : 0);
+      const max = Math.max(60, ...pct);
+      $('#barras').innerHTML = niveis.map((n, i) => `
+        <div class="barra-l" tabindex="0" data-dica="<b>${n.nome}</b><br>Esperado: ${n.esp}%<br>Equipe: ${pct[i].toFixed(1).replace('.', ',')}% (${v[i]} ${v[i] === 1 ? 'pessoa' : 'pessoas'})">
+          <span>${n.nome}</span>
+          <div class="trilhos">
+            <div class="trilho esp"><i style="width:${n.esp / max * 85}%"></i><b>${n.esp}%</b></div>
+            <div class="trilho real"><i style="width:${pct[i] / max * 85}%"></i><b>${pct[i].toFixed(0)}%</b></div>
+          </div></div>`).join('');
+      const alto = pct[3] + pct[4], baixo = pct[0] + pct[1], diag = [];
+      if (!total) diag.push(['', 'ℹ️', 'Informe a quantidade de pessoas por nível para comparar com a curva.']);
+      else {
+        if (alto > 30) diag.push(['atencao', '⚠️', `<b>Possível leniência:</b> ${alto.toFixed(0)}% acima do esperado (referência: 20%). Leve as evidências ao comitê.`]);
+        if (baixo > 30) diag.push(['atencao', '⚠️', `<b>Possível rigor excessivo:</b> ${baixo.toFixed(0)}% abaixo do esperado (referência: 20%).`]);
+        if (pct[2] > 75) diag.push(['atencao', '⚠️', `<b>Tendência central:</b> ${pct[2].toFixed(0)}% em “Atende plenamente”. Diferencie quem se destaca.`]);
+        if (total > 0 && total < 10) diag.push(['', 'ℹ️', 'Grupo pequeno: compare no agrupamento da diretoria antes de concluir.']);
+        if (!diag.some(d => d[0] === 'atencao')) diag.push(['ok', '✅', 'Distribuição próxima da curva esperada. Siga para a calibração com as evidências de cada caso.']);
+      }
+      $('#diag').innerHTML = diag.map(d => `<div class="alerta ${d[0]}"><span>${d[1]}</span><span>${d[2]}</span></div>`).join('');
+    }
+    $('#sim-campos').addEventListener('input', simular);
+    simular();
+    function posDica(e) { dica.style.left = Math.min(e.clientX + 14, innerWidth - 270) + 'px'; dica.style.top = (e.clientY + 14) + 'px'; }
+    $('#barras').addEventListener('mousemove', e => {
+      const l = e.target.closest('[data-dica]'); if (!l) { dica.hidden = true; return; }
+      dica.innerHTML = l.dataset.dica; dica.hidden = false; posDica(e);
+    });
+    $('#barras').addEventListener('mouseleave', () => { dica.hidden = true; });
+    $('#barras').addEventListener('focusin', e => {
+      const l = e.target.closest('[data-dica]'); if (!l) return; const r = l.getBoundingClientRect();
+      dica.innerHTML = l.dataset.dica; dica.hidden = false; posDica({ clientX: r.left + 100, clientY: r.bottom });
+    });
+    $('#barras').addEventListener('focusout', () => { dica.hidden = true; });
+
+    /* ---------- Distribuição na 9Box ---------- */
+    let d9 = '';
+    for (let p = 3; p >= 1; p--) for (let d = 1; d <= 3; d++) {
+      const q = quadrantes.find(x => x.p === p && x.d === d);
+      d9 += `<div class="${q.claro ? 'claro' : ''}" style="background:${q.cor}"><b>${q.esp}%</b><span>${q.n} · ${q.nome}</span></div>`;
+    }
+    $('#dist9').innerHTML = d9;
+
+    abrir(location.hash.slice(1) || 'inicio', false);
+  })();
+  </script>
+</body>
+</html>

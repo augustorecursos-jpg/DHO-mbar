@@ -1,0 +1,4 @@
+node_modules
+.wwebjs
+.wwebjs_cache
+.env

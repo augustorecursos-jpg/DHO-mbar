@@ -112,3 +112,9 @@ certificado.js   geração do certificado (pdf-lib)
 scripts/         dados de demonstração
 public/          home, painel do colaborador e área do RH (HTML/CSS/JS puro)
 ```
+
+## Aniversários no WhatsApp
+
+A pasta [`whatsapp-aniversario/`](whatsapp-aniversario/README.md) tem um serviço separado (whatsapp-web.js) que envia a
+imagem de aniversário ao grupo do WhatsApp dos colaboradores, acionado pelo fluxo do n8n. Ele não faz parte da
+plataforma da trilha e tem deploy próprio.

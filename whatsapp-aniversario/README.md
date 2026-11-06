@@ -9,8 +9,9 @@ Funcionamento:
 n8n (todo dia às 9h) → lê o Excel → filtra aniversariantes do dia → POST /aniversario  ──►  este serviço  ──►  grupo do WhatsApp
 ```
 
-O serviço usa o [whatsapp-web.js](https://wwebjs.dev), que conecta um número de WhatsApp como se fosse o
-**WhatsApp Web**, lendo um QR Code. Assim ele envia para qualquer grupo de que esse número participe, o que a API oficial da Meta
+O serviço usa o [Baileys](https://github.com/WhiskeySockets/Baileys), que conecta um número de WhatsApp como um
+**aparelho vinculado** (igual ao WhatsApp Web), lendo um QR Code. Ele fala direto com o WhatsApp, sem abrir navegador,
+por isso usa pouca memória (~100–150 MB) e cabe no plano mais barato do Render. Assim ele envia para qualquer grupo de que esse número participe, o que a API oficial da Meta
 não permite.
 
 > ⚠️ É uma integração **não oficial**. Use um **chip exclusivo** para a automação (ex.: "Âmbar DHO") e não o número de
@@ -35,10 +36,9 @@ não permite.
 | `API_KEY` | Chave que o n8n envia no cabeçalho `x-api-key` (mín. 16 caracteres) | **obrigatória** |
 | `GROUP_ID` | ID do grupo (termina em `@g.us`). Veja o passo 4 | – |
 | `PORT` | Porta HTTP | `3001` |
-| `DATA_DIR` | Onde fica salva a sessão do WhatsApp | `./.wwebjs` |
+| `DATA_DIR` | Onde fica salvo o login do WhatsApp | `./.sessao` |
 | `IMAGE_PATH` | Imagem enviada | `./imagens/aniversario.jpg` |
 | `MESSAGE_TEMPLATE` | Legenda; `{nome}` é trocado pelo nome | "🎉 Hoje é dia de celebrar *{nome}*! …" |
-| `CHROME_PATH` | Chromium já instalado (o Docker já define) | Chromium do Puppeteer |
 
 Para gerar uma chave forte:
 
@@ -81,8 +81,7 @@ docker logs -f whatsapp-aniversario    # mostra o QR Code
 
 1. render.com → **New → Web Service** → este repositório → **Language: Docker**.
 2. **Root Directory:** `whatsapp-aniversario`.
-3. **Instance type:** o Chromium consome ~400–600 MB; use **Standard (2 GB)**. No Starter (512 MB) ele pode reiniciar
-   por falta de memória.
+3. **Instance type:** **Starter** (US$ 7, 512 MB) é suficiente. O Free não serve: dorme e não aceita disco.
 4. **Advanced → Add Disk:** mount path `/data`, 1 GB.
 5. **Environment:** `API_KEY` e (depois do passo 4) `GROUP_ID`.
 6. Após o deploy, abra `https://SEU-SERVICO.onrender.com/qr?key=SUA_API_KEY` para escanear o QR Code.
@@ -153,5 +152,5 @@ Se o WhatsApp estiver desconectado, `/aniversario` responde **503**: o n8n marca
 - **Desconectou?** O serviço tenta reconectar sozinho. Se a sessão foi encerrada no celular, abra `/qr` e escaneie de novo.
 - **Mantenha o celular da automação ligado** e com internet de vez em quando. Se ficar ~14 dias offline, o WhatsApp
   desconecta os aparelhos vinculados.
-- **Atualizações:** quando o WhatsApp Web muda, às vezes é preciso atualizar a biblioteca
-  (`npm install whatsapp-web.js@latest`) e reiniciar.
+- **Atualizações:** quando o WhatsApp muda o protocolo, às vezes é preciso atualizar a biblioteca
+  (`npm install @whiskeysockets/baileys@latest`), enviar ao GitHub e o Render faz o deploy sozinho.

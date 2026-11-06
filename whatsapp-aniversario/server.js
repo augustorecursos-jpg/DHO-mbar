@@ -1,17 +1,28 @@
-// Serviço de envio de mensagens de aniversário para um grupo do WhatsApp (whatsapp-web.js).
+// Serviço de envio de mensagens de aniversário para um grupo do WhatsApp.
+// Usa o Baileys, que fala com o WhatsApp direto por WebSocket (sem navegador): ~100 MB de memória.
 // O n8n continua cuidando do agendamento e da leitura do Excel; este serviço só envia a imagem.
-const fs = require('node:fs');
-const path = require('node:path');
-const crypto = require('node:crypto');
-const express = require('express');
-const QRCode = require('qrcode');
-const { Client, LocalAuth, MessageMedia } = require('whatsapp-web.js');
+import fs from 'node:fs';
+import path from 'node:path';
+import crypto from 'node:crypto';
+import { fileURLToPath } from 'node:url';
+import express from 'express';
+import QRCode from 'qrcode';
+import pino from 'pino';
+import makeWASocket, {
+  Browsers,
+  DisconnectReason,
+  fetchLatestBaileysVersion,
+  useMultiFileAuthState,
+} from '@whiskeysockets/baileys';
 
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const PORT = Number(process.env.PORT) || 3001;
 const API_KEY = process.env.API_KEY || '';
 const GROUP_ID = process.env.GROUP_ID || '';
-const DATA_DIR = process.env.DATA_DIR || path.join(__dirname, '.wwebjs');
+const DATA_DIR = process.env.DATA_DIR || path.join(__dirname, '.sessao');
+const AUTH_DIR = path.join(DATA_DIR, 'baileys');
 const IMAGE_PATH = process.env.IMAGE_PATH || path.join(__dirname, 'imagens', 'aniversario.jpg');
+const THUMB_PATH = path.join(__dirname, 'imagens', 'aniversario-miniatura.jpg');
 const MESSAGE_TEMPLATE =
   process.env.MESSAGE_TEMPLATE ||
   '🎉 Hoje é dia de celebrar *{nome}*!\n\nA Âmbar Energia deseja um feliz aniversário, com muita saúde, conquistas e energia para o novo ciclo! 🧡';
@@ -21,62 +32,85 @@ if (API_KEY.length < 16) {
   process.exit(1);
 }
 
+// A versão anterior (whatsapp-web.js) guardava um perfil do Chromium em DATA_DIR/session; não é mais usado.
+fs.rmSync(path.join(DATA_DIR, 'session'), { recursive: true, force: true });
+
 // ---------------------------------------------------------------- WhatsApp
+const logger = pino({ level: process.env.LOG_LEVEL || 'warn' });
 const state = { status: 'iniciando', qr: null, numero: null, desde: new Date().toISOString() };
 const setStatus = (status) => Object.assign(state, { status, desde: new Date().toISOString() });
 
-// Se o container reiniciar no meio da sessão, o Chromium deixa travas que impedem abrir o perfil de novo.
-for (const f of ['SingletonLock', 'SingletonSocket', 'SingletonCookie']) {
-  fs.rmSync(path.join(DATA_DIR, 'session', f), { force: true });
-}
+const gruposCache = new Map(); // metadados dos grupos, evita consultar o WhatsApp a cada envio
+let sock = null;
+let tentativas = 0;
 
-const client = new Client({
-  authStrategy: new LocalAuth({ dataPath: DATA_DIR }),
-  puppeteer: {
-    headless: true,
-    executablePath: process.env.CHROME_PATH || undefined,
-    args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage', '--disable-gpu', '--no-first-run'],
-  },
-});
+async function conectar() {
+  fs.mkdirSync(AUTH_DIR, { recursive: true });
+  const { state: auth, saveCreds } = await useMultiFileAuthState(AUTH_DIR);
+  const { version } = await fetchLatestBaileysVersion().catch(() => ({ version: undefined }));
 
-client.on('qr', async (qr) => {
-  state.qr = qr;
-  setStatus('aguardando_qr');
-  console.log('QR Code gerado. Escaneie abaixo ou abra /qr?key=SUA_API_KEY no navegador.');
-  console.log(await QRCode.toString(qr, { type: 'terminal', small: true }));
-});
-client.on('authenticated', () => setStatus('autenticado'));
-client.on('ready', () => {
-  state.qr = null;
-  state.numero = client.info?.wid?.user || null;
-  setStatus('conectado');
-  console.log(`WhatsApp conectado (número ${state.numero}).`);
-});
-client.on('auth_failure', (msg) => {
-  setStatus('falha_autenticacao');
-  console.error('Falha de autenticação:', msg);
-});
-client.on('disconnected', async (motivo) => {
-  console.warn('WhatsApp desconectado:', motivo, '- reiniciando em 10s');
-  state.numero = null;
-  setStatus('desconectado');
-  await client.destroy().catch(() => {});
-  setTimeout(iniciar, 10_000);
-});
+  sock = makeWASocket({
+    version,
+    auth,
+    logger,
+    browser: Browsers.ubuntu('Chrome'),
+    markOnlineOnConnect: false,
+    syncFullHistory: false, // não pede o histórico completo de conversas: economiza memória
+    cachedGroupMetadata: async (jid) => gruposCache.get(jid),
+  });
 
-function iniciar() {
-  setStatus('iniciando');
-  client.initialize().catch(async (err) => {
-    console.error('Erro ao iniciar o WhatsApp:', err.message, '- nova tentativa em 30s');
-    setStatus('erro');
-    await client.destroy().catch(() => {}); // fecha o Chromium antes de tentar de novo
-    setTimeout(iniciar, 30_000);
+  sock.ev.on('creds.update', saveCreds);
+  sock.ev.on('groups.update', (lista) => lista.forEach((g) => gruposCache.delete(g.id)));
+  sock.ev.on('group-participants.update', (ev) => gruposCache.delete(ev.id));
+
+  sock.ev.on('connection.update', async ({ connection, lastDisconnect, qr }) => {
+    if (qr) {
+      state.qr = qr;
+      setStatus('aguardando_qr');
+      console.log('QR Code gerado. Abra /qr?key=SUA_API_KEY no navegador para escanear (ou use o QR abaixo).');
+      console.log(await QRCode.toString(qr, { type: 'terminal', small: true }));
+    }
+    if (connection === 'open') {
+      tentativas = 0;
+      state.qr = null;
+      state.numero = (sock.user?.id || '').split(':')[0].split('@')[0] || null;
+      setStatus('conectado');
+      console.log(`WhatsApp conectado (número ${state.numero}).`);
+    }
+    if (connection === 'close') {
+      const codigo = lastDisconnect?.error?.output?.statusCode;
+      state.numero = null;
+      if (codigo === DisconnectReason.loggedOut) {
+        // A sessão foi encerrada no celular: apaga o login salvo e gera um QR Code novo.
+        console.warn('Sessão encerrada no celular. Será preciso escanear o QR Code de novo.');
+        fs.rmSync(AUTH_DIR, { recursive: true, force: true });
+        gruposCache.clear();
+      }
+      tentativas += 1;
+      const espera = codigo === DisconnectReason.restartRequired ? 0 : Math.min(60, 3 * tentativas) * 1000;
+      console.warn(`Conexão fechada (código ${codigo ?? '?'}). Reconectando em ${espera / 1000}s.`);
+      setStatus('reconectando');
+      setTimeout(() => conectar().catch(falhaAoConectar), espera);
+    }
   });
 }
 
+function falhaAoConectar(err) {
+  console.error('Erro ao conectar no WhatsApp:', err.message, '- nova tentativa em 30s');
+  setStatus('erro');
+  setTimeout(() => conectar().catch(falhaAoConectar), 30_000);
+}
+
+// Imagem padrão + miniatura pronta (assim não é preciso biblioteca de imagens no servidor)
 let imagemPadrao;
 function carregarImagemPadrao() {
-  imagemPadrao ??= MessageMedia.fromFilePath(IMAGE_PATH);
+  imagemPadrao ??= {
+    image: fs.readFileSync(IMAGE_PATH),
+    mimetype: 'image/jpeg',
+    ...(IMAGE_PATH.endsWith('aniversario.jpg') && fs.existsSync(THUMB_PATH)
+      ? { jpegThumbnail: fs.readFileSync(THUMB_PATH).toString('base64'), width: 1688, height: 932 }
+      : {}),
+  };
   return imagemPadrao;
 }
 
@@ -111,7 +145,7 @@ app.get('/status', exigeChave, (req, res) => {
   res.json({ status: state.status, numero: state.numero, desde: state.desde, grupoPadrao: GROUP_ID || null });
 });
 
-// Página para escanear o QR Code pelo navegador (útil quando o serviço roda na nuvem).
+// Página para escanear o QR Code pelo navegador.
 app.get('/qr', exigeChave, async (req, res) => {
   let corpo;
   if (state.status === 'conectado') {
@@ -119,7 +153,7 @@ app.get('/qr', exigeChave, async (req, res) => {
   } else if (state.qr) {
     const img = await QRCode.toDataURL(state.qr, { width: 320, margin: 2 });
     corpo = `<h2>Escaneie com o WhatsApp do número da automação</h2>
-      <p>WhatsApp → Configurações → Dispositivos conectados → Conectar dispositivo</p>
+      <p>WhatsApp → Dispositivos conectados → Conectar dispositivo</p>
       <img src="${img}" alt="QR Code">`;
   } else {
     corpo = `<h2>Aguarde…</h2><p>Status: ${state.status}</p>`;
@@ -132,11 +166,13 @@ app.get('/qr', exigeChave, async (req, res) => {
 
 // Lista os grupos do número conectado, para descobrir o ID (…@g.us) do grupo dos colaboradores.
 app.get('/grupos', exigeChave, exigeConectado, async (req, res) => {
-  const chats = await client.getChats();
-  const grupos = chats
-    .filter((c) => c.isGroup)
-    .map((c) => ({ id: c.id._serialized, nome: c.name, participantes: c.participants?.length ?? null }));
-  res.json(grupos);
+  const grupos = await sock.groupFetchAllParticipating();
+  const lista = Object.values(grupos).map((g) => {
+    gruposCache.set(g.id, g);
+    return { id: g.id, nome: g.subject, participantes: g.participants?.length ?? null };
+  });
+  lista.sort((a, b) => String(a.nome).localeCompare(String(b.nome), 'pt-BR'));
+  res.json(lista);
 });
 
 // Envia a imagem de aniversário.
@@ -144,18 +180,24 @@ app.get('/grupos', exigeChave, exigeConectado, async (req, res) => {
 // Opcionais: "legenda" (texto pronto), "grupoId" (senão usa GROUP_ID), "imagemUrl" (senão usa a imagem padrão)
 app.post('/aniversario', exigeChave, exigeConectado, async (req, res) => {
   const { nome, nomes, legenda, grupoId, imagemUrl } = req.body || {};
-  const destino = grupoId || GROUP_ID;
+  const destino = String(grupoId || GROUP_ID).trim();
   if (!destino) return res.status(400).json({ ok: false, erro: 'Informe grupoId ou defina GROUP_ID' });
+  if (!/@(g\.us|s\.whatsapp\.net)$/.test(destino)) {
+    return res.status(400).json({ ok: false, erro: 'grupoId inválido: deve terminar em @g.us' });
+  }
 
   const nomeFinal = juntarNomes(Array.isArray(nomes) ? nomes : nome ? [nome] : []);
   const texto = legenda || (nomeFinal && MESSAGE_TEMPLATE.replaceAll('{nome}', nomeFinal));
   if (!texto) return res.status(400).json({ ok: false, erro: 'Informe nome, nomes ou legenda' });
 
   try {
-    const media = imagemUrl ? await MessageMedia.fromUrl(imagemUrl, { unsafeMime: true }) : carregarImagemPadrao();
-    const msg = await client.sendMessage(destino, media, { caption: texto });
+    if (destino.endsWith('@g.us') && !gruposCache.has(destino)) {
+      gruposCache.set(destino, await sock.groupMetadata(destino));
+    }
+    const media = imagemUrl ? { image: { url: imagemUrl } } : carregarImagemPadrao();
+    const msg = await sock.sendMessage(destino, { ...media, caption: texto });
     console.log(`Aniversário enviado para ${destino}: ${nomeFinal || '(legenda personalizada)'}`);
-    res.json({ ok: true, mensagemId: msg.id._serialized, destino, legenda: texto });
+    res.json({ ok: true, mensagemId: msg?.key?.id ?? null, destino, legenda: texto });
   } catch (err) {
     console.error('Erro ao enviar:', err);
     res.status(500).json({ ok: false, erro: err.message });
@@ -163,11 +205,11 @@ app.post('/aniversario', exigeChave, exigeConectado, async (req, res) => {
 });
 
 const server = app.listen(PORT, () => console.log(`Serviço de aniversários ouvindo na porta ${PORT}`));
-iniciar();
+conectar().catch(falhaAoConectar);
 
-async function encerrar() {
+function encerrar() {
   server.close();
-  await client.destroy().catch(() => {});
+  sock?.end(undefined);
   process.exit(0);
 }
 process.on('SIGTERM', encerrar);

@@ -110,7 +110,9 @@ igual. Mudam só dois pontos:
 
 **a) Nó "Aniversariantes de hoje" (Code)**: cole o conteúdo de [`n8n/aniversariantes-de-hoje.js`](n8n/aniversariantes-de-hoje.js)
 (modo *Run Once for All Items*) e ajuste `COL_NOME` / `COL_DATA` para os cabeçalhos da sua planilha. Ele aceita datas
-como número do Excel, `25/03/1990` ou `1990-03-25`, usa o fuso de Brasília e devolve um item `{ nome }` por aniversariante.
+como número do Excel, `25/03/1990`, `03/25/1990` (descobre sozinho se a coluna é dia/mês ou mês/dia) ou `1990-03-25`,
+usa o fuso de Brasília, ignora nomes repetidos, escreve o nome como "Maria da Silva" (desligue com
+`FORMATAR_NOME = false`) e devolve um item `{ nome }` por aniversariante.
 
 **b) Nó "Enviar imagem no WhatsApp" (HTTP Request)**: troque a chamada da Z-API por:
 

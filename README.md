@@ -65,7 +65,8 @@ que baixa uma cópia completa do banco.
   - **Colaboradores**: importa `.xlsx`/`.csv` com as colunas `CPF, NOME, CARGO, FILIAL, REGIONAL` e, para a Bolívia, `CI`
     (CPF em branco e o número do CI na coluna CI)
     (modelo em `public/exemplos/colaboradores-modelo.csv`). Modo *adicionar/atualizar* ou *substituir base*
-    (quem sai da planilha perde o acesso, mas o histórico fica). Também dá para bloquear/liberar um CPF.
+    (quem sai da planilha perde o acesso, mas o histórico fica). Também dá para **adicionar um colaborador manualmente**
+    (CPF, com conferência dos dígitos, ou CI), **editar** nome, cargo, filial e regional, e bloquear/liberar o acesso.
   - **Temas & Materiais**: cria os temas (itens do menu lateral), envia os PDFs e monta **quantas avaliações quiser
     por tema**, com gabarito (formulário ou colando as questões em texto, marcando a correta com `*`). Cada avaliação
     pode ser liberada após um material específico ou após todos os materiais do tema.

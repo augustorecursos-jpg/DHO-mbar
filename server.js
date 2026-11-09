@@ -473,6 +473,50 @@ app.post('/api/admin/colaboradores/importar', exigirAdmin, (req, res) => {
   res.json({ importados: validos.length, invalidas, ativos });
 });
 
+/** Dígitos verificadores do CPF: no cadastro manual, pega erros de digitação. */
+function cpfComDigitosValidos(cpf) {
+  if (/^(\d)\1{10}$/.test(cpf)) return false;
+  const dv = (n) => {
+    const soma = [...cpf.slice(0, n)].reduce((s, d, i) => s + Number(d) * (n + 1 - i), 0);
+    return ((soma * 10) % 11) % 10;
+  };
+  return dv(9) === Number(cpf[9]) && dv(10) === Number(cpf[10]);
+}
+
+function dadosColaborador(body) {
+  const texto = (v) => String(v ?? '').trim().slice(0, 200);
+  return { nome: texto(body?.nome), cargo: texto(body?.cargo), filial: texto(body?.filial), regional: texto(body?.regional) };
+}
+
+// Cadastro manual de um colaborador (CPF ou, para a Bolívia, CI).
+app.post('/api/admin/colaboradores', exigirAdmin, (req, res) => {
+  const ci = req.body?.tipo === 'ci';
+  const documento = String(req.body?.documento ?? '');
+  const digitos = documento.replace(/\D/g, '');
+  const chave = ci ? normalizarCi(documento) : (digitos.length === 11 ? normalizarCpf(digitos) : null);
+  if (!chave) return res.status(400).json({ erro: ci ? 'Informe o número do CI (4 a 10 números).' : 'Informe os 11 números do CPF.' });
+  if (!ci && !cpfComDigitosValidos(chave)) return res.status(400).json({ erro: 'CPF inválido. Confira os números digitados.' });
+  const d = dadosColaborador(req.body);
+  if (!d.nome) return res.status(400).json({ erro: 'Informe o nome do colaborador.' });
+  const existente = db.prepare('SELECT nome FROM colaboradores WHERE cpf = ?').get(chave);
+  if (existente) {
+    return res.status(409).json({ erro: `Este ${ci ? 'CI' : 'CPF'} já está cadastrado para ${existente.nome}. Use “Editar” na lista para alterar os dados.` });
+  }
+  db.prepare('INSERT INTO colaboradores (cpf, nome, cargo, filial, regional, ativo) VALUES (?, ?, ?, ?, ?, 1)')
+    .run(chave, d.nome, d.cargo, d.filial, d.regional);
+  res.json({ ok: true, cpf: chave });
+});
+
+// Edição dos dados (o CPF/CI não muda, porque o histórico fica ligado a ele).
+app.put('/api/admin/colaboradores/:cpf', exigirAdmin, (req, res) => {
+  const d = dadosColaborador(req.body);
+  if (!d.nome) return res.status(400).json({ erro: 'Informe o nome do colaborador.' });
+  const r = db.prepare("UPDATE colaboradores SET nome = ?, cargo = ?, filial = ?, regional = ?, atualizado_em = datetime('now') WHERE cpf = ?")
+    .run(d.nome, d.cargo, d.filial, d.regional, req.params.cpf);
+  if (!r.changes) return res.status(404).json({ erro: 'Colaborador não encontrado.' });
+  res.json({ ok: true });
+});
+
 app.patch('/api/admin/colaboradores/:cpf', exigirAdmin, (req, res) => {
   db.prepare('UPDATE colaboradores SET ativo = ? WHERE cpf = ?').run(req.body?.ativo ? 1 : 0, req.params.cpf);
   res.json({ ok: true });

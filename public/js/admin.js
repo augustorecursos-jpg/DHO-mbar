@@ -120,18 +120,102 @@ function renderColaboradores() {
   const ativos = adm.colaboradores.filter(c => c.ativo).length;
   document.getElementById('qtd-colab').textContent = `· ${ativos} ativos de ${adm.colaboradores.length}`;
   document.getElementById('tabela-colab').innerHTML = `
-    <tr><th>CPF / CI</th><th>Nome</th><th>Cargo</th><th>Filial</th><th>Regional</th><th>Acesso</th></tr>
+    <tr><th>CPF / CI</th><th>Nome</th><th>Cargo</th><th>Filial</th><th>Regional</th><th>Ações</th></tr>
     ${lista.slice(0, 500).map(c => `
       <tr class="${c.ativo ? '' : 'inativo'}">
         <td>${formatarCpf(c.cpf)}</td><td>${esc(c.nome)}</td><td>${esc(c.cargo)}</td><td>${esc(c.filial)}</td><td>${esc(c.regional)}</td>
-        <td><button class="btn btn-sm ${c.ativo ? 'btn-claro' : 'btn-laranja'}" data-acesso="${c.cpf}" data-ativo="${c.ativo ? 0 : 1}">${c.ativo ? 'Bloquear' : 'Liberar'}</button></td>
-      </tr>`).join('') || '<tr><td colspan="6">Nenhum colaborador. Importe a planilha acima.</td></tr>'}`;
+        <td class="acoes-colab"><button class="btn btn-sm btn-claro" data-editar="${esc(c.cpf)}">Editar</button>
+          <button class="btn btn-sm ${c.ativo ? 'btn-claro' : 'btn-laranja'}" data-acesso="${esc(c.cpf)}" data-ativo="${c.ativo ? 0 : 1}">${c.ativo ? 'Bloquear' : 'Liberar'}</button></td>
+      </tr>`).join('') || '<tr><td colspan="6">Nenhum colaborador. Importe a planilha ou adicione manualmente acima.</td></tr>'}`;
+  // Sugestões de cargo, filial e regional a partir da base atual.
+  for (const [id, campo] of [['lista-cargos', 'cargo'], ['lista-filiais', 'filial'], ['lista-regionais', 'regional']]) {
+    const valores = [...new Set(adm.colaboradores.map(c => c[campo]).filter(Boolean))].sort((a, b) => a.localeCompare(b, 'pt-BR'));
+    document.getElementById(id).innerHTML = valores.map(v => `<option value="${esc(v)}">`).join('');
+  }
 }
+
+// ---------- Cadastro manual ----------
+const formColab = document.getElementById('form-colab');
+const colabCampo = (id) => document.getElementById(`colab-${id}`);
+let colabEditando = null;
+
+function mensagemColab(texto, tipo = 'erro') {
+  const msg = colabCampo('msg');
+  msg.textContent = texto;
+  msg.className = `colab-msg ${texto ? tipo : ''}`;
+}
+
+function ajustarDocumento() {
+  const ci = colabCampo('tipo').value === 'ci';
+  colabCampo('documento').placeholder = ci ? 'Somente números (ex.: 1108503)' : '000.000.000-00';
+}
+colabCampo('tipo').addEventListener('change', () => { ajustarDocumento(); colabCampo('documento').value = ''; });
+colabCampo('documento').addEventListener('input', () => {
+  const el = colabCampo('documento');
+  if (colabCampo('tipo').value === 'cpf') {
+    const d = el.value.replace(/\D/g, '').slice(0, 11);
+    el.value = d.length === 11 ? formatarCpf(d) : d;
+  }
+});
+
+function limparFormColab() {
+  colabEditando = null;
+  formColab.reset();
+  ajustarDocumento();
+  colabCampo('tipo').disabled = false;
+  colabCampo('documento').disabled = false;
+  document.getElementById('colab-form-titulo').innerHTML = '➕ Adicionar colaborador <small>· cadastro manual, sem planilha</small>';
+  colabCampo('salvar').textContent = 'Adicionar colaborador';
+  colabCampo('cancelar').hidden = true;
+}
+colabCampo('cancelar').addEventListener('click', () => { limparFormColab(); mensagemColab(''); });
+
+function editarColab(chave) {
+  const c = adm.colaboradores.find(x => x.cpf === chave);
+  if (!c) return;
+  colabEditando = c.cpf;
+  colabCampo('tipo').value = c.cpf.startsWith('CI') ? 'ci' : 'cpf';
+  colabCampo('documento').value = formatarCpf(c.cpf).replace(/^CI /, '');
+  colabCampo('tipo').disabled = true;
+  colabCampo('documento').disabled = true;
+  for (const campo of ['nome', 'cargo', 'filial', 'regional']) colabCampo(campo).value = c[campo] || '';
+  document.getElementById('colab-form-titulo').innerHTML = `✏️ Editar colaborador <small>· o ${c.cpf.startsWith('CI') ? 'CI' : 'CPF'} não muda, porque o histórico fica ligado a ele</small>`;
+  colabCampo('salvar').textContent = 'Salvar alterações';
+  colabCampo('cancelar').hidden = false;
+  mensagemColab('');
+  formColab.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  colabCampo('nome').focus({ preventScroll: true });
+}
+
+formColab.addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const dados = Object.fromEntries(['nome', 'cargo', 'filial', 'regional'].map(c => [c, colabCampo(c).value.trim()]));
+  const botao = colabCampo('salvar');
+  botao.disabled = true;
+  try {
+    if (colabEditando) {
+      await api(`/api/admin/colaboradores/${encodeURIComponent(colabEditando)}`, { method: 'PUT', body: dados });
+      toast(`Dados de ${dados.nome} atualizados.`);
+    } else {
+      await api('/api/admin/colaboradores', { method: 'POST', body: { ...dados, tipo: colabCampo('tipo').value, documento: colabCampo('documento').value } });
+      toast(`${dados.nome} adicionado(a). O acesso já está liberado.`);
+    }
+    limparFormColab();
+    mensagemColab('');
+    await carregarColaboradores();
+  } catch (err) {
+    mensagemColab(err.message);
+  } finally {
+    botao.disabled = false;
+  }
+});
 document.getElementById('busca-colab').addEventListener('input', renderColaboradores);
 document.getElementById('tabela-colab').addEventListener('click', async (e) => {
+  const ed = e.target.closest('[data-editar]');
+  if (ed) return editarColab(ed.dataset.editar);
   const b = e.target.closest('[data-acesso]');
   if (!b) return;
-  await api(`/api/admin/colaboradores/${b.dataset.acesso}`, { method: 'PATCH', body: { ativo: b.dataset.ativo === '1' } });
+  await api(`/api/admin/colaboradores/${encodeURIComponent(b.dataset.acesso)}`, { method: 'PATCH', body: { ativo: b.dataset.ativo === '1' } });
   carregarColaboradores();
 });
 

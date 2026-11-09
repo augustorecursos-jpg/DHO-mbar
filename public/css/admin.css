@@ -16,6 +16,16 @@
 #previa { margin-top: 1rem; font-size: .9rem; }
 #previa .aviso { color: #b54d12; }
 
+.grade-colab { display: grid; grid-template-columns: 170px 220px 1fr 1fr; gap: .8rem 1rem; margin-top: 1rem; }
+.grade-colab label { display: grid; gap: .35rem; font-weight: 700; font-size: .82rem; color: var(--marinho); }
+.grade-colab .largo { grid-column: span 2; }
+.grade-colab .campo:disabled { background: var(--fundo); color: var(--texto-suave); }
+.colab-acoes { align-items: center; justify-content: flex-end; }
+.colab-msg { margin: 0 auto 0 0; font-weight: 700; font-size: .9rem; }
+.colab-msg.erro { color: var(--vermelho); }
+.acoes-colab { white-space: nowrap; }
+.acoes-colab .btn + .btn { margin-left: .3rem; }
+@media (max-width: 860px) { .grade-colab { grid-template-columns: 1fr 1fr; } .grade-colab .largo { grid-column: 1 / -1; } }
 .cab-tabela { display: flex; align-items: center; gap: 1rem; flex-wrap: wrap; margin-bottom: 1rem; }
 .busca { max-width: 320px; margin-left: auto; }
 .filtros { display: flex; gap: .5rem; margin-left: auto; flex-wrap: wrap; }

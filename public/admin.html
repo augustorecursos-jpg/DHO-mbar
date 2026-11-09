@@ -103,6 +103,38 @@
           </div>
           <div id="previa"></div>
         </div>
+        <form class="cartao novo-colab" id="form-colab" style="margin-top:1.4rem" novalidate>
+          <h3 id="colab-form-titulo">➕ Adicionar colaborador <small>· cadastro manual, sem planilha</small></h3>
+          <div class="grade-colab">
+            <label>Documento
+              <select class="campo" id="colab-tipo">
+                <option value="cpf">CPF</option>
+                <option value="ci">CI (Bolívia)</option>
+              </select>
+            </label>
+            <label>Número
+              <input class="campo" id="colab-documento" inputmode="numeric" autocomplete="off" placeholder="000.000.000-00" required>
+            </label>
+            <label class="largo">Nome completo
+              <input class="campo" id="colab-nome" autocomplete="off" required>
+            </label>
+            <label class="largo">Cargo
+              <input class="campo" id="colab-cargo" autocomplete="off" list="lista-cargos">
+            </label>
+            <label>Filial
+              <input class="campo" id="colab-filial" autocomplete="off" list="lista-filiais">
+            </label>
+            <label>Regional
+              <input class="campo" id="colab-regional" autocomplete="off" list="lista-regionais">
+            </label>
+          </div>
+          <datalist id="lista-cargos"></datalist><datalist id="lista-filiais"></datalist><datalist id="lista-regionais"></datalist>
+          <div class="linha-form colab-acoes">
+            <p class="colab-msg" id="colab-msg" role="alert"></p>
+            <button type="button" class="btn btn-claro" id="colab-cancelar" hidden>Cancelar edição</button>
+            <button class="btn btn-laranja" type="submit" id="colab-salvar">Adicionar colaborador</button>
+          </div>
+        </form>
         <div class="cartao" style="margin-top:1.4rem">
           <div class="cab-tabela">
             <h3>👥 Colaboradores <small id="qtd-colab"></small></h3>

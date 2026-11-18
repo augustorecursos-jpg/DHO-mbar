@@ -82,6 +82,10 @@ que baixa uma cópia completa do banco.
     por módulo e exporta a frequência consolidada (do módulo filtrado ou de todos).
   - **Resultados**: progresso por colaborador com filtro por regional/filial e exportação CSV.
 
+  - **Filtro de módulo**: Indicadores, Avaliação de Reação, Aulas ao vivo e Resultados têm o mesmo filtro. A escolha
+    feita em uma tela vale para as outras; com um módulo escolhido, todos os números (materiais, avaliações, certificados,
+    presenças e conclusão) ficam restritos a ele.
+
 ## Regras implementadas
 
 - CPF normalizado (aceita com ou sem pontuação e recupera zeros à esquerda que o Excel remove).

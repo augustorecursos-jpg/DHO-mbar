@@ -41,6 +41,27 @@ document.querySelectorAll('[data-aba]').forEach(b => b.addEventListener('click',
 document.getElementById('btn-menu').addEventListener('click', () => document.getElementById('lateral').classList.toggle('aberta'));
 document.addEventListener('click', (e) => { if (e.target.closest('[data-fechar]')) e.target.closest('dialog').close(); });
 
+// ---------- Filtro de módulo (o mesmo em todas as telas) ----------
+// A escolha feita em uma tela vale para as outras: Indicadores, Avaliação de Reação, Aulas ao vivo e Resultados.
+adm.modulo = '';
+
+function opcoesModulo(id, modulos, contagem = null) {
+  const sel = document.getElementById(id);
+  if (adm.modulo && !modulos.some(m => String(m.id) === adm.modulo)) adm.modulo = '';
+  sel.innerHTML = '<option value="">Todos os módulos</option>' + modulos.map(m =>
+    `<option value="${m.id}">${esc(m.titulo)}${contagem ? ` (${contagem(m)})` : ''}</option>`).join('');
+  sel.value = adm.modulo;
+  sel.classList.toggle('filtrando', Boolean(adm.modulo));
+}
+
+function aoTrocarModulo(id, acao) {
+  document.getElementById(id).addEventListener('change', (e) => {
+    adm.modulo = e.target.value;
+    e.target.classList.toggle('filtrando', Boolean(adm.modulo));
+    acao();
+  });
+}
+
 // ---------- Colaboradores ----------
 const semAcento = (s) => String(s ?? '').normalize('NFD').replace(/[̀-ͯ]/g, '').trim().toLowerCase();
 
@@ -470,16 +491,19 @@ const fmtPct = (n) => (n == null ? '–' : `${fmt(n, Number.isInteger(n) ? 0 : 1
 async function carregarIndicadores() {
   const regional = document.getElementById('ind-regional').value;
   const filial = document.getElementById('ind-filial').value;
-  const q = new URLSearchParams({ regional, filial });
+  const q = new URLSearchParams({ regional, filial, modulo: adm.modulo });
   const d = await api(`/api/admin/indicadores?${q}`);
   preencherFiltro('ind-regional', d.filtros.regionais, regional, 'Todas as regionais');
   preencherFiltro('ind-filial', d.filtros.filiais, filial, 'Todas as filiais');
+  opcoesModulo('ind-modulo', d.filtros.modulos);
   const r = d.resumo;
+  const alvo = d.modulo ? 'o módulo' : 'a trilha';
+  document.getElementById('ind-titulo-regional').textContent = `Conclusão ${d.modulo ? 'do módulo' : 'da trilha'} por regional`;
 
   document.getElementById('ind-kpis').innerHTML = [
     ['👥', fmt(r.ativos), 'colaboradores ativos', ''],
     ['🔑', fmt(r.acessaram), 'acessaram a plataforma', `${fmtPct(r.pct_acessaram)} dos ativos`],
-    ['🏁', fmt(r.concluiram), 'concluíram a trilha', `${fmtPct(r.pct_concluiram)} dos ativos`],
+    ['🏁', fmt(r.concluiram), `concluíram ${alvo}`, `${fmtPct(r.pct_concluiram)} dos ativos`],
     ['🎓', fmt(r.certificados), 'certificados emitidos', `${fmt(r.materiais_vistos)} materiais estudados`],
     ['📝', r.nota_media == null ? '–' : `${fmt(r.nota_media, 1)}%`, 'nota média', `melhor nota de ${fmt(r.tentativas_realizadas)} avaliações feitas`],
     ['✅', fmtPct(r.aprovacao), 'aprovação nas avaliações', `atingiram ${d.nota_minima}% ou mais`],
@@ -504,7 +528,7 @@ async function carregarIndicadores() {
       <td>${a.tentativas_media == null ? '–' : fmt(a.tentativas_media, 1)}</td></tr>`).join('') || '<tr><td colspan="7">Nenhuma avaliação cadastrada.</td></tr>'}`;
 
   document.getElementById('ind-filiais').innerHTML = `
-    <tr><th>Filial</th><th>Ativos</th><th>Acessaram</th><th>Concluíram a trilha</th><th>Certificados</th><th>Nota média</th></tr>
+    <tr><th>Filial</th><th>Ativos</th><th>Acessaram</th><th>Concluíram ${alvo}</th><th>Certificados</th><th>Nota média</th></tr>
     ${d.por_filial.map(f => `<tr>
       <td>${esc(f.nome)}</td><td>${fmt(f.ativos)}</td><td>${fmt(f.acessaram)}</td>
       <td><span class="barra-prog"><i style="width:${f.pct_conclusao}%"></i></span>${fmt(f.concluiram)} (${fmtPct(f.pct_conclusao)})</td>
@@ -567,6 +591,7 @@ document.addEventListener('focusin', (e) => {
 document.addEventListener('focusout', () => { dica.hidden = true; });
 document.getElementById('ind-regional').addEventListener('change', () => { document.getElementById('ind-filial').value = ''; carregarIndicadores(); });
 document.getElementById('ind-filial').addEventListener('change', carregarIndicadores);
+aoTrocarModulo('ind-modulo', carregarIndicadores);
 
 // ---------- Avaliação de reação ----------
 const TIPOS_REACAO = { escala: 'Escala 1 a 5', nota: 'Nota 0 a 10', escolha: 'Múltipla escolha', texto: 'Texto livre' };
@@ -662,11 +687,8 @@ document.getElementById('form-reacao').addEventListener('submit', async (e) => {
 const num = (n, casas = 2) => String(Math.round(n * 10 ** casas) / 10 ** casas).replace('.', ',');
 
 async function carregarReacaoResultados() {
-  const sel = document.getElementById('reacao-modulo');
-  const atual = sel.value;
-  const r = await api(`/api/admin/reacao/resultados?modulo=${atual}`);
-  sel.innerHTML = '<option value="">Todos os módulos</option>' + r.modulos.map(m =>
-    `<option value="${m.id}" ${String(m.id) === atual ? 'selected' : ''}>${esc(m.titulo)} (${m.respostas})</option>`).join('');
+  const r = await api(`/api/admin/reacao/resultados?modulo=${adm.modulo}`);
+  opcoesModulo('reacao-modulo', r.modulos, m => m.respostas);
   document.getElementById('reacao-qrcodes').innerHTML = r.modulos.map(m => `
     <div class="qr-item"><span>${esc(m.titulo)} <small class="q-dica">· ${m.respostas} resposta(s)</small></span>
       <button type="button" class="btn btn-marinho btn-sm" data-qr="${m.id}">📱 QR Code</button></div>`).join('') || '<p class="q-dica">Cadastre um tema para gerar o QR Code.</p>';
@@ -692,7 +714,7 @@ async function carregarReacaoResultados() {
     return `${cab}<div class="res-pergunta"><p class="res-titulo">${esc(p.pergunta)} <small>· ${TIPOS_REACAO[p.tipo] || ''} · ${p.respostas} resposta(s)</small></p>${corpo}</div>`;
   }).join('') : '<p class="q-dica">Quando os colaboradores responderem, os resultados aparecem aqui.</p>';
 }
-document.getElementById('reacao-modulo').addEventListener('change', carregarReacaoResultados);
+aoTrocarModulo('reacao-modulo', carregarReacaoResultados);
 
 const modalQr = document.getElementById('modal-qr');
 document.getElementById('reacao-qrcodes').addEventListener('click', async (e) => {
@@ -747,18 +769,14 @@ async function carregarEncontros() {
   const campoData = document.getElementById('encontro-data');
   if (!campoData.value) campoData.value = proximaQuarta(r.hoje);
 
-  // Filtro por módulo: só os módulos que têm aula cadastrada.
-  const filtro = document.getElementById('encontros-filtro');
-  const filtroAtual = filtro.value;
-  const comAula = modulos.filter(m => r.encontros.some(e => e.modulo_id === m.id));
-  filtro.innerHTML = '<option value="">Todos os módulos</option>' + comAula.map(m =>
-    `<option value="${m.id}" ${String(m.id) === filtroAtual ? 'selected' : ''}>${esc(m.titulo)} (${r.encontros.filter(e => e.modulo_id === m.id).length})</option>`).join('');
+  opcoesModulo('encontros-filtro', modulos, m => r.encontros.filter(e => e.modulo_id === m.id).length);
+  if (adm.modulo) sel.value = adm.modulo;
   renderEncontros();
 }
 
 function renderEncontros() {
   const r = adm.encontros;
-  const filtro = document.getElementById('encontros-filtro').value;
+  const filtro = adm.modulo;
   const lista = r.encontros.filter(e => !filtro || String(e.modulo_id) === filtro);
   const presencas = lista.reduce((s, e) => s + e.presentes, 0);
   document.getElementById('encontros-resumo').textContent = lista.length
@@ -783,11 +801,14 @@ function renderEncontros() {
       </tr>`;
     }).join('') || `<tr><td colspan="5">${filtro ? 'Nenhuma aula deste módulo.' : 'Nenhuma aula ao vivo cadastrada. Crie a primeira acima.'}</td></tr>`}`;
 }
-document.getElementById('encontros-filtro').addEventListener('change', renderEncontros);
+aoTrocarModulo('encontros-filtro', () => {
+  if (adm.modulo) document.getElementById('encontro-modulo').value = adm.modulo;
+  renderEncontros();
+});
 
 document.getElementById('encontros-exportar').addEventListener('click', async () => {
   const filtro = document.getElementById('encontros-filtro');
-  const linhas = await api(`/api/admin/presencas?modulo=${filtro.value}`);
+  const linhas = await api(`/api/admin/presencas?modulo=${adm.modulo}`);
   if (!linhas.length) return toast('Nenhuma presença registrada para exportar.', 'erro');
   const cab = ['DATA', 'MODULO', 'AULA', 'CPF / CI', 'NOME', 'CARGO', 'FILIAL', 'REGIONAL', 'REGISTRO', 'ORIGEM'];
   const tabela = linhas.map(p => [p.data.split('-').reverse().join('/'), p.modulo, p.titulo || 'Aula ao vivo', formatarCpf(p.cpf), p.nome, p.cargo,
@@ -962,7 +983,8 @@ async function baixarArtePresenca(q) {
 
 // ---------- Resultados ----------
 async function carregarResultados() {
-  adm.resultados = await api('/api/admin/resultados');
+  adm.resultados = await api(`/api/admin/resultados?modulo=${adm.modulo}`);
+  opcoesModulo('filtro-modulo', adm.resultados.modulos);
   const opcoes = (campo) => [...new Set(adm.resultados.linhas.map(l => l[campo]).filter(Boolean))].sort();
   for (const [id, campo, rotulo] of [['filtro-regional', 'regional', 'Todas as regionais'], ['filtro-filial', 'filial', 'Todas as filiais']]) {
     const sel = document.getElementById(id);
@@ -983,7 +1005,8 @@ function renderResultados() {
   const linhas = linhasFiltradas();
   const iniciaram = linhas.filter(l => l.aulas_vistas > 0).length;
   const concluiram = linhas.filter(l => tp && l.certificados >= tp).length;
-  document.getElementById('resumo-resultados').textContent = `· ${linhas.length} colaboradores · ${iniciaram} iniciaram · ${concluiram} concluíram a trilha`;
+  const alvo = adm.modulo ? 'o módulo' : 'a trilha';
+  document.getElementById('resumo-resultados').textContent = `· ${linhas.length} colaboradores · ${iniciaram} iniciaram · ${concluiram} concluíram ${alvo}`;
   document.getElementById('tabela-resultados').innerHTML = `
     <tr><th>Nome</th><th>CPF / CI</th><th>Cargo</th><th>Filial</th><th>Regional</th><th>Materiais</th><th>Certificados</th><th>Média avaliações</th><th>Aulas ao vivo</th><th>Última prova</th></tr>
     ${linhas.map(l => {
@@ -1000,12 +1023,15 @@ function renderResultados() {
 }
 document.getElementById('filtro-regional').addEventListener('change', renderResultados);
 document.getElementById('filtro-filial').addEventListener('change', renderResultados);
+aoTrocarModulo('filtro-modulo', carregarResultados);
 
 document.getElementById('exportar').addEventListener('click', () => {
   const { total_aulas: ta, total_provas: tp } = adm.resultados;
-  const cab = ['CPF / CI', 'NOME', 'CARGO', 'FILIAL', 'REGIONAL', 'AULAS CONCLUIDAS', 'TOTAL AULAS', 'CERTIFICADOS', 'TOTAL PROVAS', 'MEDIA PROVAS', 'AULAS AO VIVO', 'TOTAL AULAS AO VIVO', 'ULTIMA PROVA'];
-  const linhas = linhasFiltradas().map(l => [formatarCpf(l.cpf), l.nome, l.cargo, l.filial, l.regional, l.aulas_vistas, ta, l.certificados, tp, l.media ?? '', l.presencas, adm.resultados.total_encontros, l.ultima_prova ?? '']);
-  baixarCsv(`resultados-trilha-${new Date().toISOString().slice(0, 10)}.csv`, [cab, ...linhas]);
+  const modulo = adm.modulo ? adm.resultados.modulos.find(m => String(m.id) === adm.modulo).titulo : 'Todos os módulos';
+  const cab = ['MODULO', 'CPF / CI', 'NOME', 'CARGO', 'FILIAL', 'REGIONAL', 'AULAS CONCLUIDAS', 'TOTAL AULAS', 'CERTIFICADOS', 'TOTAL PROVAS', 'MEDIA PROVAS', 'AULAS AO VIVO', 'TOTAL AULAS AO VIVO', 'ULTIMA PROVA'];
+  const linhas = linhasFiltradas().map(l => [modulo, formatarCpf(l.cpf), l.nome, l.cargo, l.filial, l.regional, l.aulas_vistas, ta, l.certificados, tp, l.media ?? '', l.presencas, adm.resultados.total_encontros, l.ultima_prova ?? '']);
+  const sufixo = adm.modulo ? `-${modulo.normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^\w]+/g, '-').toLowerCase()}` : '';
+  baixarCsv(`resultados-trilha${sufixo}-${new Date().toISOString().slice(0, 10)}.csv`, [cab, ...linhas]);
 });
 
 function baixarCsv(nome, tabela) {

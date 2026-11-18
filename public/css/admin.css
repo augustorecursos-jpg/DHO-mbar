@@ -31,6 +31,7 @@
 .pres-manual { margin: 0 0 .4rem; align-items: center; }
 .pres-manual .campo { max-width: 260px; }
 #qr-arte { justify-self: center; }
+.campo.filtro-modulo.filtrando { border-color: var(--laranja); background: var(--laranja-suave); color: var(--marinho); font-weight: 700; }
 .cab-tabela { display: flex; align-items: center; gap: 1rem; flex-wrap: wrap; margin-bottom: 1rem; }
 .busca { max-width: 320px; margin-left: auto; }
 .filtros { display: flex; gap: .5rem; margin-left: auto; flex-wrap: wrap; }

@@ -668,19 +668,24 @@ app.delete('/api/admin/provas/:id', exigirAdmin, (req, res) => {
 
 // -- Resultados --
 
-app.get('/api/admin/resultados', exigirAdmin, (_req, res) => {
-  const totalAulas = db.prepare('SELECT COUNT(*) AS n FROM aulas').get().n;
-  const totalProvas = db.prepare('SELECT COUNT(*) AS n FROM provas').get().n;
+// Progresso por colaborador; com ?modulo=<id>, todos os números (e os totais) ficam restritos ao módulo.
+app.get('/api/admin/resultados', exigirAdmin, (req, res) => {
+  const p = { m: Number(req.query.modulo) || null };
+  const totalAulas = db.prepare('SELECT COUNT(*) AS n FROM aulas WHERE $m IS NULL OR modulo_id = $m').get(p).n;
+  const totalProvas = db.prepare('SELECT COUNT(*) AS n FROM provas WHERE $m IS NULL OR modulo_id = $m').get(p).n;
+  const totalEncontros = db.prepare('SELECT COUNT(*) AS n FROM encontros WHERE $m IS NULL OR modulo_id = $m').get(p).n;
   const linhas = db.prepare(`
     SELECT c.cpf, c.nome, c.cargo, c.filial, c.regional,
-      (SELECT COUNT(*) FROM aulas_vistas v WHERE v.cpf = c.cpf) AS aulas_vistas,
-      (SELECT COUNT(*) FROM certificados ce WHERE ce.cpf = c.cpf) AS certificados,
-      (SELECT ROUND(AVG(t.melhor), 1) FROM (SELECT MAX(nota) AS melhor FROM tentativas WHERE cpf = c.cpf GROUP BY prova_id) t) AS media,
-      (SELECT MAX(feito_em) FROM tentativas WHERE cpf = c.cpf) AS ultima_prova,
-      (SELECT COUNT(*) FROM presencas pr WHERE pr.cpf = c.cpf) AS presencas
-    FROM colaboradores c WHERE c.ativo = 1 ORDER BY c.regional, c.filial, c.nome`).all();
-  const totalEncontros = db.prepare('SELECT COUNT(*) AS n FROM encontros').get().n;
-  res.json({ total_aulas: totalAulas, total_provas: totalProvas, total_encontros: totalEncontros, linhas });
+      (SELECT COUNT(*) FROM aulas_vistas v JOIN aulas a ON a.id = v.aula_id WHERE v.cpf = c.cpf AND ($m IS NULL OR a.modulo_id = $m)) AS aulas_vistas,
+      (SELECT COUNT(*) FROM certificados ce WHERE ce.cpf = c.cpf AND ($m IS NULL OR ce.modulo_id = $m)) AS certificados,
+      (SELECT ROUND(AVG(t.melhor), 1) FROM (
+        SELECT MAX(tt.nota) AS melhor FROM tentativas tt JOIN provas pv ON pv.id = tt.prova_id
+        WHERE tt.cpf = c.cpf AND ($m IS NULL OR pv.modulo_id = $m) GROUP BY tt.prova_id) t) AS media,
+      (SELECT MAX(tt.feito_em) FROM tentativas tt JOIN provas pv ON pv.id = tt.prova_id WHERE tt.cpf = c.cpf AND ($m IS NULL OR pv.modulo_id = $m)) AS ultima_prova,
+      (SELECT COUNT(*) FROM presencas pr JOIN encontros e ON e.id = pr.encontro_id WHERE pr.cpf = c.cpf AND ($m IS NULL OR e.modulo_id = $m)) AS presencas
+    FROM colaboradores c WHERE c.ativo = 1 ORDER BY c.regional, c.filial, c.nome`).all(p);
+  const modulos = db.prepare('SELECT id, titulo FROM modulos ORDER BY ordem, id').all();
+  res.json({ modulos, total_aulas: totalAulas, total_provas: totalProvas, total_encontros: totalEncontros, linhas });
 });
 
 // -- Indicadores (painel do RH) --
@@ -688,17 +693,24 @@ app.get('/api/admin/resultados', exigirAdmin, (_req, res) => {
 app.get('/api/admin/indicadores', exigirAdmin, (req, res) => {
   const regional = String(req.query.regional || '');
   const filial = String(req.query.filial || '');
+  const moduloId = Number(req.query.modulo) || null;
   const todos = db.prepare('SELECT cpf, nome, cargo, filial, regional, acessos, ultimo_acesso FROM colaboradores WHERE ativo = 1').all();
   const colabs = todos.filter(c => (!regional || c.regional === regional) && (!filial || c.filial === filial));
   const noFiltro = new Set(colabs.map(c => c.cpf));
   const doFiltro = (rows) => rows.filter(r => noFiltro.has(r.cpf));
 
-  const modulos = db.prepare('SELECT id, titulo, icone FROM modulos ORDER BY ordem, id').all();
-  const aulas = db.prepare('SELECT id, modulo_id FROM aulas').all();
-  const provas = db.prepare('SELECT p.id, p.modulo_id, p.titulo, m.titulo AS tema FROM provas p JOIN modulos m ON m.id = p.modulo_id ORDER BY m.ordem, p.ordem, p.id').all();
-  const vistas = doFiltro(db.prepare('SELECT cpf, aula_id FROM aulas_vistas').all());
-  const melhores = doFiltro(db.prepare('SELECT cpf, prova_id, MAX(nota) AS melhor, COUNT(*) AS tentativas FROM tentativas GROUP BY cpf, prova_id').all());
-  const certs = doFiltro(db.prepare('SELECT cpf, prova_id, modulo_id, emitido_em FROM certificados').all());
+  // Com filtro de módulo, tudo abaixo (temas, materiais, avaliações, certificados) fica restrito a ele,
+  // e "concluir a trilha" passa a significar concluir o módulo.
+  const todosModulos = db.prepare('SELECT id, titulo, icone FROM modulos ORDER BY ordem, id').all();
+  const modulos = todosModulos.filter(m => !moduloId || m.id === moduloId);
+  const doModulo = (rows) => rows.filter(r => !moduloId || r.modulo_id === moduloId);
+  const aulas = doModulo(db.prepare('SELECT id, modulo_id FROM aulas').all());
+  const provas = doModulo(db.prepare('SELECT p.id, p.modulo_id, p.titulo, m.titulo AS tema FROM provas p JOIN modulos m ON m.id = p.modulo_id ORDER BY m.ordem, p.ordem, p.id').all());
+  const idsAulas = new Set(aulas.map(a => a.id));
+  const idsProvas = new Set(provas.map(p => p.id));
+  const vistas = doFiltro(db.prepare('SELECT cpf, aula_id FROM aulas_vistas').all()).filter(v => idsAulas.has(v.aula_id));
+  const melhores = doFiltro(db.prepare('SELECT cpf, prova_id, MAX(nota) AS melhor, COUNT(*) AS tentativas FROM tentativas GROUP BY cpf, prova_id').all()).filter(t => idsProvas.has(t.prova_id));
+  const certs = doFiltro(db.prepare('SELECT cpf, prova_id, modulo_id, emitido_em FROM certificados').all()).filter(c => idsProvas.has(c.prova_id));
 
   const chave = (a, b) => `${a}|${b}`;
   const vistoSet = new Set(vistas.map(v => chave(v.cpf, v.aula_id)));
@@ -785,7 +797,9 @@ app.get('/api/admin/indicadores', exigirAdmin, (req, res) => {
     filtros: {
       regionais: [...new Set(todos.map(c => c.regional).filter(Boolean))].sort(),
       filiais: [...new Set(todos.filter(c => !regional || c.regional === regional).map(c => c.filial).filter(Boolean))].sort(),
+      modulos: todosModulos.map(m => ({ id: m.id, titulo: m.titulo })),
     },
+    modulo: moduloId,
     nota_minima: NOTA_MINIMA, resumo, por_tema: porTema, por_avaliacao: porAvaliacao,
     por_regional: agrupar('regional'), por_filial: agrupar('filial'), semanas,
   });

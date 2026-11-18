@@ -57,6 +57,7 @@
         <div class="ind-cab">
           <h1 class="titulo-pagina">Indicadores da <em>trilha</em></h1>
           <div class="filtros">
+            <select class="campo filtro-modulo" id="ind-modulo" aria-label="Módulo"><option value="">Todos os módulos</option></select>
             <select class="campo" id="ind-regional" aria-label="Regional"><option value="">Todas as regionais</option></select>
             <select class="campo" id="ind-filial" aria-label="Filial"><option value="">Todas as filiais</option></select>
           </div>
@@ -80,7 +81,7 @@
         </section>
         <div class="ind-grade ind-grade-regional" style="margin-top:1.4rem">
           <section class="cartao">
-            <h3>Conclusão da trilha por regional <small>· % dos ativos da regional</small></h3>
+            <h3><span id="ind-titulo-regional">Conclusão da trilha por regional</span> <small>· % dos ativos da regional</small></h3>
             <div class="grafico-barras" id="ind-regionais"></div>
           </section>
           <section class="cartao">
@@ -181,7 +182,7 @@
         <div class="cartao" style="margin-top:1.4rem">
           <div class="cab-tabela">
             <h3>📊 Resultados <small id="reacao-resumo"></small></h3>
-            <div class="filtros"><select class="campo" id="reacao-modulo"><option value="">Todos os módulos</option></select></div>
+            <div class="filtros"><select class="campo filtro-modulo" id="reacao-modulo" aria-label="Módulo"><option value="">Todos os módulos</option></select></div>
           </div>
           <div id="reacao-resultados" class="reacao-resultados"></div>
         </div>
@@ -213,7 +214,7 @@
           <div class="cab-tabela">
             <h3>🗓️ Aulas <small id="encontros-resumo"></small></h3>
             <div class="filtros">
-              <select class="campo" id="encontros-filtro" aria-label="Filtrar por módulo"><option value="">Todos os módulos</option></select>
+              <select class="campo filtro-modulo" id="encontros-filtro" aria-label="Módulo"><option value="">Todos os módulos</option></select>
               <button type="button" class="btn btn-claro btn-sm" id="encontros-exportar">⬇ Exportar presenças</button>
             </div>
           </div>
@@ -227,6 +228,7 @@
           <div class="cab-tabela">
             <h3>📊 Progresso por colaborador <small id="resumo-resultados"></small></h3>
             <div class="filtros">
+              <select class="campo filtro-modulo" id="filtro-modulo" aria-label="Módulo"><option value="">Todos os módulos</option></select>
               <select class="campo" id="filtro-regional"><option value="">Todas as regionais</option></select>
               <select class="campo" id="filtro-filial"><option value="">Todas as filiais</option></select>
               <button class="btn btn-claro btn-sm" id="exportar">⬇ Exportar CSV</button>

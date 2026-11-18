@@ -210,7 +210,13 @@
           </div>
         </form>
         <div class="cartao" style="margin-top:1.4rem">
-          <h3>🗓️ Aulas <small id="encontros-resumo"></small></h3>
+          <div class="cab-tabela">
+            <h3>🗓️ Aulas <small id="encontros-resumo"></small></h3>
+            <div class="filtros">
+              <select class="campo" id="encontros-filtro" aria-label="Filtrar por módulo"><option value="">Todos os módulos</option></select>
+              <button type="button" class="btn btn-claro btn-sm" id="encontros-exportar">⬇ Exportar presenças</button>
+            </div>
+          </div>
           <div class="tabela-wrap"><table class="tabela" id="tabela-encontros"></table></div>
         </div>
       </section>

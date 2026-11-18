@@ -78,7 +78,8 @@ que baixa uma cópia completa do banco.
   - **Aulas ao vivo**: cria uma aula (módulo + data, com título opcional) e gera o **QR Code da lista de presença**
     (`/presenca.html?c=<código>`), também como imagem 16:9 pronta para projetar. O colaborador lê o QR Code e informa o
     CPF ou CI; a presença só é aceita no dia da aula (horário de Brasília) e enquanto a lista estiver aberta. O RH vê a
-    lista, registra ou remove presenças manualmente, fecha/reabre a lista e exporta em CSV.
+    lista, registra ou remove presenças manualmente, fecha/reabre a lista e exporta em CSV. A lista de aulas tem filtro
+    por módulo e exporta a frequência consolidada (do módulo filtrado ou de todos).
   - **Resultados**: progresso por colaborador com filtro por regional/filial e exportação CSV.
 
 ## Regras implementadas

@@ -747,10 +747,25 @@ async function carregarEncontros() {
   const campoData = document.getElementById('encontro-data');
   if (!campoData.value) campoData.value = proximaQuarta(r.hoje);
 
-  document.getElementById('encontros-resumo').textContent = r.encontros.length ? `· ${r.encontros.length} aula(s)` : '';
+  // Filtro por módulo: só os módulos que têm aula cadastrada.
+  const filtro = document.getElementById('encontros-filtro');
+  const filtroAtual = filtro.value;
+  const comAula = modulos.filter(m => r.encontros.some(e => e.modulo_id === m.id));
+  filtro.innerHTML = '<option value="">Todos os módulos</option>' + comAula.map(m =>
+    `<option value="${m.id}" ${String(m.id) === filtroAtual ? 'selected' : ''}>${esc(m.titulo)} (${r.encontros.filter(e => e.modulo_id === m.id).length})</option>`).join('');
+  renderEncontros();
+}
+
+function renderEncontros() {
+  const r = adm.encontros;
+  const filtro = document.getElementById('encontros-filtro').value;
+  const lista = r.encontros.filter(e => !filtro || String(e.modulo_id) === filtro);
+  const presencas = lista.reduce((s, e) => s + e.presentes, 0);
+  document.getElementById('encontros-resumo').textContent = lista.length
+    ? `· ${lista.length} aula(s) · ${presencas} presença(s)${lista.length ? ` · média de ${Math.round(presencas / lista.length)} por aula` : ''}` : '';
   document.getElementById('tabela-encontros').innerHTML = `
     <tr><th>Data</th><th>Módulo</th><th>Lista</th><th>Presentes</th><th>Ações</th></tr>
-    ${r.encontros.map(e => {
+    ${lista.map(e => {
       const [classe, texto] = SITUACAO_AULA[e.situacao];
       const pct = r.ativos ? Math.round((e.presentes / r.ativos) * 100) : 0;
       return `
@@ -766,8 +781,20 @@ async function carregarEncontros() {
           <button class="btn btn-sm btn-perigo" data-encontro-excluir="${e.id}" aria-label="Excluir aula">✕</button>
         </td>
       </tr>`;
-    }).join('') || '<tr><td colspan="5">Nenhuma aula ao vivo cadastrada. Crie a primeira acima.</td></tr>'}`;
+    }).join('') || `<tr><td colspan="5">${filtro ? 'Nenhuma aula deste módulo.' : 'Nenhuma aula ao vivo cadastrada. Crie a primeira acima.'}</td></tr>`}`;
 }
+document.getElementById('encontros-filtro').addEventListener('change', renderEncontros);
+
+document.getElementById('encontros-exportar').addEventListener('click', async () => {
+  const filtro = document.getElementById('encontros-filtro');
+  const linhas = await api(`/api/admin/presencas?modulo=${filtro.value}`);
+  if (!linhas.length) return toast('Nenhuma presença registrada para exportar.', 'erro');
+  const cab = ['DATA', 'MODULO', 'AULA', 'CPF / CI', 'NOME', 'CARGO', 'FILIAL', 'REGIONAL', 'REGISTRO', 'ORIGEM'];
+  const tabela = linhas.map(p => [p.data.split('-').reverse().join('/'), p.modulo, p.titulo || 'Aula ao vivo', formatarCpf(p.cpf), p.nome, p.cargo,
+    p.filial, p.regional, new Date(`${p.registrada_em.replace(' ', 'T')}Z`).toLocaleString('pt-BR'), p.origem === 'manual' ? 'RH' : 'QR Code']);
+  const nome = filtro.value ? filtro.selectedOptions[0].textContent.replace(/\s*\(\d+\)$/, '') : 'todos-os-modulos';
+  baixarCsv(`presencas-${nome.normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^\w]+/g, '-').toLowerCase()}.csv`, [cab, ...tabela]);
+});
 
 document.getElementById('form-encontro').addEventListener('submit', async (e) => {
   e.preventDefault();

@@ -957,6 +957,15 @@ app.get('/api/admin/encontros/:id/presencas', exigirAdmin, (req, res) => {
   res.json({ encontro: { ...e, situacao: situacaoEncontro(e) }, presencas });
 });
 
+// Todas as presenças, de um módulo ou de todos, para exportar a frequência consolidada.
+app.get('/api/admin/presencas', exigirAdmin, (req, res) => {
+  const modulo = Number(req.query.modulo) || null;
+  res.json(db.prepare(`
+    SELECT e.data, e.titulo, m.titulo AS modulo, c.cpf, c.nome, c.cargo, c.filial, c.regional, p.origem, p.registrada_em
+    FROM presencas p JOIN encontros e ON e.id = p.encontro_id JOIN modulos m ON m.id = e.modulo_id JOIN colaboradores c ON c.cpf = p.cpf
+    WHERE (? IS NULL OR e.modulo_id = ?) ORDER BY e.data, m.titulo, c.nome`).all(modulo, modulo));
+});
+
 app.post('/api/admin/encontros/:id/presencas', exigirAdmin, (req, res) => {
   const e = db.prepare('SELECT id FROM encontros WHERE id = ?').get(Number(req.params.id));
   if (!e) return res.status(404).json({ erro: 'Aula não encontrada' });

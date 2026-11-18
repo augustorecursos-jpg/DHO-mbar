@@ -1,0 +1,114 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Lista de presença · Âmbar Energia</title>
+  <link rel="icon" href="img/favicon.svg" type="image/svg+xml">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@500;600;700;800&family=Nunito+Sans:wght@400;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/base.css">
+  <link rel="stylesheet" href="css/app.css">
+  <style>
+    body { background: var(--fundo); }
+    .presenca-topo { background: var(--marinho); color: #fff; padding: 1rem clamp(16px, 4vw, 40px); display: flex; align-items: center; gap: 1rem; }
+    .presenca-topo small { display: block; font-family: var(--fonte-titulo); font-size: .66rem; letter-spacing: .14em; color: var(--laranja-claro); font-weight: 700; }
+    .presenca-topo strong { font-family: var(--fonte-titulo); font-size: 1.05rem; }
+    .presenca-pagina { max-width: 560px; margin: 1.6rem auto 3rem; padding: 0 16px; display: grid; gap: 1rem; }
+    .aula-info { display: flex; gap: 1rem; align-items: center; border-left: 4px solid var(--laranja); }
+    .aula-info .ic { width: 52px; height: 52px; flex-shrink: 0; border-radius: 14px; background: var(--laranja-suave); display: grid; place-items: center; font-size: 1.5rem; }
+    .aula-info small { font-family: var(--fonte-titulo); font-size: .66rem; letter-spacing: .14em; font-weight: 700; color: var(--laranja); }
+    .aula-info h2 { font-size: 1.15rem; margin: .15rem 0; }
+    .aula-info p { margin: 0; color: var(--texto-suave); }
+    .cpf-caixa { display: grid; gap: .7rem; }
+    .cpf-linha { display: flex; gap: .6rem; flex-wrap: wrap; }
+    .cpf-linha .campo { flex: 1; min-width: 200px; font-size: 1.05rem; }
+    .aviso-erro { color: var(--vermelho); font-weight: 700; margin: 0; }
+    .confirmado { text-align: center; display: grid; gap: .6rem; justify-items: center; padding: 2rem 1.2rem; }
+    .confirmado .selo { width: 74px; height: 74px; border-radius: 50%; background: var(--verde); color: #fff; display: grid; place-items: center; font-size: 2.2rem; }
+    .confirmado h3 { font-size: 1.3rem; }
+    .confirmado p { margin: 0; color: var(--texto-suave); }
+    .situacao { text-align: center; padding: 1.6rem 1.2rem; }
+    .situacao .ic { font-size: 2rem; }
+  </style>
+</head>
+<body>
+  <header class="presenca-topo">
+    <span class="logo claro"><b>Âmbar</b><small>ENERGIA</small></span>
+    <div><small>TRILHA DE DESENVOLVIMENTO · DHO</small><strong>Lista de presença</strong></div>
+  </header>
+  <main class="presenca-pagina">
+    <section class="cartao aula-info" id="aula-info" hidden></section>
+    <div id="conteudo"><p class="carregando">Carregando…</p></div>
+  </main>
+
+  <script src="js/comum.js"></script>
+  <script>
+    const conteudo = document.getElementById('conteudo');
+    const codigo = new URLSearchParams(location.search).get('c') || '';
+    const dataLonga = (d) => new Date(`${d}T12:00:00`).toLocaleDateString('pt-BR', { weekday: 'long', day: '2-digit', month: '2-digit', year: 'numeric' });
+    const horaLocal = (utc) => new Date(`${utc.replace(' ', 'T')}Z`).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+    let aula;
+
+    function pedirCpf(msg = '') {
+      conteudo.innerHTML = `
+        <form class="cartao cpf-caixa" id="form-cpf" novalidate>
+          <h3>Registre sua presença</h3>
+          <p class="q-dica">Informe seu CPF (ou CI, para colaboradores da Bolívia).</p>
+          <div class="cpf-linha">
+            <input class="campo" id="cpf" inputmode="numeric" maxlength="14" placeholder="CPF ou CI" aria-label="CPF ou CI" autocomplete="off">
+            <button class="btn btn-laranja" type="submit">Confirmar presença ✓</button>
+          </div>
+          ${msg ? `<p class="aviso-erro">${esc(msg)}</p>` : ''}
+        </form>`;
+      const campo = document.getElementById('cpf');
+      mascaraCpf(campo);
+      campo.focus();
+      document.getElementById('form-cpf').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const cpf = campo.value.trim();
+        if (!documentoValido(cpf)) return pedirCpf('Digite o número do seu CPF ou CI.');
+        e.submitter.disabled = true;
+        try {
+          const r = await api(`/api/presenca/${encodeURIComponent(codigo)}`, { method: 'POST', body: { cpf } });
+          conteudo.innerHTML = `
+            <div class="cartao confirmado">
+              <span class="selo">✓</span>
+              <h3>${r.ja_registrada ? 'Sua presença já estava registrada' : 'Presença registrada!'}</h3>
+              <p>Obrigado, <strong>${esc(r.nome.split(' ')[0])}</strong>. Registro feito às ${horaLocal(r.registrada_em)}.</p>
+              <p>Bom proveito na aula ao vivo!</p>
+              <a class="btn btn-claro btn-sm" href="trilha.html" style="margin-top:.6rem">Ir para minha trilha</a>
+            </div>`;
+        } catch (err) {
+          pedirCpf(err.message);
+        }
+      });
+    }
+
+    (async () => {
+      try {
+        aula = await api(`/api/presenca/${encodeURIComponent(codigo)}`);
+      } catch (err) {
+        conteudo.innerHTML = `<div class="cartao situacao"><p class="ic">⚠️</p><p>${esc(err.message)}</p></div>`;
+        return;
+      }
+      const info = document.getElementById('aula-info');
+      info.innerHTML = `<span class="ic">${esc(aula.icone || '📅')}</span>
+        <div><small>AULA AO VIVO${aula.titulo ? ` · ${esc(aula.titulo).toUpperCase()}` : ''}</small><h2>${esc(aula.modulo)}</h2><p>${dataLonga(aula.data)}</p></div>`;
+      info.hidden = false;
+      const mensagens = {
+        agendada: ['🗓️', 'A lista de presença abre no dia da aula. Volte a ler o QR Code durante a aula ao vivo.'],
+        encerrada: ['🔒', 'A lista de presença desta aula já foi encerrada. Procure o time de DHO se precisar.'],
+        fechada: ['🔒', 'A lista de presença desta aula está fechada. Procure o time de DHO se precisar.'],
+      };
+      if (mensagens[aula.situacao]) {
+        const [ic, texto] = mensagens[aula.situacao];
+        conteudo.innerHTML = `<div class="cartao situacao"><p class="ic">${ic}</p><p>${texto}</p></div>`;
+        return;
+      }
+      pedirCpf();
+    })();
+  </script>
+</body>
+</html>

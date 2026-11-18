@@ -30,12 +30,12 @@ document.getElementById('sair').addEventListener('click', async () => {
 });
 
 function trocarAba(aba) {
-  if (!['indicadores', 'colaboradores', 'modulos', 'reacao', 'resultados'].includes(aba)) aba = 'indicadores';
+  if (!['indicadores', 'colaboradores', 'modulos', 'reacao', 'presenca', 'resultados'].includes(aba)) aba = 'indicadores';
   history.replaceState(null, '', `#${aba}`);
   document.querySelectorAll('[data-aba]').forEach(b => b.classList.toggle('ativo', b.dataset.aba === aba));
   document.querySelectorAll('[data-painel]').forEach(s => { s.hidden = s.dataset.painel !== aba; });
   document.getElementById('lateral').classList.remove('aberta');
-  ({ indicadores: carregarIndicadores, colaboradores: carregarColaboradores, modulos: carregarModulos, reacao: carregarReacao, resultados: carregarResultados })[aba]();
+  ({ indicadores: carregarIndicadores, colaboradores: carregarColaboradores, modulos: carregarModulos, reacao: carregarReacao, presenca: carregarEncontros, resultados: carregarResultados })[aba]();
 }
 document.querySelectorAll('[data-aba]').forEach(b => b.addEventListener('click', () => trocarAba(b.dataset.aba)));
 document.getElementById('btn-menu').addEventListener('click', () => document.getElementById('lateral').classList.toggle('aberta'));
@@ -699,17 +699,239 @@ document.getElementById('reacao-qrcodes').addEventListener('click', async (e) =>
   const b = e.target.closest('[data-qr]');
   if (!b) return;
   const q = await api(`/api/admin/reacao/qrcode/${b.dataset.qr}`);
-  document.getElementById('qr-titulo').textContent = q.titulo;
-  document.getElementById('qr-img').innerHTML = q.svg;
-  document.getElementById('qr-link').value = q.link;
-  document.getElementById('qr-baixar').href = `/api/admin/reacao/qrcode/${b.dataset.qr}?formato=png`;
-  modalQr.showModal();
+  abrirQr({ tipo: 'QR CODE · AVALIAÇÃO DE REAÇÃO', titulo: q.titulo, svg: q.svg, link: q.link, png: `/api/admin/reacao/qrcode/${b.dataset.qr}?formato=png`,
+    dica: 'Ao ler o QR Code, o colaborador informa o CPF (ou CI) e responde a avaliação de reação deste módulo.' });
 });
+
+let qrArte = null;
+function abrirQr({ tipo, titulo, svg, link, png, dica, arte = null }) {
+  document.getElementById('qr-tipo').textContent = tipo;
+  document.getElementById('qr-titulo').textContent = titulo;
+  document.getElementById('qr-img').innerHTML = svg;
+  document.getElementById('qr-link').value = link;
+  document.getElementById('qr-baixar').href = png;
+  document.getElementById('qr-dica').textContent = dica;
+  document.getElementById('qr-arte').hidden = !arte;
+  qrArte = arte;
+  modalQr.showModal();
+}
+document.getElementById('qr-arte').addEventListener('click', () => qrArte && baixarArtePresenca(qrArte));
 document.getElementById('qr-copiar').addEventListener('click', async () => {
   const campo = document.getElementById('qr-link');
   try { await navigator.clipboard.writeText(campo.value); } catch { campo.select(); document.execCommand('copy'); }
   toast('Link copiado ✅');
 });
+
+// ---------- Aulas ao vivo (lista de presença) ----------
+const dataCurta = (d) => new Date(`${d}T12:00:00`).toLocaleDateString('pt-BR', { weekday: 'short', day: '2-digit', month: '2-digit', year: 'numeric' });
+const dataLonga = (d) => new Date(`${d}T12:00:00`).toLocaleDateString('pt-BR', { weekday: 'long', day: '2-digit', month: 'long', year: 'numeric' });
+const horaLocal = (utc) => new Date(`${utc.replace(' ', 'T')}Z`).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
+const SITUACAO_AULA = {
+  aberta: ['ok', 'Aberta hoje'], agendada: ['neutra', 'Agendada'], encerrada: ['neutra', 'Encerrada'], fechada: ['pend', 'Fechada pelo RH'],
+};
+
+/** Próxima quarta-feira (ou hoje, se já for quarta), a partir da data de hoje em Brasília. */
+function proximaQuarta(hoje) {
+  const d = new Date(`${hoje}T12:00:00`);
+  d.setDate(d.getDate() + ((3 - d.getDay() + 7) % 7));
+  return d.toISOString().slice(0, 10);
+}
+
+async function carregarEncontros() {
+  const [r, modulos] = await Promise.all([api('/api/admin/encontros'), api('/api/admin/modulos')]);
+  adm.encontros = r;
+  const sel = document.getElementById('encontro-modulo');
+  const atual = sel.value;
+  sel.innerHTML = modulos.map(m => `<option value="${m.id}" ${String(m.id) === atual ? 'selected' : ''}>${esc(m.icone || '')} ${esc(m.titulo)}</option>`).join('')
+    || '<option value="">Cadastre um tema primeiro</option>';
+  const campoData = document.getElementById('encontro-data');
+  if (!campoData.value) campoData.value = proximaQuarta(r.hoje);
+
+  document.getElementById('encontros-resumo').textContent = r.encontros.length ? `· ${r.encontros.length} aula(s)` : '';
+  document.getElementById('tabela-encontros').innerHTML = `
+    <tr><th>Data</th><th>Módulo</th><th>Lista</th><th>Presentes</th><th>Ações</th></tr>
+    ${r.encontros.map(e => {
+      const [classe, texto] = SITUACAO_AULA[e.situacao];
+      const pct = r.ativos ? Math.round((e.presentes / r.ativos) * 100) : 0;
+      return `
+      <tr>
+        <td><strong>${dataCurta(e.data)}</strong></td>
+        <td>${esc(e.modulo)}${e.titulo ? `<br><small class="q-dica">${esc(e.titulo)}</small>` : ''}</td>
+        <td><span class="etiqueta ${classe}">${texto}</span></td>
+        <td><strong>${e.presentes}</strong> <small class="q-dica">· ${pct}% dos ativos</small></td>
+        <td class="acoes-colab">
+          <button class="btn btn-sm btn-marinho" data-encontro-qr="${e.id}">📱 QR Code</button>
+          <button class="btn btn-sm btn-claro" data-encontro-lista="${e.id}">📋 Presenças</button>
+          <button class="btn btn-sm btn-claro" data-encontro-aberta="${e.id}" data-valor="${e.aberta ? 0 : 1}">${e.aberta ? 'Fechar lista' : 'Reabrir lista'}</button>
+          <button class="btn btn-sm btn-perigo" data-encontro-excluir="${e.id}" aria-label="Excluir aula">✕</button>
+        </td>
+      </tr>`;
+    }).join('') || '<tr><td colspan="5">Nenhuma aula ao vivo cadastrada. Crie a primeira acima.</td></tr>'}`;
+}
+
+document.getElementById('form-encontro').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const corpo = {
+    modulo_id: document.getElementById('encontro-modulo').value,
+    data: document.getElementById('encontro-data').value,
+    titulo: document.getElementById('encontro-titulo').value,
+  };
+  try {
+    const { id } = await api('/api/admin/encontros', { method: 'POST', body: corpo });
+    document.getElementById('encontro-titulo').value = '';
+    await carregarEncontros();
+    abrirQrEncontro(id);
+  } catch (err) { toast(err.message, 'erro'); }
+});
+
+async function abrirQrEncontro(id) {
+  const q = await api(`/api/admin/encontros/${id}/qrcode`);
+  abrirQr({
+    tipo: `LISTA DE PRESENÇA · ${dataCurta(q.data).toUpperCase()}`, titulo: q.modulo, svg: q.svg, link: q.link,
+    png: `/api/admin/encontros/${id}/qrcode?formato=png`,
+    dica: 'Mostre o QR Code durante a aula ao vivo. O colaborador lê com o celular, informa o CPF ou CI e a presença fica registrada.',
+    arte: q,
+  });
+}
+
+document.getElementById('tabela-encontros').addEventListener('click', async (e) => {
+  const b = e.target.closest('button');
+  if (!b) return;
+  try {
+    if (b.dataset.encontroQr) return abrirQrEncontro(b.dataset.encontroQr);
+    if (b.dataset.encontroLista) return abrirPresencas(b.dataset.encontroLista);
+    if (b.dataset.encontroAberta) {
+      await api(`/api/admin/encontros/${b.dataset.encontroAberta}`, { method: 'PATCH', body: { aberta: b.dataset.valor === '1' } });
+    } else if (b.dataset.encontroExcluir) {
+      const aula = adm.encontros.encontros.find(x => String(x.id) === b.dataset.encontroExcluir);
+      if (!confirm(`Excluir a aula de ${dataCurta(aula.data)} (${aula.modulo})? A lista de presença dela (${aula.presentes} presença(s)) também será apagada.`)) return;
+      await api(`/api/admin/encontros/${b.dataset.encontroExcluir}`, { method: 'DELETE' });
+    }
+    carregarEncontros();
+  } catch (err) { toast(err.message, 'erro'); }
+});
+
+// Lista de presença de uma aula
+const modalPresencas = document.getElementById('modal-presencas');
+let presencaAtual = null;
+
+async function abrirPresencas(id) {
+  presencaAtual = await api(`/api/admin/encontros/${id}/presencas`);
+  const { encontro, presencas } = presencaAtual;
+  document.getElementById('pres-titulo').textContent = `${encontro.modulo} · ${dataCurta(encontro.data)}`;
+  document.getElementById('pres-resumo').textContent = `${presencas.length} presença(s) registrada(s)${encontro.titulo ? ` · ${encontro.titulo}` : ''}.`;
+  document.getElementById('tabela-presencas').innerHTML = `
+    <tr><th>Nome</th><th>CPF / CI</th><th>Cargo</th><th>Filial</th><th>Regional</th><th>Registro</th><th></th></tr>
+    ${presencas.map(p => `
+      <tr>
+        <td>${esc(p.nome)}</td><td>${formatarCpf(p.cpf)}</td><td>${esc(p.cargo)}</td><td>${esc(p.filial)}</td><td>${esc(p.regional)}</td>
+        <td>${horaLocal(p.registrada_em)} <small class="q-dica">· ${p.origem === 'manual' ? 'RH' : 'QR Code'}</small></td>
+        <td><button class="btn btn-sm btn-perigo" data-remover-presenca="${esc(p.cpf)}" aria-label="Remover presença">✕</button></td>
+      </tr>`).join('') || '<tr><td colspan="7">Nenhuma presença registrada ainda.</td></tr>'}`;
+  if (!modalPresencas.open) modalPresencas.showModal();
+}
+
+document.getElementById('form-pres-manual').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const campo = document.getElementById('pres-documento');
+  try {
+    const r = await api(`/api/admin/encontros/${presencaAtual.encontro.id}/presencas`, { method: 'POST', body: { documento: campo.value } });
+    toast(r.ja_registrada ? `${r.nome} já estava na lista.` : `Presença de ${r.nome} registrada.`);
+    campo.value = '';
+    await abrirPresencas(presencaAtual.encontro.id);
+    carregarEncontros();
+  } catch (err) { toast(err.message, 'erro'); }
+});
+mascaraCpf(document.getElementById('pres-documento'));
+
+document.getElementById('tabela-presencas').addEventListener('click', async (e) => {
+  const b = e.target.closest('[data-remover-presenca]');
+  if (!b) return;
+  const p = presencaAtual.presencas.find(x => x.cpf === b.dataset.removerPresenca);
+  if (!confirm(`Remover a presença de ${p.nome}?`)) return;
+  await api(`/api/admin/encontros/${presencaAtual.encontro.id}/presencas/${encodeURIComponent(p.cpf)}`, { method: 'DELETE' });
+  await abrirPresencas(presencaAtual.encontro.id);
+  carregarEncontros();
+});
+
+document.getElementById('pres-exportar').addEventListener('click', () => {
+  const { encontro, presencas } = presencaAtual;
+  const cab = ['AULA', 'DATA', 'MODULO', 'CPF / CI', 'NOME', 'CARGO', 'FILIAL', 'REGIONAL', 'REGISTRO', 'ORIGEM'];
+  const linhas = presencas.map(p => [encontro.titulo || 'Aula ao vivo', encontro.data.split('-').reverse().join('/'), encontro.modulo,
+    formatarCpf(p.cpf), p.nome, p.cargo, p.filial, p.regional, new Date(`${p.registrada_em.replace(' ', 'T')}Z`).toLocaleString('pt-BR'), p.origem === 'manual' ? 'RH' : 'QR Code']);
+  baixarCsv(`presenca-${encontro.data}-${encontro.modulo.normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^\w]+/g, '-').toLowerCase()}.csv`, [cab, ...linhas]);
+});
+
+/** Imagem 16:9 com o QR Code e as instruções, para projetar ou compartilhar na aula ao vivo. */
+async function baixarArtePresenca(q) {
+  await Promise.all(['800 72px Montserrat', '700 30px Montserrat', '400 28px "Nunito Sans"', '700 28px "Nunito Sans"'].map(f => document.fonts.load(f)));
+  const qr = await new Promise((ok, falha) => {
+    const img = new Image();
+    img.onload = () => ok(img);
+    img.onerror = falha;
+    img.src = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(q.svg)}`;
+  });
+  const [W, H] = [1600, 900];
+  const c = Object.assign(document.createElement('canvas'), { width: W, height: H });
+  const g = c.getContext('2d');
+  const MARINHO = '#0e3b5c', LARANJA = '#ec6b24';
+  const linhas = (texto, max) => texto.split(' ').reduce((acc, p) => {
+    const tentativa = acc.length ? `${acc[acc.length - 1]} ${p}` : p;
+    if (acc.length && g.measureText(tentativa).width <= max) acc[acc.length - 1] = tentativa; else acc.push(p);
+    return acc;
+  }, []);
+
+  g.fillStyle = '#ffffff'; g.fillRect(0, 0, W, H);
+  g.fillStyle = MARINHO; g.fillRect(0, 0, 880, H);
+  // Ondas da marca no canto
+  g.fillStyle = LARANJA; g.beginPath(); g.moveTo(0, H - 120); g.bezierCurveTo(260, H - 60, 520, H - 10, 700, H); g.lineTo(0, H); g.fill();
+  g.fillStyle = '#164d74'; g.beginPath(); g.moveTo(0, H - 90); g.bezierCurveTo(240, H - 40, 460, H - 5, 600, H); g.lineTo(0, H); g.fill();
+
+  let y = 110;
+  g.letterSpacing = '5px'; g.font = '700 22px Montserrat'; g.fillStyle = '#f39a4a';
+  g.fillText('TRILHA DE DESENVOLVIMENTO · AULA AO VIVO', 80, y);
+  g.letterSpacing = '0px'; g.font = '800 76px Montserrat'; g.fillStyle = '#ffffff';
+  y += 95; g.fillText('Lista de presença', 80, y);
+  g.fillStyle = LARANJA; g.fillRect(80, y + 28, 90, 7);
+  g.font = '700 40px Montserrat'; g.fillStyle = LARANJA;
+  y += 100;
+  for (const l of linhas(q.modulo, 720).slice(0, 2)) { g.fillText(l, 80, y); y += 50; }
+  g.font = '400 30px "Nunito Sans"'; g.fillStyle = '#dce7f0';
+  const data = dataLonga(q.data);
+  g.fillText(data.charAt(0).toUpperCase() + data.slice(1), 80, y + 4);
+  if (q.titulo) {
+    g.font = '700 28px "Nunito Sans"'; g.fillStyle = '#ffffff';
+    for (const l of linhas(q.titulo, 720).slice(0, 2)) { y += 42; g.fillText(l, 80, y + 4); }
+  }
+
+  y += 90;
+  [['1', 'Aponte a câmera do celular para o QR Code'], ['2', 'Informe o seu CPF ou CI'], ['3', 'Pronto! A sua presença fica registrada']].forEach(([n, t]) => {
+    g.fillStyle = LARANJA; g.beginPath(); g.arc(102, y - 10, 22, 0, Math.PI * 2); g.fill();
+    g.fillStyle = '#ffffff'; g.font = '800 24px Montserrat'; g.textAlign = 'center'; g.fillText(n, 102, y - 1); g.textAlign = 'left';
+    g.font = '400 29px "Nunito Sans"'; g.fillStyle = '#ffffff'; g.fillText(t, 144, y);
+    y += 66;
+  });
+
+  // QR Code
+  const lado = 560, qx = 880 + (W - 880 - lado) / 2, qy = 120;
+  g.fillStyle = '#ffffff'; g.strokeStyle = '#dfe5eb'; g.lineWidth = 2;
+  g.beginPath(); g.roundRect(qx - 24, qy - 24, lado + 48, lado + 48, 28); g.fill(); g.stroke();
+  g.drawImage(qr, qx, qy, lado, lado);
+  g.textAlign = 'center'; g.fillStyle = MARINHO; g.font = '800 32px Montserrat';
+  g.fillText('Aponte a câmera aqui', qx + lado / 2, qy + lado + 85);
+  g.font = '400 19px "Nunito Sans"'; g.fillStyle = '#5f6f7c';
+  g.fillText(q.link, qx + lado / 2, qy + lado + 120);
+  g.textAlign = 'left';
+  g.font = '600 46px Montserrat'; g.fillStyle = '#ffffff';
+  g.fillText('Âmbar', 80, H - 150);
+  g.font = '700 15px Montserrat'; g.fillStyle = LARANJA; g.letterSpacing = '4px';
+  g.fillText('ENERGIA', 82, H - 126);
+
+  const blob = await new Promise(ok => c.toBlob(ok, 'image/png'));
+  const url = URL.createObjectURL(blob);
+  Object.assign(document.createElement('a'), { href: url, download: `lista-presenca-${q.data}.png` }).click();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
 
 // ---------- Resultados ----------
 async function carregarResultados() {
@@ -736,7 +958,7 @@ function renderResultados() {
   const concluiram = linhas.filter(l => tp && l.certificados >= tp).length;
   document.getElementById('resumo-resultados').textContent = `· ${linhas.length} colaboradores · ${iniciaram} iniciaram · ${concluiram} concluíram a trilha`;
   document.getElementById('tabela-resultados').innerHTML = `
-    <tr><th>Nome</th><th>CPF / CI</th><th>Cargo</th><th>Filial</th><th>Regional</th><th>Materiais</th><th>Certificados</th><th>Média avaliações</th><th>Última prova</th></tr>
+    <tr><th>Nome</th><th>CPF / CI</th><th>Cargo</th><th>Filial</th><th>Regional</th><th>Materiais</th><th>Certificados</th><th>Média avaliações</th><th>Aulas ao vivo</th><th>Última prova</th></tr>
     ${linhas.map(l => {
       const pct = ta ? Math.round((l.aulas_vistas / ta) * 100) : 0;
       return `<tr>
@@ -744,22 +966,27 @@ function renderResultados() {
         <td><span class="barra-prog"><i style="width:${pct}%"></i></span>${l.aulas_vistas}/${ta}</td>
         <td>${l.certificados}/${tp}</td>
         <td>${l.media != null ? String(l.media).replace('.', ',') + '%' : '–'}</td>
+        <td>${l.presencas}/${adm.resultados.total_encontros}</td>
         <td>${l.ultima_prova ? new Date(l.ultima_prova.replace(' ', 'T') + 'Z').toLocaleDateString('pt-BR') : '–'}</td>
       </tr>`;
-    }).join('') || '<tr><td colspan="9">Sem dados.</td></tr>'}`;
+    }).join('') || '<tr><td colspan="10">Sem dados.</td></tr>'}`;
 }
 document.getElementById('filtro-regional').addEventListener('change', renderResultados);
 document.getElementById('filtro-filial').addEventListener('change', renderResultados);
 
 document.getElementById('exportar').addEventListener('click', () => {
   const { total_aulas: ta, total_provas: tp } = adm.resultados;
-  const cab = ['CPF / CI', 'NOME', 'CARGO', 'FILIAL', 'REGIONAL', 'AULAS CONCLUIDAS', 'TOTAL AULAS', 'CERTIFICADOS', 'TOTAL PROVAS', 'MEDIA PROVAS', 'ULTIMA PROVA'];
-  const linhas = linhasFiltradas().map(l => [formatarCpf(l.cpf), l.nome, l.cargo, l.filial, l.regional, l.aulas_vistas, ta, l.certificados, tp, l.media ?? '', l.ultima_prova ?? '']);
-  const csv = [cab, ...linhas].map(r => r.map(v => `"${String(v).replace(/"/g, '""')}"`).join(';')).join('\r\n');
-  const url = URL.createObjectURL(new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8' }));
-  const a = Object.assign(document.createElement('a'), { href: url, download: `resultados-trilha-${new Date().toISOString().slice(0, 10)}.csv` });
+  const cab = ['CPF / CI', 'NOME', 'CARGO', 'FILIAL', 'REGIONAL', 'AULAS CONCLUIDAS', 'TOTAL AULAS', 'CERTIFICADOS', 'TOTAL PROVAS', 'MEDIA PROVAS', 'AULAS AO VIVO', 'TOTAL AULAS AO VIVO', 'ULTIMA PROVA'];
+  const linhas = linhasFiltradas().map(l => [formatarCpf(l.cpf), l.nome, l.cargo, l.filial, l.regional, l.aulas_vistas, ta, l.certificados, tp, l.media ?? '', l.presencas, adm.resultados.total_encontros, l.ultima_prova ?? '']);
+  baixarCsv(`resultados-trilha-${new Date().toISOString().slice(0, 10)}.csv`, [cab, ...linhas]);
+});
+
+function baixarCsv(nome, tabela) {
+  const csv = tabela.map(r => r.map(v => `"${String(v ?? '').replace(/"/g, '""')}"`).join(';')).join('\r\n');
+  const url = URL.createObjectURL(new Blob(['\ufeff' + csv], { type: 'text/csv;charset=utf-8' }));
+  const a = Object.assign(document.createElement('a'), { href: url, download: nome });
   a.click();
   URL.revokeObjectURL(url);
-});
+}
 
 iniciar();

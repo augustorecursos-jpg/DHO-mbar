@@ -75,6 +75,10 @@ que baixa uma cópia completa do banco.
     e pode ser respondido a qualquer momento, inclusive pelo **QR Code** de cada módulo (`/reacao.html?modulo=<id>`),
     que pede o CPF. Cada colaborador responde uma vez por módulo. Resultados por pergunta (média e distribuição,
     contagem das opções e respostas abertas), com filtro por módulo.
+  - **Aulas ao vivo**: cria uma aula (módulo + data, com título opcional) e gera o **QR Code da lista de presença**
+    (`/presenca.html?c=<código>`), também como imagem 16:9 pronta para projetar. O colaborador lê o QR Code e informa o
+    CPF ou CI; a presença só é aceita no dia da aula (horário de Brasília) e enquanto a lista estiver aberta. O RH vê a
+    lista, registra ou remove presenças manualmente, fecha/reabre a lista e exporta em CSV.
   - **Resultados**: progresso por colaborador com filtro por regional/filial e exportação CSV.
 
 ## Regras implementadas

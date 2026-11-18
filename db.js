@@ -101,6 +101,29 @@ aplicarNotaMinima();
 adicionarRegistroDeAcesso();
 criarAvaliacaoDeReacao();
 ampliarAvaliacaoDeReacao();
+criarListaDePresenca();
+
+/** Aulas ao vivo (encontros de um módulo numa data) e a lista de presença de cada uma, feita pelo QR Code. */
+function criarListaDePresenca() {
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS encontros (
+      id        INTEGER PRIMARY KEY AUTOINCREMENT,
+      modulo_id INTEGER NOT NULL REFERENCES modulos(id) ON DELETE CASCADE,
+      data      TEXT NOT NULL,
+      titulo    TEXT,
+      codigo    TEXT NOT NULL UNIQUE,
+      aberta    INTEGER NOT NULL DEFAULT 1,
+      criado_em TEXT NOT NULL DEFAULT (datetime('now'))
+    );
+    CREATE TABLE IF NOT EXISTS presencas (
+      encontro_id   INTEGER NOT NULL REFERENCES encontros(id) ON DELETE CASCADE,
+      cpf           TEXT NOT NULL REFERENCES colaboradores(cpf) ON DELETE CASCADE,
+      origem        TEXT NOT NULL DEFAULT 'qrcode',
+      registrada_em TEXT NOT NULL DEFAULT (datetime('now')),
+      PRIMARY KEY (encontro_id, cpf)
+    );
+  `);
+}
 
 /**
  * v2 da avaliação de reação: perguntas com tipo (escala, nota 0–10, escolha e texto livre).

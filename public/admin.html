@@ -34,6 +34,7 @@
     <button class="lateral-item" data-aba="colaboradores"><span class="ic">👥</span>Colaboradores</button>
     <button class="lateral-item" data-aba="modulos"><span class="ic">📚</span>Temas & Materiais</button>
     <button class="lateral-item" data-aba="reacao"><span class="ic">💬</span>Avaliação de Reação</button>
+    <button class="lateral-item" data-aba="presenca"><span class="ic">📅</span>Aulas ao vivo</button>
     <button class="lateral-item" data-aba="resultados"><span class="ic">📊</span>Resultados</button>
     <div class="lateral-rodape"><button class="lateral-item" id="sair"><span class="ic">⎋</span>Sair</button></div>
   </aside>
@@ -186,6 +187,34 @@
         </div>
       </section>
 
+      <!-- Aulas ao vivo / lista de presença -->
+      <section data-painel="presenca" hidden>
+        <h1 class="titulo-pagina">Aulas ao vivo · <em>lista de presença</em></h1>
+        <form class="cartao" id="form-encontro" novalidate>
+          <h3>📅 Nova aula ao vivo <small>· cria o QR Code da lista de presença</small></h3>
+          <div class="grade-colab">
+            <label class="largo">Módulo
+              <select class="campo" id="encontro-modulo"></select>
+            </label>
+            <label>Data da aula
+              <input type="date" class="campo" id="encontro-data">
+            </label>
+            <label><span>Título <span class="opcional">(opcional)</span></span>
+              <input class="campo" id="encontro-titulo" maxlength="120" placeholder="ex.: Encontro 3 · Feedback" autocomplete="off">
+            </label>
+          </div>
+          <div class="linha-form colab-acoes">
+            <p class="q-dica encontro-regra">O colaborador lê o QR Code e informa o CPF ou CI. A presença só é aceita <strong>no dia da aula</strong>
+              (horário de Brasília) e enquanto a lista estiver aberta.</p>
+            <button class="btn btn-laranja" type="submit">Criar aula e QR Code</button>
+          </div>
+        </form>
+        <div class="cartao" style="margin-top:1.4rem">
+          <h3>🗓️ Aulas <small id="encontros-resumo"></small></h3>
+          <div class="tabela-wrap"><table class="tabela" id="tabela-encontros"></table></div>
+        </div>
+      </section>
+
       <section data-painel="resultados" hidden>
         <h1 class="titulo-pagina">Resultados da <em>trilha</em></h1>
         <div class="cartao">
@@ -207,7 +236,7 @@
   <!-- QR Code da avaliação de reação -->
   <dialog class="modal qr-modal" id="modal-qr">
     <header>
-      <div><small>QR CODE · AVALIAÇÃO DE REAÇÃO</small><h3 id="qr-titulo">Módulo</h3></div>
+      <div><small id="qr-tipo">QR CODE · AVALIAÇÃO DE REAÇÃO</small><h3 id="qr-titulo">Módulo</h3></div>
       <button type="button" class="btn btn-claro btn-sm" data-fechar aria-label="Fechar">✕</button>
     </header>
     <div class="qr-corpo">
@@ -217,8 +246,29 @@
         <button type="button" class="btn btn-claro btn-sm" id="qr-copiar">📋 Copiar link</button>
         <a class="btn btn-laranja btn-sm" id="qr-baixar" download>⬇ Baixar QR Code (PNG)</a>
       </div>
-      <p class="q-dica">Ao ler o QR Code, o colaborador informa o CPF (ou CI) e responde a avaliação de reação deste módulo.</p>
+      <button type="button" class="btn btn-marinho btn-sm" id="qr-arte" hidden>🖼️ Baixar imagem para projetar na aula</button>
+      <p class="q-dica" id="qr-dica">Ao ler o QR Code, o colaborador informa o CPF (ou CI) e responde a avaliação de reação deste módulo.</p>
     </div>
+  </dialog>
+
+  <!-- Lista de presença de uma aula ao vivo -->
+  <dialog class="modal modal-prova" id="modal-presencas">
+    <header>
+      <div><small>LISTA DE PRESENÇA</small><h3 id="pres-titulo">Aula</h3></div>
+      <button type="button" class="btn btn-claro btn-sm" data-fechar aria-label="Fechar">✕</button>
+    </header>
+    <div class="prova-corpo">
+      <form class="linha-form pres-manual" id="form-pres-manual" novalidate>
+        <input class="campo" id="pres-documento" inputmode="numeric" maxlength="14" placeholder="CPF ou CI" aria-label="CPF ou CI do colaborador" autocomplete="off">
+        <button class="btn btn-marinho btn-sm" type="submit">＋ Registrar presença manualmente</button>
+      </form>
+      <p class="q-dica" id="pres-resumo"></p>
+      <div class="tabela-wrap"><table class="tabela" id="tabela-presencas"></table></div>
+    </div>
+    <footer>
+      <span class="q-dica">Presenças pelo QR Code e registradas pelo RH.</span>
+      <button type="button" class="btn btn-claro btn-sm" id="pres-exportar">⬇ Exportar CSV</button>
+    </footer>
   </dialog>
 
   <!-- Editor de prova e gabarito -->

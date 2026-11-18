@@ -676,9 +676,11 @@ app.get('/api/admin/resultados', exigirAdmin, (_req, res) => {
       (SELECT COUNT(*) FROM aulas_vistas v WHERE v.cpf = c.cpf) AS aulas_vistas,
       (SELECT COUNT(*) FROM certificados ce WHERE ce.cpf = c.cpf) AS certificados,
       (SELECT ROUND(AVG(t.melhor), 1) FROM (SELECT MAX(nota) AS melhor FROM tentativas WHERE cpf = c.cpf GROUP BY prova_id) t) AS media,
-      (SELECT MAX(feito_em) FROM tentativas WHERE cpf = c.cpf) AS ultima_prova
+      (SELECT MAX(feito_em) FROM tentativas WHERE cpf = c.cpf) AS ultima_prova,
+      (SELECT COUNT(*) FROM presencas pr WHERE pr.cpf = c.cpf) AS presencas
     FROM colaboradores c WHERE c.ativo = 1 ORDER BY c.regional, c.filial, c.nome`).all();
-  res.json({ total_aulas: totalAulas, total_provas: totalProvas, linhas });
+  const totalEncontros = db.prepare('SELECT COUNT(*) AS n FROM encontros').get().n;
+  res.json({ total_aulas: totalAulas, total_provas: totalProvas, total_encontros: totalEncontros, linhas });
 });
 
 // -- Indicadores (painel do RH) --
@@ -869,6 +871,122 @@ app.get('/api/admin/reacao/qrcode/:modulo', exigirAdmin, async (req, res, next) 
     }
     res.json({ link, titulo: m.titulo, svg: await QRCode.toString(link, { ...opcoes, type: 'svg' }) });
   } catch (e) { next(e); }
+});
+
+// -- Aulas ao vivo e lista de presença --
+// Cada aula ao vivo tem um código próprio no QR Code. A presença só é aceita no dia da aula (horário de Brasília)
+// e enquanto a lista estiver aberta; o RH pode registrar ou remover presenças manualmente.
+
+const hojeBrasilia = () => new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Sao_Paulo' }).format(new Date());
+const DATA_VALIDA = /^\d{4}-\d{2}-\d{2}$/;
+
+function situacaoEncontro(e) {
+  if (!e.aberta) return 'fechada';
+  const hoje = hojeBrasilia();
+  return e.data === hoje ? 'aberta' : e.data > hoje ? 'agendada' : 'encerrada';
+}
+
+function linkPresenca(req, codigo) {
+  return `${req.protocol}://${req.get('host')}/presenca.html?c=${codigo}`;
+}
+
+const buscarEncontro = (codigo) => db.prepare(`
+  SELECT e.*, m.titulo AS modulo, m.icone FROM encontros e JOIN modulos m ON m.id = e.modulo_id WHERE e.codigo = ?`).get(String(codigo || ''));
+
+app.get('/api/presenca/:codigo', (req, res) => {
+  const e = buscarEncontro(req.params.codigo);
+  if (!e) return res.status(404).json({ erro: 'Lista de presença não encontrada. Confira o QR Code ou procure o time de DHO.' });
+  res.json({ modulo: e.modulo, icone: e.icone, titulo: e.titulo, data: e.data, situacao: situacaoEncontro(e) });
+});
+
+app.post('/api/presenca/:codigo', (req, res) => {
+  if (limiteCpf.bloqueado(req)) return res.status(429).json({ erro: MSG_LIMITE });
+  const e = buscarEncontro(req.params.codigo);
+  if (!e) return res.status(404).json({ erro: 'Lista de presença não encontrada.' });
+  const situacao = situacaoEncontro(e);
+  if (situacao !== 'aberta') {
+    const msg = { agendada: 'A lista de presença abre no dia da aula.', encerrada: 'A lista de presença desta aula já foi encerrada.', fechada: 'A lista de presença desta aula está fechada.' };
+    return res.status(409).json({ erro: `${msg[situacao]} Procure o time de DHO se precisar.` });
+  }
+  const colab = buscarColaborador(req.body?.cpf);
+  if (!colab) {
+    limiteCpf.registrar(req);
+    return res.status(403).json({ erro: 'Acesso negado. Procure o time de DHO.' });
+  }
+  const r = db.prepare('INSERT OR IGNORE INTO presencas (encontro_id, cpf) VALUES (?, ?)').run(e.id, colab.cpf);
+  const registro = db.prepare('SELECT registrada_em FROM presencas WHERE encontro_id = ? AND cpf = ?').get(e.id, colab.cpf);
+  definirSessao(res, 'sess_colab', { cpf: colab.cpf }, 12);
+  res.json({ ok: true, nome: colab.nome, ja_registrada: !r.changes, registrada_em: registro.registrada_em });
+});
+
+app.get('/api/admin/encontros', exigirAdmin, (_req, res) => {
+  const encontros = db.prepare(`
+    SELECT e.*, m.titulo AS modulo, (SELECT COUNT(*) FROM presencas p WHERE p.encontro_id = e.id) AS presentes
+    FROM encontros e JOIN modulos m ON m.id = e.modulo_id ORDER BY e.data DESC, e.id DESC`).all();
+  const ativos = db.prepare('SELECT COUNT(*) AS n FROM colaboradores WHERE ativo = 1').get().n;
+  res.json({ hoje: hojeBrasilia(), ativos, encontros: encontros.map(e => ({ ...e, situacao: situacaoEncontro(e) })) });
+});
+
+app.post('/api/admin/encontros', exigirAdmin, (req, res) => {
+  const moduloId = Number(req.body?.modulo_id);
+  const data = String(req.body?.data || '');
+  if (!db.prepare('SELECT 1 FROM modulos WHERE id = ?').get(moduloId)) return res.status(400).json({ erro: 'Escolha o módulo da aula.' });
+  if (!DATA_VALIDA.test(data)) return res.status(400).json({ erro: 'Informe a data da aula.' });
+  const codigo = crypto.randomBytes(6).toString('base64url');
+  const r = db.prepare('INSERT INTO encontros (modulo_id, data, titulo, codigo) VALUES (?, ?, ?, ?)')
+    .run(moduloId, data, String(req.body?.titulo || '').trim().slice(0, 120) || null, codigo);
+  res.json({ id: Number(r.lastInsertRowid) });
+});
+
+app.patch('/api/admin/encontros/:id', exigirAdmin, (req, res) => {
+  db.prepare('UPDATE encontros SET aberta = ? WHERE id = ?').run(req.body?.aberta ? 1 : 0, Number(req.params.id));
+  res.json({ ok: true });
+});
+
+app.delete('/api/admin/encontros/:id', exigirAdmin, (req, res) => {
+  db.prepare('DELETE FROM encontros WHERE id = ?').run(Number(req.params.id));
+  res.json({ ok: true });
+});
+
+app.get('/api/admin/encontros/:id/presencas', exigirAdmin, (req, res) => {
+  const e = db.prepare('SELECT e.*, m.titulo AS modulo FROM encontros e JOIN modulos m ON m.id = e.modulo_id WHERE e.id = ?').get(Number(req.params.id));
+  if (!e) return res.status(404).json({ erro: 'Aula não encontrada' });
+  const presencas = db.prepare(`
+    SELECT c.cpf, c.nome, c.cargo, c.filial, c.regional, p.origem, p.registrada_em
+    FROM presencas p JOIN colaboradores c ON c.cpf = p.cpf WHERE p.encontro_id = ? ORDER BY c.nome`).all(e.id);
+  res.json({ encontro: { ...e, situacao: situacaoEncontro(e) }, presencas });
+});
+
+app.post('/api/admin/encontros/:id/presencas', exigirAdmin, (req, res) => {
+  const e = db.prepare('SELECT id FROM encontros WHERE id = ?').get(Number(req.params.id));
+  if (!e) return res.status(404).json({ erro: 'Aula não encontrada' });
+  const documento = String(req.body?.documento || '');
+  const chaves = [normalizarCi(documento), normalizarCpf(documento)].filter(Boolean);
+  const digitos = documento.replace(/\D/g, '');
+  const colab = (digitos.length === 11 ? [normalizarCpf(digitos)] : chaves)
+    .map(ch => db.prepare('SELECT cpf, nome FROM colaboradores WHERE cpf = ?').get(ch)).find(Boolean);
+  if (!colab) return res.status(404).json({ erro: 'CPF ou CI não encontrado na base de colaboradores.' });
+  const r = db.prepare("INSERT OR IGNORE INTO presencas (encontro_id, cpf, origem) VALUES (?, ?, 'manual')").run(e.id, colab.cpf);
+  res.json({ ok: true, nome: colab.nome, ja_registrada: !r.changes });
+});
+
+app.delete('/api/admin/encontros/:id/presencas/:cpf', exigirAdmin, (req, res) => {
+  db.prepare('DELETE FROM presencas WHERE encontro_id = ? AND cpf = ?').run(Number(req.params.id), req.params.cpf);
+  res.json({ ok: true });
+});
+
+app.get('/api/admin/encontros/:id/qrcode', exigirAdmin, async (req, res, next) => {
+  const e = db.prepare('SELECT e.*, m.titulo AS modulo FROM encontros e JOIN modulos m ON m.id = e.modulo_id WHERE e.id = ?').get(Number(req.params.id));
+  if (!e) return res.status(404).json({ erro: 'Aula não encontrada' });
+  const link = linkPresenca(req, e.codigo);
+  try {
+    const opcoes = { margin: 2, width: 600, color: { dark: '#0e3b5c', light: '#ffffff' } };
+    if (req.query.formato === 'png') {
+      res.setHeader('Content-Disposition', `attachment; filename="qrcode-presenca-${e.data}.png"`);
+      return res.type('image/png').send(await QRCode.toBuffer(link, opcoes));
+    }
+    res.json({ link, modulo: e.modulo, titulo: e.titulo, data: e.data, svg: await QRCode.toString(link, { ...opcoes, type: 'svg' }) });
+  } catch (err) { next(err); }
 });
 
 // -- Backup do banco (colaboradores, temas, avaliações, notas e certificados) --

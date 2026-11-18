@@ -26,6 +26,11 @@
 .acoes-colab { white-space: nowrap; }
 .acoes-colab .btn + .btn { margin-left: .3rem; }
 @media (max-width: 860px) { .grade-colab { grid-template-columns: 1fr 1fr; } .grade-colab .largo { grid-column: 1 / -1; } }
+.opcional { font-weight: 400; color: var(--texto-suave); }
+.encontro-regra { margin: 0 auto 0 0; max-width: 640px; }
+.pres-manual { margin: 0 0 .4rem; align-items: center; }
+.pres-manual .campo { max-width: 260px; }
+#qr-arte { justify-self: center; }
 .cab-tabela { display: flex; align-items: center; gap: 1rem; flex-wrap: wrap; margin-bottom: 1rem; }
 .busca { max-width: 320px; margin-left: auto; }
 .filtros { display: flex; gap: .5rem; margin-left: auto; flex-wrap: wrap; }

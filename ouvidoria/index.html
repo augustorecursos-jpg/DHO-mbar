@@ -1,0 +1,214 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Ouvidoria Rebart's</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#161616; --surface:#1f1f1f; --surface-2:#262626; --line:#3a3a3a;
+    --text:#f2f2f2; --muted:#b5b5b5; --red:#cc0000; --red-dark:#7a0a0a; --red-soft:#f65f62;
+    --ok:#3fb37f; --radius:12px;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--text);font-family:Barlow,Arial,sans-serif;line-height:1.55}
+  a{color:var(--red-soft)}
+  .wrap{max-width:1040px;margin:0 auto;padding:0 16px}
+  header{border-bottom:1px solid var(--line);padding:18px 0}
+  header .wrap{display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap}
+  .brand{font-weight:600;font-size:20px;letter-spacing:.5px}
+  .brand span{color:var(--red)}
+  nav a{color:var(--muted);text-decoration:none;margin-left:18px;font-size:15px}
+  nav a:hover{color:var(--text)}
+  .hero{padding:56px 0 32px}
+  .tag{display:inline-block;border:1px solid var(--red-soft);color:var(--red-soft);border-radius:6px;padding:2px 10px;font-size:13px;letter-spacing:1px}
+  h1{font-size:clamp(32px,5vw,48px);font-weight:500;margin:12px 0 10px}
+  h1 em{font-style:normal;color:var(--red)}
+  .lead{color:var(--muted);max-width:680px;font-size:18px;margin:0}
+  h2{font-weight:500;font-size:26px;margin:0 0 16px}
+  section{padding:28px 0}
+  .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:16px}
+  .card{background:var(--red-dark);border-radius:var(--radius);padding:20px}
+  .card h3{margin:0 0 6px;font-weight:500;font-size:18px}
+  .card p{margin:0;color:#e3d6d6;font-size:15px}
+  .types{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:10px;margin-bottom:8px}
+  .types label{display:block;background:var(--surface-2);border:1px solid var(--line);border-radius:10px;padding:14px;cursor:pointer}
+  .types input{position:absolute;opacity:0}
+  .types label:has(input:checked){border-color:var(--red);background:#2d1414}
+  .types label:has(input:focus-visible){outline:2px solid var(--red-soft)}
+  .types strong{display:block;font-weight:600}
+  .types small{color:var(--muted)}
+  form.panel,.panel{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:24px}
+  .row{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+  @media (max-width:640px){.row{grid-template-columns:1fr} nav a{margin:0 14px 0 0}}
+  .field{margin-top:16px}
+  .field label{display:block;font-size:14px;color:var(--muted);margin-bottom:6px}
+  input[type=text],input[type=email],input[type=tel],input[type=date],select,textarea{
+    width:100%;background:var(--surface-2);color:var(--text);border:1px solid var(--line);border-radius:8px;padding:11px 12px;font:inherit}
+  input:focus,select:focus,textarea:focus{outline:none;border-color:var(--red-soft)}
+  textarea{min-height:150px;resize:vertical}
+  .switch{display:flex;align-items:center;gap:10px;margin-top:18px;background:var(--surface-2);border-radius:10px;padding:12px 14px}
+  .switch input{width:18px;height:18px;accent-color:var(--red)}
+  .hint{font-size:13px;color:var(--muted)}
+  .check{display:flex;gap:10px;align-items:flex-start;margin-top:18px;font-size:14px;color:var(--muted)}
+  .check input{margin-top:4px;accent-color:var(--red)}
+  .btn{background:var(--red);color:#fff;border:0;border-radius:8px;padding:13px 22px;font:inherit;font-weight:600;cursor:pointer;margin-top:20px}
+  .btn:hover{background:#e00000}
+  .btn.ghost{background:transparent;border:1px solid var(--line);color:var(--text)}
+  .hidden{display:none}
+  .result{margin-top:20px;border:1px solid var(--ok);border-radius:10px;padding:16px;background:#13261d}
+  .proto{font-size:24px;font-weight:600;letter-spacing:1px}
+  .steps{counter-reset:s;list-style:none;padding:0;margin:0;display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:16px}
+  .steps li{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:18px}
+  .steps li::before{counter-increment:s;content:counter(s);display:inline-grid;place-items:center;width:30px;height:30px;border-radius:50%;background:var(--red);font-weight:600;margin-bottom:8px}
+  .steps h3{margin:0 0 4px;font-weight:500;font-size:17px}
+  .steps p{margin:0;color:var(--muted);font-size:14px}
+  details{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:14px 16px;margin-bottom:10px}
+  summary{cursor:pointer;font-weight:500}
+  details p{color:var(--muted);margin:8px 0 0}
+  .draft{background:#3a3000;color:#ffe680;border-radius:8px;padding:10px 14px;font-size:14px;margin-top:20px}
+  footer{border-top:1px solid var(--line);color:var(--muted);font-size:14px;padding:24px 0;margin-top:30px}
+</style>
+</head>
+<body>
+<header>
+  <div class="wrap">
+    <div class="brand">Rebart's <span>Ouvidoria</span></div>
+    <nav>
+      <a href="#como-funciona">Como funciona</a>
+      <a href="#registrar">Registrar</a>
+      <a href="#consultar">Consultar</a>
+      <a href="#duvidas">Dúvidas</a>
+    </nav>
+  </div>
+</header>
+
+<main class="wrap">
+  <section class="hero">
+    <span class="tag">CANAL DE OUVIDORIA · NR-1</span>
+    <h1>Sua voz faz a <em>diferença</em></h1>
+    <p class="lead">Um canal seguro e sigiloso para registrar reclamações, denúncias, sugestões e elogios. Todos os relatos são analisados com imparcialidade e respeito.</p>
+    <div class="draft">Esboço / protótipo: este formulário ainda não envia dados. É necessário conectar a um sistema (e-mail, planilha ou plataforma de ouvidoria) antes do uso real.</div>
+  </section>
+
+  <section>
+    <div class="grid">
+      <div class="card"><h3>Sigilo garantido</h3><p>Você pode se identificar ou permanecer anônimo. As informações são tratadas conforme a LGPD.</p></div>
+      <div class="card"><h3>Sem retaliação</h3><p>Nenhum colaborador sofrerá represália por relatar de boa-fé.</p></div>
+      <div class="card"><h3>Acompanhamento</h3><p>Cada relato recebe um número de protocolo para consulta.</p></div>
+      <div class="card"><h3>Retorno</h3><p>Resposta em até 10 dias úteis, conforme a complexidade do caso.</p></div>
+    </div>
+  </section>
+
+  <section id="como-funciona">
+    <h2>Como funciona</h2>
+    <ol class="steps">
+      <li><h3>Registre</h3><p>Preencha o formulário com o máximo de detalhes possível.</p></li>
+      <li><h3>Guarde o protocolo</h3><p>Anote o número gerado ao final do envio.</p></li>
+      <li><h3>Análise</h3><p>A Ouvidoria avalia o relato e encaminha à área responsável.</p></li>
+      <li><h3>Retorno</h3><p>Consulte o andamento e a resposta pelo protocolo.</p></li>
+    </ol>
+  </section>
+
+  <section id="registrar">
+    <h2>Registrar manifestação</h2>
+    <form class="panel" id="form" novalidate>
+      <div class="types" role="radiogroup" aria-label="Tipo de manifestação">
+        <label><input type="radio" name="tipo" value="Reclamação" required><strong>Reclamação</strong><small>Insatisfação com algo</small></label>
+        <label><input type="radio" name="tipo" value="Denúncia"><strong>Denúncia</strong><small>Conduta irregular ou antiética</small></label>
+        <label><input type="radio" name="tipo" value="Sugestão"><strong>Sugestão</strong><small>Ideia de melhoria</small></label>
+        <label><input type="radio" name="tipo" value="Elogio"><strong>Elogio</strong><small>Reconhecer algo positivo</small></label>
+      </div>
+
+      <label class="switch"><input type="checkbox" id="anonimo" checked> <span><strong>Quero permanecer anônimo(a)</strong><br><span class="hint">Desmarque para informar seus dados de contato e receber retorno direto.</span></span></label>
+
+      <div id="ident" class="hidden">
+        <div class="row">
+          <div class="field"><label for="nome">Nome</label><input type="text" id="nome" autocomplete="name"></div>
+          <div class="field"><label for="setor">Setor</label>
+            <select id="setor"><option value="">Selecione</option><option>Fábrica</option><option>Recebimento / Expedição</option><option>Metrologia</option><option>Inspeção Final</option><option>Presset</option><option>Administrativo / RH</option><option>Outro</option></select></div>
+        </div>
+        <div class="row">
+          <div class="field"><label for="email">E-mail</label><input type="email" id="email" autocomplete="email"></div>
+          <div class="field"><label for="tel">Telefone / WhatsApp</label><input type="tel" id="tel" autocomplete="tel"></div>
+        </div>
+      </div>
+
+      <div class="row">
+        <div class="field"><label for="categoria">Assunto</label>
+          <select id="categoria" required>
+            <option value="">Selecione</option>
+            <option>Assédio moral</option><option>Assédio sexual</option><option>Discriminação</option>
+            <option>Saúde e segurança no trabalho</option><option>Riscos psicossociais (NR-1)</option>
+            <option>Conduta antiética / fraude</option><option>Ambiente e infraestrutura</option>
+            <option>Benefícios e RH</option><option>Melhoria de processos</option><option>Outro</option>
+          </select></div>
+        <div class="field"><label for="data">Data aproximada do ocorrido (opcional)</label><input type="date" id="data"></div>
+      </div>
+
+      <div class="field"><label for="local">Local / setor envolvido (opcional)</label><input type="text" id="local"></div>
+      <div class="field"><label for="desc">Descreva o ocorrido</label><textarea id="desc" required placeholder="O que aconteceu, quando, onde e quem estava envolvido (se aplicável)."></textarea></div>
+      <div class="field"><label for="anexo">Anexos (opcional)</label><input type="file" id="anexo" multiple><div class="hint">Fotos ou documentos que ajudem na análise.</div></div>
+
+      <label class="check"><input type="checkbox" id="lgpd" required> <span>Declaro que as informações são verdadeiras e estou ciente de que serão tratadas com sigilo, conforme a Lei Geral de Proteção de Dados (LGPD).</span></label>
+
+      <p id="erro" class="hint hidden" style="color:var(--red-soft)">Preencha o tipo, o assunto, a descrição e aceite o termo para continuar.</p>
+      <button class="btn" type="submit">Enviar manifestação</button>
+
+      <div id="ok" class="result hidden" role="status">
+        <div>Manifestação registrada (simulação). Seu protocolo:</div>
+        <div class="proto" id="proto"></div>
+        <div class="hint">Guarde este número para consultar o andamento.</div>
+      </div>
+    </form>
+  </section>
+
+  <section id="consultar">
+    <h2>Consultar protocolo</h2>
+    <div class="panel">
+      <div class="field" style="margin-top:0"><label for="qproto">Número do protocolo</label><input type="text" id="qproto" placeholder="Ex.: OUV-2026-123456"></div>
+      <button class="btn ghost" type="button" id="btnq">Consultar</button>
+      <p id="qres" class="hint" aria-live="polite"></p>
+    </div>
+  </section>
+
+  <section id="duvidas">
+    <h2>Dúvidas frequentes</h2>
+    <details><summary>Quem lê o meu relato?</summary><p>Somente a equipe responsável pela Ouvidoria, que encaminha o caso de forma sigilosa à área competente.</p></details>
+    <details><summary>Posso ser identificado se escolher o anonimato?</summary><p>Não. No modo anônimo nenhum dado pessoal é solicitado. Evite incluir na descrição informações que revelem sua identidade.</p></details>
+    <details><summary>Existem outros canais?</summary><p>Sim: caixas de Sugestões e Reclamações na fábrica, e-mail exclusivo da Ouvidoria e atendimento presencial no RH.</p></details>
+    <details><summary>O que acontece com denúncias falsas?</summary><p>Relatos feitos de má-fé, com intenção de prejudicar alguém, podem gerar medidas disciplinares.</p></details>
+  </section>
+</main>
+
+<footer>
+  <div class="wrap">Rebart's Usinagem de Precisão · Qualidade · Confiança · Inovação</div>
+</footer>
+
+<script>
+  const $ = id => document.getElementById(id);
+  $('anonimo').addEventListener('change', e => $('ident').classList.toggle('hidden', e.target.checked));
+
+  $('form').addEventListener('submit', e => {
+    e.preventDefault();
+    const tipo = document.querySelector('input[name=tipo]:checked');
+    const valido = tipo && $('categoria').value && $('desc').value.trim() && $('lgpd').checked;
+    $('erro').classList.toggle('hidden', !!valido);
+    if (!valido) return;
+    const n = 'OUV-' + new Date().getFullYear() + '-' + String(Math.floor(Math.random()*1e6)).padStart(6,'0');
+    $('proto').textContent = n;
+    $('ok').classList.remove('hidden');
+    $('ok').scrollIntoView({behavior:'smooth', block:'center'});
+  });
+
+  $('btnq').addEventListener('click', () => {
+    const v = $('qproto').value.trim();
+    $('qres').textContent = v
+      ? 'Protocolo ' + v + ': em análise (exemplo — a consulta real depende da integração com o sistema).'
+      : 'Informe um número de protocolo.';
+  });
+</script>
+</body>
+</html>
